@@ -20,7 +20,10 @@ class RAGConfig:
 
     # 模型配置
     embedding_model: str = "BAAI/bge-small-zh-v1.5"
-    llm_model: str = "kimi-k2-0711-preview"
+    llm_provider: str = "minimax"
+    llm_model: str = "Minimax-M2"
+    # llm_provider: str = "moonshot"
+    # llm_model: str = "kimi-k2-0711-preview"
 
     # 检索配置
     top_k: int = 5

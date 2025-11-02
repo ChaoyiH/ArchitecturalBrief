@@ -73,6 +73,7 @@ class BuildingRegulationRAGSystem:
         # 3. 初始化生成集成模块
         print("🤖 初始化生成集成模块...")
         self.generation_module = GenerationIntegrationModule(
+            provider=self.config.llm_provider,
             model_name=self.config.llm_model,
             temperature=self.config.temperature,
             max_tokens=self.config.max_tokens
