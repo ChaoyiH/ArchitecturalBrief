@@ -174,8 +174,8 @@ class BuildingRegulationRAGSystem:
         # 显示找到的文档名称
         doc_names = []
         for doc in relevant_docs:
-            dish_name = doc.metadata.get('dish_name', '未知文档')
-            doc_names.append(dish_name)
+            doc_name = doc.metadata.get('doc_name', '未知文档')
+            doc_names.append(doc_name)
 
         if doc_names:
             print(f"找到文档: {', '.join(doc_names)}")
@@ -185,7 +185,7 @@ class BuildingRegulationRAGSystem:
         print("✍️ 生成详细回答...")
 
 
-        return self.generation_module.generate_basic_answer(question, relevant_docs)
+        return self.generation_module.generate_basic_answer(question, relevant_chunks)
 
 
     
@@ -212,13 +212,6 @@ class BuildingRegulationRAGSystem:
             
 
                 print("\n回答:")
-                for chunk in self.ask_question(user_input):
-                    print(chunk, end="", flush=True)
-                print("\n")
-                #         print(chunk, end="", flush=True)
-                #     print("\n")
-                # else:
-                # 普通输出
                 answer = self.ask_question(user_input)
                 print(f"{answer}\n")
                 
