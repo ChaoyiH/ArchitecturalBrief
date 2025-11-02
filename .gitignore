@@ -2,3 +2,6 @@
 log/*
 # 希望 log 文件夹为空时也能被 Git 保留
 !log/.gitkeep
+
+# 忽略__pycache__ 文件夹及其内容
+code/__pycache__/*
