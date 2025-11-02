@@ -16,29 +16,15 @@ logger = logging.getLogger(__name__)
 
 class DataPreparationModule:
     """数据准备模块 - 负责数据加载、清洗和预处理"""
-    # 统一维护的分类与难度配置，供外部复用，避免关键词重复定义
-    CATEGORY_MAPPING = {
-        'meat_dish': '荤菜',
-        'vegetable_dish': '素菜',
-        'soup': '汤品',
-        'dessert': '甜品',
-        'breakfast': '早餐',
-        'staple': '主食',
-        'aquatic': '水产',
-        'condiment': '调料',
-        'drink': '饮品'
-    }
-    CATEGORY_LABELS = list(set(CATEGORY_MAPPING.values()))
-    DIFFICULTY_LABELS = ['非常简单', '简单', '中等', '困难', '非常困难']
     
-    def __init__(self, data_path: str):
+    def __init__(self, data_paths: list):
         """
         初始化数据准备模块
         
         Args:
-            data_path: 数据文件夹路径
+            data_paths: 数据文件夹路径列表
         """
-        self.data_path = data_path
+        self.data_paths = data_paths if isinstance(data_paths, list) else [data_paths]
         self.documents: List[Document] = []  # 父文档（完整食谱）
         self.chunks: List[Document] = []     # 子文档（按标题分割的小块）
         self.parent_child_map: Dict[str, str] = {}  # 子块ID -> 父文档ID的映射
@@ -50,92 +36,51 @@ class DataPreparationModule:
         Returns:
             加载的文档列表
         """
-        logger.info(f"正在从 {self.data_path} 加载文档...")
+        logger.info(f"正在从 {self.data_paths} 加载文档...")
         
         # 直接读取Markdown文件以保持原始格式
         documents = []
-        data_path_obj = Path(self.data_path)
-
-        for md_file in data_path_obj.rglob("*.md"):
-            try:
-                # 直接读取文件内容，保持Markdown格式
-                with open(md_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
-
-                # 为每个父文档分配确定性的唯一ID（基于数据根目录的相对路径）
-                try:
-                    data_root = Path(self.data_path).resolve()
-                    relative_path = Path(md_file).resolve().relative_to(data_root).as_posix()
-                except Exception:
-                    relative_path = Path(md_file).as_posix()
-                parent_id = hashlib.md5(relative_path.encode("utf-8")).hexdigest()
-
-                # 创建Document对象
-                doc = Document(
-                    page_content=content,
-                    metadata={
-                        "source": str(md_file),
-                        "parent_id": parent_id,
-                        "doc_type": "parent"  # 标记为父文档
-                    }
-                )
-                documents.append(doc)
-
-            except Exception as e:
-                logger.warning(f"读取文件 {md_file} 失败: {e}")
         
-        # 增强文档元数据
-        for doc in documents:
-            self._enhance_metadata(doc)
+        # 遍历所有数据路径
+        for data_path in self.data_paths:
+            data_path_obj = Path(data_path)
+            if not data_path_obj.exists():
+                logger.warning(f"数据路径不存在: {data_path}")
+                continue
+                
+            logger.info(f"正在读取: {data_path}")
+            for md_file in data_path_obj.rglob("*.md"):
+                try:
+                    # 直接读取文件内容，保持Markdown格式
+                    with open(md_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+
+                    # 为每个父文档分配确定性的唯一ID（基于相对路径）
+                    try:
+                        data_root = Path(data_path).resolve()
+                        relative_path = Path(md_file).resolve().relative_to(data_root).as_posix()
+                    except Exception:
+                        relative_path = Path(md_file).as_posix()
+                    parent_id = hashlib.md5(relative_path.encode("utf-8")).hexdigest()
+
+                    # 创建Document对象
+                    doc = Document(
+                        page_content=content,
+                        metadata={
+                            "source": str(md_file),
+                            "parent_id": parent_id,
+                            "doc_type": "parent",  # 标记为父文档
+                            "doc_name": md_file.stem
+                        }
+                    )
+                    documents.append(doc)
+
+                except Exception as e:
+                    logger.warning(f"读取文件 {md_file} 失败: {e}")
         
         self.documents = documents
         logger.info(f"成功加载 {len(documents)} 个文档")
         return documents
-    
-    def _enhance_metadata(self, doc: Document):
-        """
-        增强文档元数据
-        
-        Args:
-            doc: 需要增强元数据的文档
-        """
-        file_path = Path(doc.metadata.get('source', ''))
-        path_parts = file_path.parts
-        
-        # 提取菜品分类
-        doc.metadata['category'] = '其他'
-        for key, value in self.CATEGORY_MAPPING.items():
-            if key in path_parts:
-                doc.metadata['category'] = value
-                break
-        
-        # 提取菜品名称
-        doc.metadata['dish_name'] = file_path.stem
-
-        # 分析难度等级
-        content = doc.page_content
-        if '★★★★★' in content:
-            doc.metadata['difficulty'] = '非常困难'
-        elif '★★★★' in content:
-            doc.metadata['difficulty'] = '困难'
-        elif '★★★' in content:
-            doc.metadata['difficulty'] = '中等'
-        elif '★★' in content:
-            doc.metadata['difficulty'] = '简单'
-        elif '★' in content:
-            doc.metadata['difficulty'] = '非常简单'
-        else:
-            doc.metadata['difficulty'] = '未知'
-
-    @classmethod
-    def get_supported_categories(cls) -> List[str]:
-        """对外提供支持的分类标签列表"""
-        return cls.CATEGORY_LABELS
-
-    @classmethod
-    def get_supported_difficulties(cls) -> List[str]:
-        """对外提供支持的难度标签列表"""
-        return cls.DIFFICULTY_LABELS
     
     def chunk_documents(self) -> List[Document]:
         """
@@ -207,6 +152,7 @@ class DataPreparationModule:
 
                 # 为每个子块建立与父文档的关系
                 parent_id = doc.metadata["parent_id"]
+                doc_name = doc.metadata.get("doc_name", "未知文档")
 
                 for i, chunk in enumerate(md_chunks):
                     # 为子块分配唯一ID
@@ -218,7 +164,8 @@ class DataPreparationModule:
                         "chunk_id": child_id,
                         "parent_id": parent_id,
                         "doc_type": "child",  # 标记为子文档
-                        "chunk_index": i      # 在父文档中的位置
+                        "chunk_index": i,      # 在父文档中的位置
+                        "doc_name": doc_name
                     })
 
                     # 建立父子映射关系
@@ -233,30 +180,6 @@ class DataPreparationModule:
 
         logger.info(f"Markdown结构分割完成，生成 {len(all_chunks)} 个结构化块")
         return all_chunks
-
-    def filter_documents_by_category(self, category: str) -> List[Document]:
-        """
-        按分类过滤文档
-        
-        Args:
-            category: 菜品分类
-            
-        Returns:
-            过滤后的文档列表
-        """
-        return [doc for doc in self.documents if doc.metadata.get('category') == category]
-    
-    def filter_documents_by_difficulty(self, difficulty: str) -> List[Document]:
-        """
-        按难度过滤文档
-        
-        Args:
-            difficulty: 难度等级
-            
-        Returns:
-            过滤后的文档列表
-        """
-        return [doc for doc in self.documents if doc.metadata.get('difficulty') == difficulty]
     
     def get_statistics(self) -> Dict[str, Any]:
         """
@@ -268,23 +191,15 @@ class DataPreparationModule:
         if not self.documents:
             return {}
 
-        categories = {}
-        difficulties = {}
-
+        doc_names = {}
         for doc in self.documents:
-            # 统计分类
-            category = doc.metadata.get('category', '未知')
-            categories[category] = categories.get(category, 0) + 1
-
-            # 统计难度
-            difficulty = doc.metadata.get('difficulty', '未知')
-            difficulties[difficulty] = difficulties.get(difficulty, 0) + 1
+            doc_name = doc.metadata.get('doc_name', '未知')
+            doc_names[doc_name] = doc_names.get(doc_name, 0) + 1
 
         return {
             'total_documents': len(self.documents),
             'total_chunks': len(self.chunks),
-            'categories': categories,
-            'difficulties': difficulties,
+            'doc_count': len(doc_names),
             'avg_chunk_size': sum(chunk.metadata.get('chunk_size', 0) for chunk in self.chunks) / len(self.chunks) if self.chunks else 0
         }
     
@@ -301,9 +216,7 @@ class DataPreparationModule:
         for doc in self.documents:
             metadata_list.append({
                 'source': doc.metadata.get('source'),
-                'dish_name': doc.metadata.get('dish_name'),
-                'category': doc.metadata.get('category'),
-                'difficulty': doc.metadata.get('difficulty'),
+                'doc_name': doc.metadata.get('doc_name'),
                 'content_length': len(doc.page_content)
             })
         
@@ -354,10 +267,10 @@ class DataPreparationModule:
         # 收集父文档名称和相关性信息用于日志
         parent_info = []
         for doc in parent_docs:
-            dish_name = doc.metadata.get('dish_name', '未知菜品')
+            doc_name = doc.metadata.get('doc_name', '未知文档')
             parent_id = doc.metadata.get('parent_id')
             relevance_count = parent_relevance.get(parent_id, 0)
-            parent_info.append(f"{dish_name}({relevance_count}块)")
+            parent_info.append(f"{doc_name}({relevance_count}块)")
 
         logger.info(f"从 {len(child_chunks)} 个子块中找到 {len(parent_docs)} 个去重父文档: {', '.join(parent_info)}")
         return parent_docs
