@@ -12,6 +12,13 @@ from typing import List
 sys.path.append(str(Path(__file__).parent))
 
 from dotenv import load_dotenv
+# 终端输出捕获与消息记录（独立模块，可用环境变量 LOG_CAPTURE/MSG_CAPTURE 开关，默认开启）
+try:
+    from log_setup import setup as _log_setup, record_message as _record_msg
+    _log_setup()
+except Exception:
+    # 捕获失败不影响系统运行
+    pass
 from config import DEFAULT_CONFIG, RAGConfig
 from rag_modules import (
     DataPreparationModule,
@@ -212,8 +219,19 @@ class BuildingRegulationRAGSystem:
                     break
             
 
+                # 记录用户消息（若启用）
+                try:
+                    _record_msg("user", user_input)
+                except Exception:
+                    pass
+
                 print("\n回答:")
                 answer = self.ask_question(user_input)
+                # 记录助手消息（若启用）
+                try:
+                    _record_msg("assistant", str(answer))
+                except Exception:
+                    pass
                 print(f"{answer}\n")
                 
             except KeyboardInterrupt:

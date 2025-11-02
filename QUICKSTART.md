@@ -138,3 +138,37 @@ pip install -r requirements.txt
 ---
 
 **如有问题，请参考完整文档**: `MIGRATION_SUMMARY.md`
+
+## 📝 日志与消息记录（调试用）
+
+系统启动时会自动创建一次运行会话目录，并将终端输出与对话消息分别记录：
+
+- 会话目录：`code/log/<会话时间戳>/`（例如：`code/log/20251102_153045/`）
+- 终端日志：`<会话时间戳>.log`（例如：`20251102_153045.log`）
+- 消息记录：`<会话时间戳>.json`（OpenAI 风格 message 数组，例如：`20251102_153045.json`）
+
+默认开启；可通过环境变量开关：
+
+```powershell
+# 关闭日志捕获（仅当前会话）
+$env:LOG_CAPTURE = "0"; python code/main.py
+
+# 关闭消息记录（仅当前会话）
+$env:MSG_CAPTURE = "0"; python code/main.py
+
+# 开启（默认即为开启）
+$env:LOG_CAPTURE = "1"; $env:MSG_CAPTURE = "1"; python code/main.py
+```
+
+说明：
+
+- 模块文件：`code/log_setup.py`（独立、低耦合）。
+- 错误安全：记录失败不会中断系统运行。
+- 消息格式示例：
+   ```json
+   [
+      {"role": "system", "content": "session started", "timestamp": "...", "meta": {"cwd": "..."}},
+      {"role": "user", "content": "你的问题...", "timestamp": "..."},
+      {"role": "assistant", "content": "系统回答...", "timestamp": "..."}
+   ]
+   ```
