@@ -172,3 +172,32 @@ $env:LOG_CAPTURE = "1"; $env:MSG_CAPTURE = "1"; python code/main.py
       {"role": "assistant", "content": "系统回答...", "timestamp": "..."}
    ]
    ```
+
+## 🧠 设计理念生成模块（Design Concepts Stage 1）
+
+`code/design_generator.py` 提供了“设计理念”阶段的独立入口，负责：
+
+- 针对 `data/china/`、`data/world/`、`data/archdaily/`、`data/zlj/bwg.md` 的语义字段抽取。
+- 构建 FAISS 向量索引，并保留面积、类别等元数据供检索过滤。
+- 生成包含 JSON 结构约束的 Prompt，引导 LLM 输出可直接解析的理念建议书。
+
+### 快速体验
+
+```powershell
+cd d:\016_RAG\project\code
+
+# 首次运行建议重建索引 + Dry Run
+python design_generator.py --project-name "海洋科技馆" --project-features "滨海，生态教育" --rebuild-index --dry-run --show-contexts
+
+# 调整过滤条件并调用模型
+python design_generator.py --project-name "山地博物馆" --project-features "山地地形，沉浸互动" --min-area 30000 --category museum --show-contexts
+```
+
+可选参数：
+
+- `--query`：自定义检索关键词（默认使用项目特征）。
+- `--top-k`：返回案例数量（默认 4）。
+- `--min-area` / `--max-area`：按建筑面积过滤案例。
+- `--category`：按项目类别过滤（如 `museum`, `science museum`）。
+- `--dry-run`：仅输出 Prompt 与上下文，不触发模型调用。
+- `--rebuild-index`：重建 `code/vector_index/design_concepts/` 索引。

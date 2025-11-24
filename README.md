@@ -11,6 +11,7 @@
 * **智能问答**：支持针对建筑规范、设计要求的自然语言提问。
 * **规范检索**：覆盖各类建筑设计防火规范、无障碍设计规范、博物馆/科技馆建设标准等（位于 `data/gb/`）。
 * **项目资料库**：支持特定项目的资料查询（位于 `data/zlj/`）。
+* **任务书生成**：新增 “Design Concepts” 入口，可基于案例库自动生成设计理念方向。
 * **RAG 架构**：
     * **数据处理**：自动清洗和切分 Markdown 格式的建筑文档。
     * **向量索引**：使用 FAISS 构建本地向量索引，实现高效检索。
@@ -95,6 +96,30 @@ python main.py --build_index
 ```bash
 python main.py
 ```
+
+### 6. 任务书生成（Design Concepts 第一阶段）
+
+设计理念模块拥有独立入口（与 `main.py` 平行）并内置语义字段抽取、向量检索与 JSON Prompt。
+
+```bash
+# 进入 code 目录后运行
+python design_generator.py \
+  --project-name "海洋科技馆" \
+  --project-features "滨海选址，强调生态教育与沉浸式互动" \
+  --show-contexts
+
+# 首次运行（或更新资料后）可强制重建索引
+python design_generator.py --project-name "科普馆" --project-features "山区，低碳" --rebuild-index --dry-run
+```
+
+常用参数：
+
+- `--project-name` / `--project-features`：描述当前任务书需求。
+- `--query`：自定义检索语句（默认使用特征描述）。
+- `--top-k`、`--min-area`、`--max-area`、`--category`：语料筛选器。
+- `--dry-run`：只输出 Prompt 与参考案例，不调用 LLM。
+- `--show-contexts`：打印检索到的案例摘要，便于调试。
+- `--rebuild-index`：重建 `code/vector_index/design_concepts/` 中的设计理念索引。
 
 ## 🛠️ 开发与维护
 
