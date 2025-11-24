@@ -1,0 +1,53 @@
+==== RUN START 2025-11-25T00:45:19.020323 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: design_generator.py --project-name 示例项目 --project-features 示例特征 --rebuild-index
+=================================
+
+D:\016_RAG\project\code\rag_modules\design_concept_pipeline.py:214: LangChainDeprecationWarning: The class `HuggingFaceEmbeddings` was deprecated in LangChain 0.2.2 and will be removed in 1.0. An updated version of the class exists in the :class:`~langchain-huggingface package and should be used instead. To use it run `pip install -U :class:`~langchain-huggingface` and import as `from :class:`~langchain_huggingface import HuggingFaceEmbeddings``.
+  self.embedding = HuggingFaceEmbeddings(
+2025-11-25 00:45:23,814 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-25 00:45:23,814 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-25 00:45:31,413 - rag_modules.design_concept_pipeline - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-25 00:45:31,490 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\china提取理念 48 条
+2025-11-25 00:45:31,566 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\world提取理念 50 条
+2025-11-25 00:45:31,651 - rag_modules.design_concept_pipeline - INFO - 从ArchDaily提取理念 52 条
+2025-11-25 00:45:31,653 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\zlj\bwg.md提取知识段落 2 条
+2025-11-25 00:45:31,654 - rag_modules.design_concept_pipeline - INFO - 设计理念ETL完成，共提取 152 条语义单元
+2025-11-25 00:45:31,655 - rag_modules.design_concept_pipeline - INFO - 正在构建设计理念向量索引（文档=152）...
+2025-11-25 00:45:37,484 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-11-25 00:45:37,504 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-11-25 00:45:37,618 - rag_modules.design_concept_pipeline - INFO - 设计理念索引保存至: D:\016_RAG\project\code\vector_index\design_concepts
+2025-11-25 00:45:37,633 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-25 00:45:37,648 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-25 00:45:37,662 - __main__ - ERROR - 设计理念生成模块运行失败: 'Input to ChatPromptTemplate is missing variables {\'\\n  "analysis"\'}.  Expected: [\'\\n  "analysis"\'] Received: []\nNote: if you intended {\n  "analysis"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{\n  "analysis"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\design_generator.py", line 165, in <module>
+    main()
+  File "D:\016_RAG\project\code\design_generator.py", line 120, in main
+    result = generator.generate(
+             ^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\rag_modules\design_concept_pipeline.py", line 425, in generate
+    response = chain.invoke({})
+               ^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 3244, in invoke
+    input_ = context.run(step.invoke, input_, config, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\prompts\base.py", line 214, in invoke
+    return self._call_with_config(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 2092, in _call_with_config
+    context.run(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\config.py", line 430, in call_func_with_variable_args
+    return func(input, **kwargs)  # type: ignore[call-arg]
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\prompts\base.py", line 187, in _format_prompt_with_error_handling
+    inner_input_ = self._validate_input(inner_input)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\prompts\base.py", line 181, in _validate_input
+    raise KeyError(
+KeyError: 'Input to ChatPromptTemplate is missing variables {\'\\n  "analysis"\'}.  Expected: [\'\\n  "analysis"\'] Received: []\nNote: if you intended {\n  "analysis"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{\n  "analysis"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+系统错误: 'Input to ChatPromptTemplate is missing variables {\'\\n  "analysis"\'}.  Expected: [\'\\n  "analysis"\'] Received: []\nNote: if you intended {\n  "analysis"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{\n  "analysis"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+
+=================================
+==== RUN END   2025-11-25T00:45:37.674042 ====
