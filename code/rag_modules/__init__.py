@@ -8,6 +8,11 @@ from .design_concept_pipeline import (
     DesignConceptPromptBuilder,
     DesignConceptVectorStore,
 )
+from .exhibition_pipeline import (
+    ExhibitionGenerator,
+    ExhibitionPromptBuilder,
+    ExhibitionVectorStore,
+)
 
 __all__ = [
     'DataPreparationModule',
@@ -17,7 +22,10 @@ __all__ = [
     'DesignConceptGenerator',
     'DesignConceptETL',
     'DesignConceptPromptBuilder',
-    'DesignConceptVectorStore'
+    'DesignConceptVectorStore',
+    'ExhibitionGenerator',
+    'ExhibitionPromptBuilder',
+    'ExhibitionVectorStore'
 ]
 
 __version__ = "1.0.0"

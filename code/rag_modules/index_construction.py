@@ -3,7 +3,7 @@
 """
 
 import logging
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -15,7 +15,12 @@ logger = logging.getLogger(__name__)
 class IndexConstructionModule:
     """索引构建模块 - 负责向量化和索引构建"""
 
-    def __init__(self, model_name: str = "BAAI/bge-small-zh-v1.5", index_save_path: str = "./vector_index"):
+    def __init__(
+        self,
+        model_name: str = "BAAI/bge-small-zh-v1.5",
+        index_save_path: str = "./vector_index",
+        index_name: Optional[str] = None,
+    ):
         """
         初始化索引构建模块
 
@@ -24,7 +29,10 @@ class IndexConstructionModule:
             index_save_path: 索引保存路径
         """
         self.model_name = model_name
-        self.index_save_path = index_save_path
+        base_path = Path(index_save_path)
+        if index_name:
+            base_path = base_path / index_name
+        self.index_save_path = str(base_path)
         self.embeddings = None
         self.vectorstore = None
         self.setup_embeddings()

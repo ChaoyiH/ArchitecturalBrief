@@ -1,19 +1,26 @@
-"""Entry point for the Design Concept generation module."""
+"""Entry point for design concept & exhibition-space generators."""
 
 from __future__ import annotations
 
 import argparse
 import logging
 import sys
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
-from config import DEFAULT_DESIGN_CONCEPT_CONFIG, DesignConceptConfig
+from config import (
+    DEFAULT_DESIGN_CONCEPT_CONFIG,
+    DEFAULT_EXHIBITION_CONFIG,
+    DesignConceptConfig,
+    ExhibitionConfig,
+)
 from rag_modules.design_concept_pipeline import DesignConceptGenerator
+from rag_modules.exhibition_pipeline import ExhibitionGenerator
+from langchain_core.documents import Document
 
 logger = logging.getLogger(__name__)
 
 # 尝试启用统一日志/消息捕获
-try:  # pragma: no cover - best effort logging bootstrap
+try:  # pragma: no cover
     from log_setup import setup as _log_setup, record_message as _record_msg
 
     _log_setup()
@@ -23,7 +30,7 @@ except Exception:  # noqa: BLE001
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Design Concept (任务书) 生成模块入口"
+        description="Task brief generator (设计理念 / 展览空间)"
     )
     parser.add_argument("--project-name", required=True, help="项目名称或类型")
     parser.add_argument(
@@ -31,39 +38,26 @@ def _parse_args() -> argparse.Namespace:
         required=True,
         help="项目关键特征或背景描述（例如选址、规模、体验重点等）",
     )
-    parser.add_argument(
-        "--query",
-        help="自定义检索查询语句（默认使用项目特征）",
-    )
-    parser.add_argument(
-        "--top-k",
-        type=int,
-        default=None,
-        help="检索案例数量（默认读取配置 top_k）",
-    )
-    parser.add_argument(
-        "--min-area",
-        type=float,
-        help="按建筑面积下限过滤（单位：与数据一致）",
-    )
-    parser.add_argument(
-        "--max-area",
-        type=float,
-        help="按建筑面积上限过滤",
-    )
-    parser.add_argument(
-        "--category",
-        help="按项目类别（如 museum、science museum 等）过滤",
-    )
+    parser.add_argument("--query", help="自定义检索查询语句（默认使用项目特征）")
+    parser.add_argument("--top-k", type=int, default=None, help="检索案例数量")
+    parser.add_argument("--min-area", type=float, help="按建筑面积下限过滤")
+    parser.add_argument("--max-area", type=float, help="按建筑面积上限过滤")
+    parser.add_argument("--category", help="按项目类别过滤")
     parser.add_argument(
         "--rebuild-index",
         action="store_true",
-        help="强制重建设计理念向量索引",
+        help="强制重建所选步骤的向量索引",
+    )
+    parser.add_argument(
+        "--step",
+        choices=["design", "exhibition", "both"],
+        default="design",
+        help="指定生成阶段",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="仅输出提示词与检索内容，不调用大模型",
+        help="仅输出提示词与上下文，不调用模型",
     )
     parser.add_argument(
         "--show-contexts",
@@ -84,81 +78,111 @@ def _build_filters(args: argparse.Namespace) -> Dict[str, object]:
     return filters
 
 
-def _log_request(project_name: str, project_features: str, query: Optional[str]):
+def _log_request(step: str, project_name: str, project_features: str, query: Optional[str]):
     if '_record_msg' not in globals() or _record_msg is None:
         return
     try:
         _record_msg(
             "user",
-            f"Design Concept brief: {project_name}",
+            f"{step.title()} brief: {project_name}",
             meta={"features": project_features, "query": query},
         )
     except Exception:  # noqa: BLE001
         pass
 
 
-def _log_response(response: str):
+def _log_response(step: str, response: str):
     if '_record_msg' not in globals() or _record_msg is None:
         return
     try:
-        _record_msg("assistant", response)
+        _record_msg("assistant", f"[{step}] {response}")
     except Exception:  # noqa: BLE001
         pass
+
+
+def _print_contexts(contexts: List[Document]):
+    print("📚 检索上下文摘要:")
+    for idx, doc in enumerate(contexts, 1):
+        meta = doc.metadata or {}
+        area_meta = meta.get('total_area') or meta.get('total_area_num')
+        print(
+            f"[{idx}] {meta.get('project_name', meta.get('doc_name', '片段'))} | 来源: {meta.get('source_type')} | 面积: {area_meta}"
+        )
+        snippet = doc.page_content.strip()
+        snippet = snippet[:300] + "..." if len(snippet) > 300 else snippet
+        print(snippet)
+        print("-" * 40)
 
 
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     args = _parse_args()
-    config: DesignConceptConfig = DEFAULT_DESIGN_CONCEPT_CONFIG
-
-    generator = DesignConceptGenerator(config)
-    generator.ensure_index(rebuild=args.rebuild_index)
-
     filters = _build_filters(args)
-    _log_request(args.project_name, args.project_features, args.query)
 
-    result = generator.generate(
-        project_name=args.project_name,
-        project_features=args.project_features,
-        query=args.query,
-        top_k=args.top_k,
-        filters=filters if filters else None,
-        dry_run=args.dry_run,
-    )
+    steps: List[str] = ["design", "exhibition"] if args.step == "both" else [args.step]
 
-    contexts = result.get("contexts", [])
-    prompt = result.get("prompt")
-    response = result.get("response")
+    results: Dict[str, Dict[str, object]] = {}
 
-    print("=" * 80)
-    print(f"🎯 项目: {args.project_name}")
-    print(f"🧭 特征: {args.project_features}")
-    print("=" * 80)
+    if "design" in steps:
+        design_config: DesignConceptConfig = DEFAULT_DESIGN_CONCEPT_CONFIG
+        design_generator = DesignConceptGenerator(design_config)
+        design_generator.ensure_index(rebuild=args.rebuild_index)
+        _log_request("design", args.project_name, args.project_features, args.query)
+        results["design"] = design_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            filters=filters if filters else None,
+            dry_run=args.dry_run,
+        )
 
-    if args.show_contexts and contexts:
-        print("📚 检索上下文摘要:")
-        for idx, doc in enumerate(contexts, 1):
-            meta = doc.metadata or {}
-            print(f"[{idx}] {meta.get('project_name', '未知案例')} | 来源: {meta.get('source_type')} | 面积: {meta.get('total_area') or meta.get('total_area_num')}")
-            snippet = doc.page_content.strip()
-            snippet = snippet[:300] + "..." if len(snippet) > 300 else snippet
-            print(snippet)
-            print("-" * 40)
+    if "exhibition" in steps:
+        exhibition_config: ExhibitionConfig = DEFAULT_EXHIBITION_CONFIG
+        exhibition_generator = ExhibitionGenerator(exhibition_config)
+        _log_request("exhibition", args.project_name, args.project_features, args.query)
+        results["exhibition"] = exhibition_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
 
-    if args.dry_run:
-        print("🧱 DRY RUN (未调用模型)")
-        if prompt:
-            print("System Prompt:\n", prompt["system_prompt"])
-            print("\nUser Prompt:\n", prompt["user_prompt"])
-        return
+    for step_name in steps:
+        result = results.get(step_name)
+        if not result:
+            continue
 
-    if not response:
-        print("⚠️ 未获得模型输出")
-        return
+        contexts = result.get("contexts", [])
+        prompt = result.get("prompt")
+        response = result.get("response")
 
-    print("🧠 设计理念建议书 (JSON):\n")
-    print(response)
-    _log_response(str(response))
+        print("=" * 80)
+        print(f"🎯 项目: {args.project_name} | 步骤: {step_name}")
+        print(f"🧭 特征: {args.project_features}")
+        print("=" * 80)
+
+        if args.show_contexts and contexts:
+            _print_contexts(contexts)
+
+        if args.dry_run:
+            print("🧱 DRY RUN (未调用模型)")
+            if prompt:
+                print("System Prompt:\n", prompt["system_prompt"])
+                print("\nUser Prompt:\n", prompt["user_prompt"])
+            continue
+
+        if not response:
+            print("⚠️ 未获得模型输出")
+            continue
+
+        title = "设计理念建议书" if step_name == "design" else "展览空间设计要求"
+        print(f"🧠 {title} (JSON):\n")
+        print(response)
+        _log_response(step_name, str(response))
+
 
 if __name__ == "__main__":
     try:

@@ -1,0 +1,60 @@
+==== RUN START 2025-11-25T01:29:00.594159 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: design_generator.py --project-name 济南科技馆 --project-features 省会城市科技馆，位于黄河边 --step both --rebuild-index
+=================================
+
+2025-11-25 01:29:14,257 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-25 01:29:14,258 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-25 01:29:21,524 - rag_modules.design_concept_pipeline - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-25 01:29:21,628 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\china提取理念 48 条
+2025-11-25 01:29:21,719 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\world提取理念 50 条
+2025-11-25 01:29:21,812 - rag_modules.design_concept_pipeline - INFO - 从ArchDaily提取理念 52 条
+2025-11-25 01:29:21,816 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\zlj\bwg.md提取知识段落 2 条
+2025-11-25 01:29:21,817 - rag_modules.design_concept_pipeline - INFO - 设计理念ETL完成，共提取 152 条语义单元
+2025-11-25 01:29:21,818 - rag_modules.design_concept_pipeline - INFO - 正在构建设计理念向量索引（文档=152）...
+2025-11-25 01:29:25,956 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-11-25 01:29:26,099 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-11-25 01:29:26,124 - rag_modules.design_concept_pipeline - INFO - 设计理念索引保存至: D:\016_RAG\project\code\vector_index\design_concepts
+2025-11-25 01:29:26,148 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-25 01:29:26,170 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-25 01:29:54,788 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-11-25 01:29:54,792 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-25 01:29:54,792 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-25 01:30:01,992 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-25 01:30:02,331 - rag_modules.data_preparation - INFO - 展览空间数据抽取完成，共 455 条
+2025-11-25 01:30:02,331 - rag_modules.exhibition_pipeline - INFO - 正在构建设计展览空间索引 (文档=455)...
+2025-11-25 01:30:14,099 - rag_modules.exhibition_pipeline - INFO - 展览空间索引保存至: D:\016_RAG\project\code\vector_index\exhibition_space
+2025-11-25 01:30:14,115 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-25 01:30:14,116 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-25 01:30:14,117 - __main__ - ERROR - 设计理念生成模块运行失败: 'Input to ChatPromptTemplate is missing variables {\'\\n    "net_height"\', \'\\n      "name"\', \'m\'}.  Expected: [\'\\n      "name"\', \'\\n    "net_height"\', \'m\'] Received: []\nNote: if you intended {\n    "net_height"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{\n    "net_height"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\design_generator.py", line 189, in <module>
+    main()
+  File "D:\016_RAG\project\code\design_generator.py", line 144, in main
+    results["exhibition"] = exhibition_generator.generate(
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\rag_modules\exhibition_pipeline.py", line 235, in generate
+    response = chain.invoke({})
+               ^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 3244, in invoke
+    input_ = context.run(step.invoke, input_, config, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\prompts\base.py", line 214, in invoke
+    return self._call_with_config(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 2092, in _call_with_config
+    context.run(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\config.py", line 430, in call_func_with_variable_args
+    return func(input, **kwargs)  # type: ignore[call-arg]
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\prompts\base.py", line 187, in _format_prompt_with_error_handling
+    inner_input_ = self._validate_input(inner_input)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\prompts\base.py", line 181, in _validate_input
+    raise KeyError(
+KeyError: 'Input to ChatPromptTemplate is missing variables {\'\\n    "net_height"\', \'\\n      "name"\', \'m\'}.  Expected: [\'\\n      "name"\', \'\\n    "net_height"\', \'m\'] Received: []\nNote: if you intended {\n    "net_height"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{\n    "net_height"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+系统错误: 'Input to ChatPromptTemplate is missing variables {\'\\n    "net_height"\', \'\\n      "name"\', \'m\'}.  Expected: [\'\\n      "name"\', \'\\n    "net_height"\', \'m\'] Received: []\nNote: if you intended {\n    "net_height"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{\n    "net_height"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+
+=================================
+==== RUN END   2025-11-25T01:30:14.131653 ====

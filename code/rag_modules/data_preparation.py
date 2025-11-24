@@ -1,16 +1,17 @@
-"""
-数据准备模块
-"""
+"""数据准备模块"""
 
+import json
 import logging
 import hashlib
+import re
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from langchain_core.documents import Document
-from pathlib import Path
 import uuid
+
+from config import ExhibitionConfig
 
 logger = logging.getLogger(__name__)
 
@@ -275,3 +276,172 @@ class DataPreparationModule:
 
         logger.info(f"从 {len(child_chunks)} 个子块中找到 {len(parent_docs)} 个去重父文档: {', '.join(parent_info)}")
         return parent_docs
+
+
+class ExhibitionDataExtractor:
+    """基于语义字段提取展览空间相关片段的处理器 (KnowledgeBaseProcessor)。"""
+
+    GB_KEYWORDS = ("展厅", "陈列", "净高", "柱网", "荷载")
+    ZLJ_SECTION_PATTERNS = ("陈列展览区", "陈列", "布局")
+
+    def __init__(self, config: ExhibitionConfig):
+        self.config = config
+
+    def load_documents(self) -> List[Document]:
+        documents: List[Document] = []
+        documents.extend(self._load_structured_json(self.config.china_data_path, source_type="china"))
+        documents.extend(self._load_structured_json(self.config.world_data_path, source_type="world"))
+        documents.extend(self._load_archdaily(self.config.archdaily_data_path))
+        documents.extend(self._load_gb_markdown(self.config.gb_data_path))
+        documents.extend(self._load_zlj_markdown(self.config.zlj_data_path))
+        logger.info("展览空间数据抽取完成，共 %d 条", len(documents))
+        return documents
+
+    def _load_structured_json(self, folder: str, source_type: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            logger.warning("展览空间数据路径不存在: %s", folder)
+            return []
+
+        docs: List[Document] = []
+        for json_file in path.glob("*.json"):
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", json_file, exc)
+                continue
+
+            payload = self._collect_json_fields(data)
+            if not payload:
+                continue
+
+            project_name = data.get("name") or data.get("Project Title") or json_file.stem
+            total_area = data.get("total_construction_area") or data.get("total_construction_area_sqm")
+            central_hall = data.get("central_hall")
+
+            content_lines = [f"项目: {project_name}"]
+            if total_area:
+                content_lines.append(f"总建筑面积: {total_area}")
+            if central_hall:
+                content_lines.append(f"中央大厅: {central_hall}")
+            content_lines.extend(payload)
+
+            docs.append(Document(
+                page_content="\n".join(content_lines),
+                metadata={
+                    "source": str(json_file),
+                    "source_type": source_type,
+                    "project_name": project_name,
+                    "total_area": total_area,
+                    "section": "permanent_exhibitions",
+                }
+            ))
+
+        return docs
+
+    def _collect_json_fields(self, data: Dict[str, Any]) -> List[str]:
+        values: List[str] = []
+        field_map = {
+            "permanent_exhibitions": "常设展览",
+            "central_hall": "中央大厅",
+            "total_construction_area": "总建筑面积",
+            "陈列展览区": "陈列展览区",
+        }
+        for key, label in field_map.items():
+            value = data.get(key)
+            if isinstance(value, list):
+                value = "\n".join(value)
+            if value:
+                values.append(f"{label}: {value}".strip())
+        return values
+
+    def _load_archdaily(self, folder: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            return []
+        docs: List[Document] = []
+        for json_file in path.glob("*.json"):
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", json_file, exc)
+                continue
+
+            content = data.get("陈列展览区") or data.get("Description")
+            if isinstance(content, list):
+                content = "\n".join(content[:3])
+            if not content:
+                continue
+            project_name = data.get("Project Title", json_file.stem)
+            docs.append(Document(
+                page_content=f"项目: {project_name}\n{content}",
+                metadata={
+                    "source": str(json_file),
+                    "source_type": "archdaily",
+                    "project_name": project_name,
+                }
+            ))
+        return docs
+
+    def _load_gb_markdown(self, folder: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            return []
+        docs: List[Document] = []
+        for md_file in path.rglob("*.md"):
+            try:
+                text = md_file.read_text(encoding="utf-8")
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", md_file, exc)
+                continue
+            paragraphs = re.split(r"\n\s*\n", text)
+            for para in paragraphs:
+                if any(keyword in para for keyword in self.GB_KEYWORDS):
+                    docs.append(Document(
+                        page_content=para.strip(),
+                        metadata={
+                            "source": str(md_file),
+                            "source_type": "gb_standard",
+                            "doc_name": md_file.stem,
+                            "section": "GB 展陈条文",
+                        }
+                    ))
+        return docs
+
+    def _load_zlj_markdown(self, folder: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            return []
+        docs: List[Document] = []
+        for md_file in path.glob("*.md"):
+            try:
+                text = md_file.read_text(encoding="utf-8")
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", md_file, exc)
+                continue
+
+            for section_header, section_body in self._iter_sections(text):
+                docs.append(Document(
+                    page_content=f"{section_header}\n{section_body.strip()}",
+                    metadata={
+                        "source": str(md_file),
+                        "source_type": "zlj",  # 资料集
+                        "section": section_header.strip('# ').strip(),
+                        "doc_name": md_file.stem,
+                    }
+                ))
+        return docs
+
+    def _iter_sections(self, text: str):
+        pattern = re.compile(r"^##\s+(.+)$", re.MULTILINE)
+        matches = list(pattern.finditer(text))
+        for idx, match in enumerate(matches):
+            header = match.group(0)
+            title = match.group(1)
+            if not any(token in title for token in self.ZLJ_SECTION_PATTERNS):
+                continue
+            start = match.end()
+            end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+            yield header, text[start:end]

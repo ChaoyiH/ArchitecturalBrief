@@ -1,0 +1,73 @@
+==== RUN START 2025-11-25T01:35:41.230710 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: design_generator.py --project-name 测试项目 --project-features 测试特征 --step exhibition --dry-run
+=================================
+
+2025-11-25 01:35:50,704 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-25 01:35:50,705 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-25 01:35:59,467 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-11-25 01:35:59,489 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-11-25 01:35:59,660 - rag_modules.exhibition_pipeline - INFO - 已加载展览空间索引: D:\016_RAG\project\code\vector_index\exhibition_space
+================================================================================
+🎯 项目: 测试项目 | 步骤: exhibition
+🧭 特征: 测试特征
+================================================================================
+🧱 DRY RUN (未调用模型)
+System Prompt:
+ 你是一位资深展陈建筑师，熟悉中国及国际展览建筑规范。回答时需指出关键空间指标（净高、柱网、荷载、面积）、流线策略、功能分区。若引用 GB/国标内容，必须明确列出规范编号和条款。输出必须是严格合法的 JSON。
+
+User Prompt:
+ # 项目背景
+项目名称/类型: 测试项目
+展览空间特征: 测试特征
+
+# 参考上下文
+以下为规范条文与案例中的展览空间要点 (含 GB 条文时请优先引用):
+【片段1 | 来源:archdaily | 名称:Haus der Digitalisierung Tulln】
+项目: Haus der Digitalisierung Tulln
+a showroom for digital technologies. The heart of the building is the flexible showroom that can transform into an event hall.
+【片段2 | 来源:archdaily | 名称:Muzeiko Children's Science Discovery Center】
+项目: Muzeiko Children's Science Discovery Center
+Three levels of exhibits: On the lowest level, children explore “The Past” through exhibits interpreting archaeology, geology and paleontology. The ground floor is “The Present,” represented by hands-on exhibits about the natural environment and contemporary cities. The top floor is dedicated to “The Future” with interactive exhibitions exploring cutting-edge technologies and space travel.
+【片段3 | 来源:archdaily | 名称:MAAT】
+项目: MAAT
+Below, the exhibition spaces are extensions of the public realm, with flowing interconnected places for experiences and interactions at the intersection of the three disciplines. These spaces complement the galleries of the converted Central Tejo building.
+【片段4 | 来源:archdaily | 名称:Seoul Robot & AI Museum】
+项目: Seoul Robot & AI Museum
+offering a space for exhibitions, hands-on experiences, and educational programs focused on robotics and AI. At the heart of the museum, the vertical exhibition tunnel dissolves the boundary between the tangible world and the realm of robotics and AI, leading visitors to permanent and temporary exhibitions on the upper floors.
+【片段5 | 来源:archdaily | 名称:Patricia and Phillip Frost Museum of Science】
+项目: Patricia and Phillip Frost Museum of Science
+an aquarium experience totaling over 500,000 gallons; a full dome planetarium; interactive exhibits; two additional wings of exhibition space; Energy Playground
+【片段6 | 来源:archdaily | 名称:Moscow Polytechnic Museum and Educational Center Competition Entry】
+项目: Moscow Polytechnic Museum and Educational Center Competition Entry
+The diagonal atrium provides deeper floor-plates at the lower levels for controlled, exhibition lighting. The atrium’s terraces create double and triple height areas for exhibition, spreading exhibition and program information throughout the various programmatic zones. Oriented around the main atrium at levels 1 and 2 are large, simply shaped gallery spaces along the front and back facades. These climatically controlled gallery spaces are designed for flexibility and can easily allow their exhibitions to extend into the double and triple height spaces around the atrium. The galleries have a high level of climatic and environmental control systems.
+
+# 生成任务
+结合项目背景与上下文, 输出展览空间设计要求 JSON。
+不得杜撰不存在的规范条文, 需要引用 GB 时写明编号。
+
+# 输出格式
+请严格返回以下 JSON 模板:
+{{
+  "analysis": "概述检索到的展陈设计要点，不超过200字",
+  "spatial_metrics": {{
+    "net_height": "...",
+    "column_grid": "...",
+    "floor_load": "...",
+    "area_allocation": "...",
+    "flow_and_circulation": "..."
+  }},
+  "functional_zones": [
+    {{
+      "name": "常设展厅",
+      "requirements": "..."
+    }}
+  ],
+  "gb_references": ["GBxxxx-xxxx 第x.x条 ..."],
+  "case_inspirations": ["引用案例及启示"]
+}}
+
+
+=================================
+==== RUN END   2025-11-25T01:35:59.697754 ====
