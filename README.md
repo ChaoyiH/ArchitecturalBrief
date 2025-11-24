@@ -32,11 +32,15 @@ ArchitecturalBrief/
 │   │   └── generation_integration.py # 生成模块
 │   └── vector_index/           # 存储生成的 FAISS 索引文件
 ├── data/                       # 知识库数据
-│   ├── gb/                     # 国家标准 (Markdown 格式)
-│   └── zlj/                    # 项目资料及图片资源
+│   ├── archdaily/              # ArchDaily 项目数据 (JSON)
+│   ├── china/                  # 国内博物馆数据 (JSON)
+│   ├── world/                  # 国际博物馆数据 (JSON)
+│   ├── gb/                     # 国家标准规范 (Markdown)
+│   └── zlj/                    # 设计资料集与图片资源 (Markdown + Images)
 ├── MIGRATION_SUMMARY.md        # 迁移总结文档
 ├── COMPARISON.md               # 版本对比文档
-└── QUICKSTART.md               # 快速开始指南
+├── QUICKSTART.md               # 快速开始指南
+└── README.md                   # 项目说明文档
 ````
 
 ## 🚀 快速开始 (Quick Start)
@@ -108,3 +112,152 @@ python main.py
   * **Index Construction**: 将切分后的文本转换为 Embedding 向量并存入 FAISS。
   * **Retrieval**: 计算用户 Query 与本地向量的相似度，召回 Top-K 相关片段。
   * **Generation**: 构建 Prompt，将 Query 和 Context 发送给 LLM。
+
+
+## 数据格式说明
+
+以下是 `data` 文件夹中各子目录数据文件的数据模式（Schema）。本项目包含结构化（JSON）和非结构化（Markdown）两类数据。在处理 RAG 检索或代码生成时，请参考以下数据模式：
+
+-----
+
+### 结构化数据 (JSON)
+* **archdaily/**: 包含项目 ID、标题、描述、关键区域（如设计理念、展览区）的文本提取。
+* **china/ & world/**: 包含博物馆的基础建设指标（面积、层数、高度）及各功能区的详细介绍。
+
+### 非结构化数据 (Markdown)
+* **gb/** (标准规范):
+    * 层级严格：H1(标题) -> H2(章) -> H3(节) -> H4(条文号)。
+    * 包含 LaTeX 公式和 Markdown 表格。
+* **zlj/** (设计资料集):
+    * 层级结构：H1(主题) -> H2(模块) -> H3(知识点) -> H4(图表)。
+    * 包含 HTML/Markdown 混合表格及本地图片引用。
+
+-----
+
+### 1\. `data/archdaily/` (ArchDaily 项目数据)
+
+该目录下的文件为 `.json` 格式，主要包含从 ArchDaily 爬取的博物馆建筑项目详情，侧重于建筑设计说明及功能分区的提取。
+
+**JSON 数据模式:**
+
+```json
+{
+  "Project ID": "String (项目唯一标识ID)",
+  "Project Title": "String (项目名称)",
+  "Categories": "List[String] (项目类别，如 Museum, Research Center)",
+  "City": "String (城市)",
+  "Country": "String (国家)",
+  "Architects": "List[String] (建筑师/事务所列表)",
+  "Area": "String (建筑面积，包含单位)",
+  "Year": "String (年份)",
+  "Project URL": "String (原文链接)",
+  "Description": "List[String] (项目描述，每一项为一段文本)",
+  "设计理念": "String (提取出的设计理念描述)",
+  "陈列展览区": "String (提取出的展览空间相关描述)",
+  "公共服务区": "String (提取出的公共服务空间描述，如入口、休息区)",
+  "业务科研用房": "String (提取出的办公与科研空间描述)",
+  "藏品库区": "String (提取出的藏品存储空间描述)",
+  "综合大厅/中庭": "String (提取出的中庭/大厅空间描述)",
+  "特效影厅": "String (提取出的影院/剧场相关描述)",
+  "科教活动": "String (提取出的教育活动空间描述)",
+  "建筑形态特征": "String (提取出的建筑外观与形态特征描述)",
+  "images": [
+    {
+      "filename": "String (图片文件名)",
+      "tags": "List[String] (图片标签，如 Interior Photography, Facade)",
+      "caption": "String (图片版权或说明)"
+    }
+  ]
+}
+```
+
+### 2\. `data/china/` (国内博物馆数据)
+
+该目录下的文件为 `.json` 格式，主要包含中国国内博物馆的详细建设指标与功能介绍。
+
+**JSON 数据模式:**
+
+```json
+{
+  "name": "String (博物馆中文名称)",
+  "english_name": "String (博物馆英文名称)",
+  "opening_date": "String (开馆日期/分期开放时间)",
+  "total_construction_area_sqm": "String (总建筑面积，通常为数字字符串)",
+  "floors_above_ground": "String (地上层数)",
+  "floors_under_ground": "String (地下层数)",
+  "building_height_meters": "String (建筑高度，单位：米)",
+  "concept&appearance": "String (设计理念与建筑外观造型描述)",
+  "permanent_exhibitions": "String (常设展览内容介绍，通常包含各楼层展厅详情)",
+  "central_hall": "String (中央大厅/序厅的空间描述)",
+  "special_effects_theaters": "String (特效影厅配置，如IMAX、4D影院等)",
+  "science_popularization_activities": "String (科普活动与教育项目介绍)"
+}
+```
+
+### 3\. `data/world/` (国际博物馆数据)
+
+该目录下的文件为 `.json` 格式，主要包含世界其他国家博物馆的建设指标与功能介绍，结构与国内数据高度相似，但字段名略有不同（如面积单位后缀）。
+
+**JSON 数据模式:**
+
+```json
+{
+  "name": "String (博物馆名称)",
+  "opening_date": "String (开馆日期)",
+  "total_construction_area": "String (总建筑面积，通常包含数值和单位文本)",
+  "floors_above_ground": "Number/String (地上层数)",
+  "floors_under_ground": "Number/String (地下层数)",
+  "building_height": "String (建筑高度，通常包含数值和单位文本)",
+  "concept&appearance": "String (设计概念与建筑外观描述)",
+  "permanent_exhibitions": "String (常设展览详情)",
+  "central_hall": "String (中央大厅/中庭描述)",
+  "special_effects_theaters": "String (特效影厅设施描述)",
+  "science_popularization_activities": "String (科普与教育活动描述)"
+}
+```
+
+### 4\. `data/gb/` (国家标准规范数据)
+
+该目录下的文件为 `.md` (Markdown) 格式，存储了建筑设计相关的国家标准和规范文本。这些文件遵循严格的层级结构，以模拟标准文档的章节条款。
+
+**Markdown 数据模式 (结构规则):**
+
+  * **文档标题 (H1)**:
+      * 格式: `# <标准名称> <标准编号>`
+      * 示例: `# 《博物馆建筑设计规范》 JGJ 66-2015`
+  * **章 (H2)**:
+      * 格式: `## <章号> <章标题>`
+      * 示例: `## 1 总 则`
+  * **节 (H3)**:
+      * 格式: `### <节号> <节标题>`
+      * 示例: `### 3.1 选 址`
+  * **条 (H4)**:
+      * 格式: `#### <条号>`
+      * 示例: `#### 3.1.1`
+  * **内容元素**:
+      * **正文**: 标准条款的具体文本。
+      * **列表**: 使用有序列表 (`1.`, `2.`) 或无序列表表示款、项内容。
+      * **表格**: 使用 Markdown 标准表格语法 (`| Header | ... |`) 展示数据指标（如面积指标、参数限值）。
+      * **公式**: 使用 LaTeX 语法 (`$$...$$`) 表示计算公式（如疏散人数计算）。
+
+### 5\. `data/zlj/` (资料集/知识库数据)
+
+该目录下的文件为 `.md` (Markdown) 格式，整理了不同类型建筑（如博物馆、科技馆等）的通用设计知识、流线组织、功能构成等百科类信息。
+
+**Markdown 数据模式 (结构规则):**
+
+  * **主题标题 (H1)**:
+      * 格式: `# <建筑类型名称>`
+      * 示例: `# 博物馆`
+  * **一级分类 (H2)**:
+      * 格式: `## <主要知识模块>`
+      * 示例: `## 基本概念`, `## 布局与要求`, `## 陈列展览区`
+  * **二级分类 (H3)**:
+      * 格式: `### <具体知识点>`
+      * 示例: `### 定义`, `### 流线组织`, `### 空间尺度`
+  * **三级分类 (H4)**
+      * 格式: `### <图表>`
+  * **内容元素**:
+      * **正文**: 知识点的详细描述。
+      * **表格**: 混合使用了 Markdown 表格和 HTML 表格 (`<table>`)，用于展示复杂的分类统计或对比数据（如“博物馆建筑规模分类表”）。
+      * **图片**: 使用 Markdown 图片语法 (`![](images/...)`) 引用相关示意图或案例图，图片文件通常位于同级目录的 `images/` 文件夹中。
