@@ -29,10 +29,10 @@ class IndexConstructionModule:
             index_save_path: 索引保存路径
         """
         self.model_name = model_name
-        base_path = Path(index_save_path)
-        if index_name:
-            base_path = base_path / index_name
-        self.index_save_path = str(base_path)
+        self.base_path = Path(index_save_path)
+        self.index_name = index_name
+        resolved_path = self.base_path / index_name if index_name else self.base_path
+        self.index_save_path = str(resolved_path.resolve())
         self.embeddings = None
         self.vectorstore = None
         self.setup_embeddings()

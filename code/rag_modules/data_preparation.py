@@ -16,6 +16,7 @@ from config import (
     PublicServiceConfig,
     BusinessResearchConfig,
     CentralHubConfig,
+    SpecialTheaterConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -917,6 +918,231 @@ class CentralHubDataExtractor:
             end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
             yield header, text[start:end]
 
+
+class SpecialTheaterDataExtractor:
+    """特效影院数据抽取器。"""
+
+    JSON_FIELD_KEYS = (
+        "special_effects_theaters",
+        "special_effects_theater",
+        "特效影院",
+        "影院配置",
+        "特效剧场",
+    )
+    SENTENCE_KEYWORDS = (
+        "theater",
+        "cinema",
+        "imax",
+        "planetarium",
+        "dome",
+        "4d",
+        "4-d",
+        "特效影院",
+        "球幕",
+        "巨幕",
+        "动感影院",
+    )
+    GB_TARGET_FILES = ("科学技术馆建设标准", "博物馆建筑设计规范")
+    GB_KEYWORDS = ("影院", "球幕", "巨幕", "IMAX", "4D", "声学", "疏散", "银幕", "放映")
+    ZLJ_KEYWORDS = ("球幕", "巨幕", "4D", "动感", "特效", "影院", "IMAX", "planetarium")
+
+    def __init__(self, config: SpecialTheaterConfig):
+        self.config = config
+
+    def load_documents(self) -> List[Document]:
+        documents: List[Document] = []
+        documents.extend(self._load_structured_json(self.config.china_data_path, source_type="china"))
+        documents.extend(self._load_structured_json(self.config.world_data_path, source_type="world"))
+        documents.extend(self._load_archdaily(self.config.archdaily_data_path))
+        documents.extend(self._load_gb_markdown(self.config.gb_data_path))
+        documents.extend(self._load_zlj_markdown(self.config.zlj_data_path))
+        logger.info("特效影院数据抽取完成，共 %d 条", len(documents))
+        return documents
+
+    def _load_structured_json(self, folder: str, source_type: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            logger.warning("特效影院数据路径不存在: %s", folder)
+            return []
+
+        docs: List[Document] = []
+        for json_file in path.glob("*.json"):
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", json_file, exc)
+                continue
+
+            payload = self._collect_field_lines(data)
+            snippets: List[str] = []
+            snippets.extend(self._extract_snippets(data.get("Description")))
+            snippets.extend(self._extract_snippets(data.get("permanent_exhibitions")))
+            snippets = list(dict.fromkeys(snippets))
+
+            if not payload and not snippets:
+                continue
+
+            project_name = data.get("name") or data.get("Project Title") or json_file.stem
+            total_area = data.get("total_construction_area") or data.get("total_construction_area_sqm")
+            content_lines = [f"项目: {project_name}"]
+            if total_area:
+                content_lines.append(f"总建筑面积: {total_area}")
+            if payload:
+                content_lines.append("特效影院配置:")
+                content_lines.extend(payload)
+            if snippets:
+                content_lines.append("描述片段:")
+                content_lines.extend(snippets)
+
+            docs.append(Document(
+                page_content="\n".join(content_lines),
+                metadata={
+                    "source": str(json_file),
+                    "source_type": source_type,
+                    "project_name": project_name,
+                    "section": "special_theater",
+                }
+            ))
+        return docs
+
+    def _collect_field_lines(self, data: Dict[str, Any]) -> List[str]:
+        values: List[str] = []
+        for field in self.JSON_FIELD_KEYS:
+            value = data.get(field)
+            normalized = self._normalize(value)
+            if normalized:
+                values.append(f"{field}: {normalized}")
+        return values
+
+    def _extract_snippets(self, content: Any) -> List[str]:
+        text = self._normalize(content)
+        if not text:
+            return []
+        sentences = [s.strip() for s in re.split(r"(?<=[。！？!?\.])\s*", text) if s.strip()]
+        snippets: List[str] = []
+        for idx, sentence in enumerate(sentences):
+            lowered = sentence.lower()
+            if any(keyword in lowered for keyword in self.SENTENCE_KEYWORDS):
+                window = sentences[max(0, idx - 1): min(len(sentences), idx + 2)]
+                snippet = " ".join(window).strip()
+                if snippet:
+                    snippets.append(snippet)
+        return list(dict.fromkeys(snippets))
+
+    def _normalize(self, value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, list):
+            return "\n".join(str(v).strip() for v in value if v)
+        return str(value).strip()
+
+    def _load_archdaily(self, folder: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            return []
+
+        docs: List[Document] = []
+        for json_file in path.glob("*.json"):
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", json_file, exc)
+                continue
+
+            content_parts: List[str] = []
+            special_field = data.get("special_effects_theaters") or data.get("特效影院")
+            normalized_field = self._normalize(special_field)
+            if normalized_field:
+                content_parts.append(normalized_field)
+
+            desc_snippets = self._extract_snippets(data.get("Description"))
+            exhibit_snippets = self._extract_snippets(data.get("permanent_exhibitions"))
+            for snippet in desc_snippets + exhibit_snippets:
+                if snippet not in content_parts:
+                    content_parts.append(snippet)
+
+            if not content_parts:
+                continue
+
+            project_name = data.get("Project Title", json_file.stem)
+            docs.append(Document(
+                page_content=f"项目: {project_name}\n" + "\n".join(content_parts),
+                metadata={
+                    "source": str(json_file),
+                    "source_type": "archdaily",
+                    "project_name": project_name,
+                }
+            ))
+        return docs
+
+    def _load_gb_markdown(self, folder: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            return []
+
+        docs: List[Document] = []
+        for md_file in path.rglob("*.md"):
+            if not any(target in md_file.stem for target in self.GB_TARGET_FILES):
+                continue
+            try:
+                text = md_file.read_text(encoding="utf-8")
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", md_file, exc)
+                continue
+
+            for title, body in self._extract_gb_sections(text):
+                docs.append(Document(
+                    page_content=f"{title}\n{body.strip()}",
+                    metadata={
+                        "source": str(md_file),
+                        "source_type": "gb_standard",
+                        "doc_name": md_file.stem,
+                        "section": title.strip('# ').strip(),
+                    }
+                ))
+        return docs
+
+    def _extract_gb_sections(self, text: str):
+        pattern = re.compile(r"(####\s+[0-9.]+[^\n]*\n[\s\S]+?)(?=####\s+[0-9.]|\Z)", re.MULTILINE)
+        for block in pattern.findall(text):
+            if any(keyword in block for keyword in self.GB_KEYWORDS):
+                header_match = re.match(r"(####\s+[0-9.]+[^\n]*)", block)
+                title = header_match.group(1) if header_match else "特效影院条文"
+                yield title, block
+
+    def _load_zlj_markdown(self, folder: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            return []
+
+        docs: List[Document] = []
+        for md_file in path.rglob("*.md"):
+            if md_file.name.lower() == "images":
+                continue
+            try:
+                text = md_file.read_text(encoding="utf-8")
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", md_file, exc)
+                continue
+
+            for para in re.split(r"\n\s*\n", text):
+                cleaned = para.strip()
+                if not cleaned:
+                    continue
+                lower = cleaned.lower()
+                if any(keyword in lower for keyword in (kw.lower() for kw in self.ZLJ_KEYWORDS)):
+                    docs.append(Document(
+                        page_content=cleaned,
+                        metadata={
+                            "source": str(md_file),
+                            "source_type": "zlj",
+                            "doc_name": md_file.stem,
+                            "section": "特效影院资料",
+                        }
+                    ))
+        return docs
 
 class BusinessResearchDataExtractor:
     """业务科研区数据抽取器。"""

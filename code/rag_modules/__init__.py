@@ -23,6 +23,11 @@ from .central_hub_pipeline import (
     CentralHubPromptBuilder,
     CentralHubVectorStore,
 )
+from .special_theater_pipeline import (
+    SpecialTheaterGenerator,
+    SpecialTheaterPromptBuilder,
+    SpecialTheaterVectorStore,
+)
 from .business_research_pipeline import (
     BusinessResearchGenerator,
     BusinessResearchPromptBuilder,
@@ -47,6 +52,9 @@ __all__ = [
     'CentralHubGenerator',
     'CentralHubPromptBuilder',
     'CentralHubVectorStore',
+    'SpecialTheaterGenerator',
+    'SpecialTheaterPromptBuilder',
+    'SpecialTheaterVectorStore',
     'BusinessResearchGenerator',
     'BusinessResearchPromptBuilder',
     'BusinessResearchVectorStore'
