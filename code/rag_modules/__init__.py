@@ -18,6 +18,11 @@ from .public_service_pipeline import (
     PublicServicePromptBuilder,
     PublicServiceVectorStore,
 )
+from .central_hub_pipeline import (
+    CentralHubGenerator,
+    CentralHubPromptBuilder,
+    CentralHubVectorStore,
+)
 from .business_research_pipeline import (
     BusinessResearchGenerator,
     BusinessResearchPromptBuilder,
@@ -39,6 +44,9 @@ __all__ = [
     'PublicServiceGenerator',
     'PublicServicePromptBuilder',
     'PublicServiceVectorStore',
+    'CentralHubGenerator',
+    'CentralHubPromptBuilder',
+    'CentralHubVectorStore',
     'BusinessResearchGenerator',
     'BusinessResearchPromptBuilder',
     'BusinessResearchVectorStore'

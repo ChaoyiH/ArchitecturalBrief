@@ -9,15 +9,18 @@ from typing import Dict, List, Optional
 
 from config import (
     DEFAULT_BUSINESS_RESEARCH_CONFIG,
+    DEFAULT_CENTRAL_HUB_CONFIG,
     DEFAULT_DESIGN_CONCEPT_CONFIG,
     DEFAULT_EXHIBITION_CONFIG,
     DEFAULT_PUBLIC_SERVICE_CONFIG,
     BusinessResearchConfig,
+    CentralHubConfig,
     DesignConceptConfig,
     ExhibitionConfig,
     PublicServiceConfig,
 )
 from rag_modules.business_research_pipeline import BusinessResearchGenerator
+from rag_modules.central_hub_pipeline import CentralHubGenerator
 from rag_modules.design_concept_pipeline import DesignConceptGenerator
 from rag_modules.exhibition_pipeline import ExhibitionGenerator
 from rag_modules.public_service_pipeline import PublicServiceGenerator
@@ -57,7 +60,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--step",
         default="design",
-        help="指定生成阶段，可选 design / exhibition / public_service / business_research / both / all，或以逗号分隔组合",
+        help=(
+            "指定生成阶段，可选 design / central_hub / exhibition / public_service / business_research / both / all，"
+            "或以逗号分隔组合"
+        ),
     )
     parser.add_argument(
         "--dry-run",
@@ -90,16 +96,22 @@ def _resolve_steps(step_arg: str) -> List[str]:
     lowered = step_arg.lower()
     alias_map = {
         "design": ["design"],
+        "concept": ["design"],
         "exhibition": ["exhibition"],
         "public_service": ["public_service"],
         "public-service": ["public_service"],
         "service": ["public_service"],
+        "central_hub": ["central_hub"],
+        "central-hub": ["central_hub"],
+        "central": ["central_hub"],
+        "atrium": ["central_hub"],
+        "hub": ["central_hub"],
         "business_research": ["business_research"],
         "business-research": ["business_research"],
         "business": ["business_research"],
         "research": ["business_research"],
         "both": ["design", "exhibition"],
-        "all": ["design", "exhibition", "public_service", "business_research"],
+        "all": ["design", "central_hub", "exhibition", "public_service", "business_research"],
     }
 
     if lowered in alias_map:
@@ -107,7 +119,7 @@ def _resolve_steps(step_arg: str) -> List[str]:
 
     tokens = [token.strip() for token in lowered.replace("+", ",").split(",") if token.strip()]
     resolved: List[str] = []
-    valid_steps = {"design", "exhibition", "public_service", "business_research"}
+    valid_steps = {"design", "central_hub", "exhibition", "public_service", "business_research"}
     for token in tokens:
         mapped = alias_map.get(token, [token])
         for item in mapped:
@@ -116,6 +128,9 @@ def _resolve_steps(step_arg: str) -> List[str]:
             if item not in resolved:
                 resolved.append(item)
     return resolved or ["design"]
+
+
+EXECUTION_ORDER = ["design", "central_hub", "exhibition", "public_service", "business_research"]
 
 
 def _log_request(step: str, project_name: str, project_features: str, query: Optional[str]):
@@ -159,62 +174,75 @@ def main():
     args = _parse_args()
     filters = _build_filters(args)
 
-    steps: List[str] = _resolve_steps(args.step)
+    requested_steps: List[str] = _resolve_steps(args.step)
+    steps: List[str] = [step for step in EXECUTION_ORDER if step in requested_steps]
+    if not steps:
+        steps = requested_steps
 
     results: Dict[str, Dict[str, object]] = {}
 
-    if "design" in steps:
-        design_config: DesignConceptConfig = DEFAULT_DESIGN_CONCEPT_CONFIG
-        design_generator = DesignConceptGenerator(design_config)
-        design_generator.ensure_index(rebuild=args.rebuild_index)
-        _log_request("design", args.project_name, args.project_features, args.query)
-        results["design"] = design_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
-            filters=filters if filters else None,
-            dry_run=args.dry_run,
-        )
-
-    if "exhibition" in steps:
-        exhibition_config: ExhibitionConfig = DEFAULT_EXHIBITION_CONFIG
-        exhibition_generator = ExhibitionGenerator(exhibition_config)
-        _log_request("exhibition", args.project_name, args.project_features, args.query)
-        results["exhibition"] = exhibition_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
-            rebuild_index=args.rebuild_index,
-            dry_run=args.dry_run,
-        )
-
-    if "public_service" in steps:
-        service_config: PublicServiceConfig = DEFAULT_PUBLIC_SERVICE_CONFIG
-        service_generator = PublicServiceGenerator(service_config)
-        _log_request("public_service", args.project_name, args.project_features, args.query)
-        results["public_service"] = service_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
-            rebuild_index=args.rebuild_index,
-            dry_run=args.dry_run,
-        )
-
-    if "business_research" in steps:
-        business_config: BusinessResearchConfig = DEFAULT_BUSINESS_RESEARCH_CONFIG
-        business_generator = BusinessResearchGenerator(business_config)
-        _log_request("business_research", args.project_name, args.project_features, args.query)
-        results["business_research"] = business_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
-            rebuild_index=args.rebuild_index,
-            dry_run=args.dry_run,
-        )
+    for step_name in steps:
+        if step_name == "design":
+            design_config: DesignConceptConfig = DEFAULT_DESIGN_CONCEPT_CONFIG
+            design_generator = DesignConceptGenerator(design_config)
+            design_generator.ensure_index(rebuild=args.rebuild_index)
+            _log_request("design", args.project_name, args.project_features, args.query)
+            results["design"] = design_generator.generate(
+                project_name=args.project_name,
+                project_features=args.project_features,
+                query=args.query,
+                top_k=args.top_k,
+                filters=filters if filters else None,
+                dry_run=args.dry_run,
+            )
+        elif step_name == "central_hub":
+            hub_config: CentralHubConfig = DEFAULT_CENTRAL_HUB_CONFIG
+            hub_generator = CentralHubGenerator(hub_config)
+            _log_request("central_hub", args.project_name, args.project_features, args.query)
+            results["central_hub"] = hub_generator.generate(
+                project_name=args.project_name,
+                project_features=args.project_features,
+                query=args.query,
+                top_k=args.top_k,
+                rebuild_index=args.rebuild_index,
+                dry_run=args.dry_run,
+            )
+        elif step_name == "exhibition":
+            exhibition_config: ExhibitionConfig = DEFAULT_EXHIBITION_CONFIG
+            exhibition_generator = ExhibitionGenerator(exhibition_config)
+            _log_request("exhibition", args.project_name, args.project_features, args.query)
+            results["exhibition"] = exhibition_generator.generate(
+                project_name=args.project_name,
+                project_features=args.project_features,
+                query=args.query,
+                top_k=args.top_k,
+                rebuild_index=args.rebuild_index,
+                dry_run=args.dry_run,
+            )
+        elif step_name == "public_service":
+            service_config: PublicServiceConfig = DEFAULT_PUBLIC_SERVICE_CONFIG
+            service_generator = PublicServiceGenerator(service_config)
+            _log_request("public_service", args.project_name, args.project_features, args.query)
+            results["public_service"] = service_generator.generate(
+                project_name=args.project_name,
+                project_features=args.project_features,
+                query=args.query,
+                top_k=args.top_k,
+                rebuild_index=args.rebuild_index,
+                dry_run=args.dry_run,
+            )
+        elif step_name == "business_research":
+            business_config: BusinessResearchConfig = DEFAULT_BUSINESS_RESEARCH_CONFIG
+            business_generator = BusinessResearchGenerator(business_config)
+            _log_request("business_research", args.project_name, args.project_features, args.query)
+            results["business_research"] = business_generator.generate(
+                project_name=args.project_name,
+                project_features=args.project_features,
+                query=args.query,
+                top_k=args.top_k,
+                rebuild_index=args.rebuild_index,
+                dry_run=args.dry_run,
+            )
 
     for step_name in steps:
         result = results.get(step_name)
@@ -248,6 +276,8 @@ def main():
             title = "设计理念建议书"
         elif step_name == "exhibition":
             title = "展览空间设计要求"
+        elif step_name == "central_hub":
+            title = "综合大厅与核心空间策划书"
         elif step_name == "public_service":
             title = "公共服务区空间设计策划书"
         elif step_name == "business_research":
