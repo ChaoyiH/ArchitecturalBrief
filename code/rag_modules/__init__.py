@@ -18,6 +18,11 @@ from .public_service_pipeline import (
     PublicServicePromptBuilder,
     PublicServiceVectorStore,
 )
+from .business_research_pipeline import (
+    BusinessResearchGenerator,
+    BusinessResearchPromptBuilder,
+    BusinessResearchVectorStore,
+)
 
 __all__ = [
     'DataPreparationModule',
@@ -33,7 +38,10 @@ __all__ = [
     'ExhibitionVectorStore',
     'PublicServiceGenerator',
     'PublicServicePromptBuilder',
-    'PublicServiceVectorStore'
+    'PublicServiceVectorStore',
+    'BusinessResearchGenerator',
+    'BusinessResearchPromptBuilder',
+    'BusinessResearchVectorStore'
 ]
 
 __version__ = "1.0.0"

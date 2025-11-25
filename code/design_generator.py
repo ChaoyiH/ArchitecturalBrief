@@ -8,13 +8,16 @@ import sys
 from typing import Dict, List, Optional
 
 from config import (
+    DEFAULT_BUSINESS_RESEARCH_CONFIG,
     DEFAULT_DESIGN_CONCEPT_CONFIG,
     DEFAULT_EXHIBITION_CONFIG,
+    DEFAULT_PUBLIC_SERVICE_CONFIG,
+    BusinessResearchConfig,
     DesignConceptConfig,
     ExhibitionConfig,
-    DEFAULT_PUBLIC_SERVICE_CONFIG,
     PublicServiceConfig,
 )
+from rag_modules.business_research_pipeline import BusinessResearchGenerator
 from rag_modules.design_concept_pipeline import DesignConceptGenerator
 from rag_modules.exhibition_pipeline import ExhibitionGenerator
 from rag_modules.public_service_pipeline import PublicServiceGenerator
@@ -54,7 +57,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--step",
         default="design",
-        help="指定生成阶段，可选 design / exhibition / public_service / both / all，或以逗号分隔组合",
+        help="指定生成阶段，可选 design / exhibition / public_service / business_research / both / all，或以逗号分隔组合",
     )
     parser.add_argument(
         "--dry-run",
@@ -91,8 +94,12 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "public_service": ["public_service"],
         "public-service": ["public_service"],
         "service": ["public_service"],
+        "business_research": ["business_research"],
+        "business-research": ["business_research"],
+        "business": ["business_research"],
+        "research": ["business_research"],
         "both": ["design", "exhibition"],
-        "all": ["design", "exhibition", "public_service"],
+        "all": ["design", "exhibition", "public_service", "business_research"],
     }
 
     if lowered in alias_map:
@@ -100,10 +107,11 @@ def _resolve_steps(step_arg: str) -> List[str]:
 
     tokens = [token.strip() for token in lowered.replace("+", ",").split(",") if token.strip()]
     resolved: List[str] = []
+    valid_steps = {"design", "exhibition", "public_service", "business_research"}
     for token in tokens:
         mapped = alias_map.get(token, [token])
         for item in mapped:
-            if item not in ("design", "exhibition", "public_service"):
+            if item not in valid_steps:
                 continue
             if item not in resolved:
                 resolved.append(item)
@@ -195,6 +203,19 @@ def main():
             dry_run=args.dry_run,
         )
 
+    if "business_research" in steps:
+        business_config: BusinessResearchConfig = DEFAULT_BUSINESS_RESEARCH_CONFIG
+        business_generator = BusinessResearchGenerator(business_config)
+        _log_request("business_research", args.project_name, args.project_features, args.query)
+        results["business_research"] = business_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
+
     for step_name in steps:
         result = results.get(step_name)
         if not result:
@@ -229,6 +250,8 @@ def main():
             title = "展览空间设计要求"
         elif step_name == "public_service":
             title = "公共服务区空间设计策划书"
+        elif step_name == "business_research":
+            title = "业务科研区空间设计策划书"
         else:
             title = step_name
         print(f"🧠 {title} (JSON):\n")
