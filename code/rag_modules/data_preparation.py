@@ -11,7 +11,7 @@ from langchain_text_splitters import MarkdownHeaderTextSplitter
 from langchain_core.documents import Document
 import uuid
 
-from config import ExhibitionConfig
+from config import ExhibitionConfig, PublicServiceConfig
 
 logger = logging.getLogger(__name__)
 
@@ -441,6 +441,212 @@ class ExhibitionDataExtractor:
             header = match.group(0)
             title = match.group(1)
             if not any(token in title for token in self.ZLJ_SECTION_PATTERNS):
+                continue
+            start = match.end()
+            end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+            yield header, text[start:end]
+
+
+class PublicServiceDataExtractor:
+    """公共服务区数据抽取器。"""
+
+    JSON_DESCRIPTION_KEYWORDS = ("lobby", "foyer", "shop", "cafe", "restaurant", "entrance")
+    MD_KEYWORDS = ("门厅", "休息", "厕所", "卫生间", "餐饮", "商店", "无障碍", "寄存", "母婴")
+    SPECIAL_GB_KEYWORDS = ("卫生设施", "卫生间", "厕位", "第三卫生间")
+
+    def __init__(self, config: PublicServiceConfig):
+        self.config = config
+
+    def load_documents(self) -> List[Document]:
+        documents: List[Document] = []
+        documents.extend(self._load_structured_json(self.config.china_data_path, source_type="china"))
+        documents.extend(self._load_structured_json(self.config.world_data_path, source_type="world"))
+        documents.extend(self._load_archdaily(self.config.archdaily_data_path))
+        documents.extend(self._load_gb_markdown(self.config.gb_data_path))
+        documents.extend(self._load_zlj_markdown(self.config.zlj_data_path))
+        logger.info("公共服务区数据抽取完成，共 %d 条", len(documents))
+        return documents
+
+    def _load_structured_json(self, folder: str, source_type: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            logger.warning("公共服务区数据路径不存在: %s", folder)
+            return []
+
+        docs: List[Document] = []
+        for json_file in path.glob("*.json"):
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", json_file, exc)
+                continue
+
+            payload = self._collect_public_sections(data)
+            desc_snippets = self._extract_description_snippets(data.get("Description"))
+            if not payload and not desc_snippets:
+                continue
+
+            project_name = data.get("name") or data.get("Project Title") or json_file.stem
+            total_area = data.get("total_construction_area") or data.get("total_construction_area_sqm")
+
+            content_lines = [f"项目: {project_name}"]
+            if total_area:
+                content_lines.append(f"总建筑面积: {total_area}")
+            content_lines.extend(payload)
+            if desc_snippets:
+                content_lines.append("公共服务描述片段:")
+                content_lines.extend(desc_snippets)
+
+            docs.append(Document(
+                page_content="\n".join(content_lines),
+                metadata={
+                    "source": str(json_file),
+                    "source_type": source_type,
+                    "project_name": project_name,
+                    "section": "public_service",
+                }
+            ))
+
+        return docs
+
+    def _collect_public_sections(self, data: Dict[str, Any]) -> List[str]:
+        values: List[str] = []
+        field_map = {
+            "公共服务区": "公共服务区",
+            "central_hall": "中央大厅",
+            "lobby": "门厅",
+            "public_service": "公共服务",
+        }
+        for key, label in field_map.items():
+            value = data.get(key)
+            if isinstance(value, list):
+                value = "\n".join(str(v) for v in value)
+            if value:
+                values.append(f"{label}: {value}".strip())
+        return values
+
+    def _extract_description_snippets(self, description_field: Any) -> List[str]:
+        if not description_field:
+            return []
+        if isinstance(description_field, list):
+            paragraphs = description_field
+        else:
+            paragraphs = re.split(r"\n\s*\n", str(description_field))
+
+        snippets: List[str] = []
+        for para in paragraphs:
+            lower_para = para.lower()
+            if any(keyword in lower_para for keyword in self.JSON_DESCRIPTION_KEYWORDS):
+                snippets.append(para.strip())
+        return snippets
+
+    def _load_archdaily(self, folder: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            return []
+        docs: List[Document] = []
+        for json_file in path.glob("*.json"):
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", json_file, exc)
+                continue
+
+            content_parts: List[str] = []
+            public_service = data.get("公共服务区")
+            if isinstance(public_service, list):
+                public_service = "\n".join(public_service)
+            if public_service:
+                content_parts.append(str(public_service))
+
+            desc_snippets = self._extract_description_snippets(data.get("Description"))
+            content_parts.extend(desc_snippets)
+            if not content_parts:
+                continue
+
+            project_name = data.get("Project Title", json_file.stem)
+            docs.append(Document(
+                page_content=f"项目: {project_name}\n" + "\n".join(content_parts),
+                metadata={
+                    "source": str(json_file),
+                    "source_type": "archdaily",
+                    "project_name": project_name,
+                }
+            ))
+        return docs
+
+    def _load_gb_markdown(self, folder: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            return []
+        docs: List[Document] = []
+        for md_file in path.rglob("*.md"):
+            try:
+                text = md_file.read_text(encoding="utf-8")
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", md_file, exc)
+                continue
+
+            paragraphs = re.split(r"\n\s*\n", text)
+            for para in paragraphs:
+                cleaned = para.strip()
+                if not cleaned:
+                    continue
+                if any(keyword in cleaned for keyword in self.MD_KEYWORDS):
+                    docs.append(Document(
+                        page_content=cleaned,
+                        metadata={
+                            "source": str(md_file),
+                            "source_type": "gb_standard",
+                            "doc_name": md_file.stem,
+                            "section": "GB 公共服务",
+                        }
+                    ))
+                elif "博物馆建筑设计规范" in md_file.stem and any(keyword in cleaned for keyword in self.SPECIAL_GB_KEYWORDS):
+                    docs.append(Document(
+                        page_content=cleaned,
+                        metadata={
+                            "source": str(md_file),
+                            "source_type": "gb_standard",
+                            "doc_name": md_file.stem,
+                            "section": "GB 卫生设施",
+                        }
+                    ))
+        return docs
+
+    def _load_zlj_markdown(self, folder: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            return []
+        docs: List[Document] = []
+        for md_file in path.glob("*.md"):
+            try:
+                text = md_file.read_text(encoding="utf-8")
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", md_file, exc)
+                continue
+
+            for header, body in self._iter_public_sections(text):
+                docs.append(Document(
+                    page_content=f"{header}\n{body.strip()}",
+                    metadata={
+                        "source": str(md_file),
+                        "source_type": "zlj",
+                        "section": header.strip('# ').strip(),
+                        "doc_name": md_file.stem,
+                    }
+                ))
+        return docs
+
+    def _iter_public_sections(self, text: str):
+        pattern = re.compile(r"^##\s+(.+)$", re.MULTILINE)
+        matches = list(pattern.finditer(text))
+        for idx, match in enumerate(matches):
+            header = match.group(0)
+            title = match.group(1)
+            if not any(keyword in title for keyword in self.MD_KEYWORDS):
                 continue
             start = match.end()
             end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)

@@ -12,9 +12,12 @@ from config import (
     DEFAULT_EXHIBITION_CONFIG,
     DesignConceptConfig,
     ExhibitionConfig,
+    DEFAULT_PUBLIC_SERVICE_CONFIG,
+    PublicServiceConfig,
 )
 from rag_modules.design_concept_pipeline import DesignConceptGenerator
 from rag_modules.exhibition_pipeline import ExhibitionGenerator
+from rag_modules.public_service_pipeline import PublicServiceGenerator
 from langchain_core.documents import Document
 
 logger = logging.getLogger(__name__)
@@ -50,9 +53,8 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--step",
-        choices=["design", "exhibition", "both"],
         default="design",
-        help="指定生成阶段",
+        help="指定生成阶段，可选 design / exhibition / public_service / both / all，或以逗号分隔组合",
     )
     parser.add_argument(
         "--dry-run",
@@ -76,6 +78,36 @@ def _build_filters(args: argparse.Namespace) -> Dict[str, object]:
     if args.category:
         filters["category"] = args.category
     return filters
+
+
+def _resolve_steps(step_arg: str) -> List[str]:
+    if not step_arg:
+        return ["design"]
+
+    lowered = step_arg.lower()
+    alias_map = {
+        "design": ["design"],
+        "exhibition": ["exhibition"],
+        "public_service": ["public_service"],
+        "public-service": ["public_service"],
+        "service": ["public_service"],
+        "both": ["design", "exhibition"],
+        "all": ["design", "exhibition", "public_service"],
+    }
+
+    if lowered in alias_map:
+        return alias_map[lowered]
+
+    tokens = [token.strip() for token in lowered.replace("+", ",").split(",") if token.strip()]
+    resolved: List[str] = []
+    for token in tokens:
+        mapped = alias_map.get(token, [token])
+        for item in mapped:
+            if item not in ("design", "exhibition", "public_service"):
+                continue
+            if item not in resolved:
+                resolved.append(item)
+    return resolved or ["design"]
 
 
 def _log_request(step: str, project_name: str, project_features: str, query: Optional[str]):
@@ -119,7 +151,7 @@ def main():
     args = _parse_args()
     filters = _build_filters(args)
 
-    steps: List[str] = ["design", "exhibition"] if args.step == "both" else [args.step]
+    steps: List[str] = _resolve_steps(args.step)
 
     results: Dict[str, Dict[str, object]] = {}
 
@@ -142,6 +174,19 @@ def main():
         exhibition_generator = ExhibitionGenerator(exhibition_config)
         _log_request("exhibition", args.project_name, args.project_features, args.query)
         results["exhibition"] = exhibition_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
+
+    if "public_service" in steps:
+        service_config: PublicServiceConfig = DEFAULT_PUBLIC_SERVICE_CONFIG
+        service_generator = PublicServiceGenerator(service_config)
+        _log_request("public_service", args.project_name, args.project_features, args.query)
+        results["public_service"] = service_generator.generate(
             project_name=args.project_name,
             project_features=args.project_features,
             query=args.query,
@@ -178,7 +223,14 @@ def main():
             print("⚠️ 未获得模型输出")
             continue
 
-        title = "设计理念建议书" if step_name == "design" else "展览空间设计要求"
+        if step_name == "design":
+            title = "设计理念建议书"
+        elif step_name == "exhibition":
+            title = "展览空间设计要求"
+        elif step_name == "public_service":
+            title = "公共服务区空间设计策划书"
+        else:
+            title = step_name
         print(f"🧠 {title} (JSON):\n")
         print(response)
         _log_response(step_name, str(response))

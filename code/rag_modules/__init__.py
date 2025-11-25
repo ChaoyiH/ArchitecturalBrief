@@ -13,6 +13,11 @@ from .exhibition_pipeline import (
     ExhibitionPromptBuilder,
     ExhibitionVectorStore,
 )
+from .public_service_pipeline import (
+    PublicServiceGenerator,
+    PublicServicePromptBuilder,
+    PublicServiceVectorStore,
+)
 
 __all__ = [
     'DataPreparationModule',
@@ -25,7 +30,10 @@ __all__ = [
     'DesignConceptVectorStore',
     'ExhibitionGenerator',
     'ExhibitionPromptBuilder',
-    'ExhibitionVectorStore'
+    'ExhibitionVectorStore',
+    'PublicServiceGenerator',
+    'PublicServicePromptBuilder',
+    'PublicServiceVectorStore'
 ]
 
 __version__ = "1.0.0"

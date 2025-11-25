@@ -106,6 +106,47 @@ class ExhibitionConfig:
 
 DEFAULT_EXHIBITION_CONFIG = ExhibitionConfig()
 
+
+@dataclass
+class PublicServiceConfig:
+    """公共服务区生成模块配置"""
+
+    china_data_path: Optional[str] = None
+    world_data_path: Optional[str] = None
+    archdaily_data_path: Optional[str] = None
+    gb_data_path: Optional[str] = None
+    zlj_data_path: Optional[str] = None
+    index_save_path: Optional[str] = None
+    embedding_model: str = "BAAI/bge-small-zh-v1.5"
+    llm_provider: str = DEFAULT_CONFIG.llm_provider
+    llm_model: str = DEFAULT_CONFIG.llm_model
+    temperature: float = 0.1
+    max_tokens: int = 4096
+    top_k: int = 6
+
+    def __post_init__(self):
+        if self.china_data_path is None:
+            self.china_data_path = str(DATA_ROOT / "china")
+        if self.world_data_path is None:
+            self.world_data_path = str(DATA_ROOT / "world")
+        if self.archdaily_data_path is None:
+            self.archdaily_data_path = str(DATA_ROOT / "archdaily")
+        if self.gb_data_path is None:
+            self.gb_data_path = str(DATA_ROOT / "gb")
+        if self.zlj_data_path is None:
+            self.zlj_data_path = str(DATA_ROOT / "zlj")
+        if self.index_save_path is None:
+            self.index_save_path = str((CODE_DIR / "vector_index" / "public_service").resolve())
+        else:
+            index_path = Path(self.index_save_path)
+            if not index_path.is_absolute():
+                self.index_save_path = str((CODE_DIR / index_path).resolve())
+            else:
+                self.index_save_path = str(index_path)
+
+
+DEFAULT_PUBLIC_SERVICE_CONFIG = PublicServiceConfig()
+
 @dataclass
 class DesignConceptConfig:
     """设计理念生成模块配置"""
