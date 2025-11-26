@@ -17,6 +17,7 @@ from config import (
     BusinessResearchConfig,
     CentralHubConfig,
     SpecialTheaterConfig,
+    ScienceEducationConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -88,6 +89,7 @@ class DataPreparationModule:
         self.documents = documents
         logger.info(f"成功加载 {len(documents)} 个文档")
         return documents
+
     
     def chunk_documents(self) -> List[Document]:
         """
@@ -1143,6 +1145,142 @@ class SpecialTheaterDataExtractor:
                         }
                     ))
         return docs
+
+
+class ScienceEducationDataExtractor:
+    """科教活动数据抽取器。"""
+
+    JSON_FIELDS = ("science_popularization_activities", "科教活动")
+    DESC_KEYWORDS = (
+        "education",
+        "educational",
+        "workshop",
+        "laboratory",
+        "classroom",
+        "learning center",
+        "learning centre",
+        "maker space",
+        "makerspace",
+        "science show",
+    )
+    MD_KEYWORDS = ("教育", "实验室", "教室", "研学", "学术报告厅", "报告厅", "培训", "课堂")
+
+    def __init__(self, config: ScienceEducationConfig):
+        self.config = config
+
+    def load_documents(self) -> List[Document]:
+        documents: List[Document] = []
+        documents.extend(self._load_structured_json(self.config.china_data_path, source_type="china"))
+        documents.extend(self._load_structured_json(self.config.world_data_path, source_type="world"))
+        documents.extend(self._load_structured_json(self.config.archdaily_data_path, source_type="archdaily"))
+        documents.extend(self._load_markdown(self.config.gb_data_path, source_type="gb_standard"))
+        documents.extend(self._load_markdown(self.config.zlj_data_path, source_type="zlj"))
+        logger.info("科教活动数据抽取完成，共 %d 条", len(documents))
+        return documents
+
+    def _load_structured_json(self, folder: str, source_type: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            logger.warning("科教活动数据路径不存在: %s", folder)
+            return []
+
+        docs: List[Document] = []
+        for json_file in path.glob("*.json"):
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", json_file, exc)
+                continue
+
+            payload = self._collect_field_lines(data)
+            desc_snippets = self._extract_description_snippets(data.get("Description"))
+
+            if not payload and not desc_snippets:
+                continue
+
+            project_name = data.get("name") or data.get("Project Title") or json_file.stem
+            parts: List[str] = [f"项目: {project_name}"]
+            if payload:
+                parts.append("科教活动字段:")
+                parts.extend(payload)
+            if desc_snippets:
+                parts.append("描述片段:")
+                parts.extend(desc_snippets)
+
+            docs.append(Document(
+                page_content="\n".join(parts),
+                metadata={
+                    "source": str(json_file),
+                    "source_type": source_type,
+                    "project_name": project_name,
+                    "section": "science_education",
+                }
+            ))
+        return docs
+
+    def _collect_field_lines(self, data: Dict[str, Any]) -> List[str]:
+        values: List[str] = []
+        for field in self.JSON_FIELDS:
+            value = data.get(field)
+            normalized = self._normalize(value)
+            if normalized:
+                values.append(f"{field}: {normalized}")
+        return values
+
+    def _extract_description_snippets(self, content: Any) -> List[str]:
+        text = self._normalize(content)
+        if not text:
+            return []
+        paragraphs = re.split(r"\n\s*\n", text)
+        snippets: List[str] = []
+        for para in paragraphs:
+            lower = para.lower()
+            if any(keyword in lower for keyword in self.DESC_KEYWORDS):
+                snippets.append(para.strip())
+        return list(dict.fromkeys(snippets))
+
+    def _normalize(self, value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, list):
+            return "\n".join(str(v).strip() for v in value if v)
+        return str(value).strip()
+
+    def _load_markdown(self, folder: str, source_type: str) -> List[Document]:
+        path = Path(folder)
+        if not path.exists():
+            return []
+
+        docs: List[Document] = []
+        for md_file in path.rglob("*.md"):
+            try:
+                text = md_file.read_text(encoding="utf-8")
+            except Exception as exc:
+                logger.warning("读取%s失败: %s", md_file, exc)
+                continue
+
+            for block in self._iter_markdown_blocks(text):
+                docs.append(Document(
+                    page_content=block.strip(),
+                    metadata={
+                        "source": str(md_file),
+                        "source_type": source_type,
+                        "doc_name": md_file.stem,
+                        "section": "科教活动",
+                    }
+                ))
+        return docs
+
+    def _iter_markdown_blocks(self, text: str):
+        paragraphs = re.split(r"\n\s*\n", text)
+        for para in paragraphs:
+            cleaned = para.strip()
+            if not cleaned:
+                continue
+            if any(keyword in cleaned for keyword in self.MD_KEYWORDS):
+                yield cleaned
+
 
 class BusinessResearchDataExtractor:
     """业务科研区数据抽取器。"""

@@ -28,6 +28,11 @@ from .special_theater_pipeline import (
     SpecialTheaterPromptBuilder,
     SpecialTheaterVectorStore,
 )
+from .science_education_pipeline import (
+    ScienceEducationGenerator,
+    ScienceEducationPromptBuilder,
+    ScienceEducationVectorStore,
+)
 from .business_research_pipeline import (
     BusinessResearchGenerator,
     BusinessResearchPromptBuilder,
@@ -55,6 +60,9 @@ __all__ = [
     'SpecialTheaterGenerator',
     'SpecialTheaterPromptBuilder',
     'SpecialTheaterVectorStore',
+    'ScienceEducationGenerator',
+    'ScienceEducationPromptBuilder',
+    'ScienceEducationVectorStore',
     'BusinessResearchGenerator',
     'BusinessResearchPromptBuilder',
     'BusinessResearchVectorStore'

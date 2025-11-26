@@ -13,12 +13,14 @@ from config import (
     DEFAULT_DESIGN_CONCEPT_CONFIG,
     DEFAULT_EXHIBITION_CONFIG,
     DEFAULT_SPECIAL_THEATER_CONFIG,
+    DEFAULT_SCIENCE_EDUCATION_CONFIG,
     DEFAULT_PUBLIC_SERVICE_CONFIG,
     BusinessResearchConfig,
     CentralHubConfig,
     DesignConceptConfig,
     ExhibitionConfig,
     SpecialTheaterConfig,
+    ScienceEducationConfig,
     PublicServiceConfig,
 )
 from rag_modules.business_research_pipeline import BusinessResearchGenerator
@@ -27,6 +29,7 @@ from rag_modules.design_concept_pipeline import DesignConceptGenerator
 from rag_modules.exhibition_pipeline import ExhibitionGenerator
 from rag_modules.public_service_pipeline import PublicServiceGenerator
 from rag_modules.special_theater_pipeline import SpecialTheaterGenerator
+from rag_modules.science_education_pipeline import ScienceEducationGenerator
 from langchain_core.documents import Document
 
 logger = logging.getLogger(__name__)
@@ -64,7 +67,7 @@ def _parse_args() -> argparse.Namespace:
         "--step",
         default="design",
         help=(
-            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / public_service / business_research / both / all，"
+            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / business_research / both / all，"
             "或以逗号分隔组合"
         ),
     )
@@ -113,12 +116,24 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "special-theater": ["special_theater"],
         "theater": ["special_theater"],
         "cinema": ["special_theater"],
+        "science_education": ["science_education"],
+        "science-education": ["science_education"],
+        "education": ["science_education"],
+        "science": ["science_education"],
         "business_research": ["business_research"],
         "business-research": ["business_research"],
         "business": ["business_research"],
         "research": ["business_research"],
         "both": ["design", "exhibition"],
-        "all": ["design", "central_hub", "exhibition", "special_theater", "public_service", "business_research"],
+        "all": [
+            "design",
+            "central_hub",
+            "exhibition",
+            "special_theater",
+            "science_education",
+            "public_service",
+            "business_research",
+        ],
     }
 
     if lowered in alias_map:
@@ -126,7 +141,15 @@ def _resolve_steps(step_arg: str) -> List[str]:
 
     tokens = [token.strip() for token in lowered.replace("+", ",").split(",") if token.strip()]
     resolved: List[str] = []
-    valid_steps = {"design", "central_hub", "exhibition", "special_theater", "public_service", "business_research"}
+    valid_steps = {
+        "design",
+        "central_hub",
+        "exhibition",
+        "special_theater",
+        "science_education",
+        "public_service",
+        "business_research",
+    }
     for token in tokens:
         mapped = alias_map.get(token, [token])
         for item in mapped:
@@ -137,7 +160,15 @@ def _resolve_steps(step_arg: str) -> List[str]:
     return resolved or ["design"]
 
 
-EXECUTION_ORDER = ["design", "central_hub", "exhibition", "special_theater", "public_service", "business_research"]
+EXECUTION_ORDER = [
+    "design",
+    "central_hub",
+    "exhibition",
+    "special_theater",
+    "science_education",
+    "public_service",
+    "business_research",
+]
 
 
 def _log_request(step: str, project_name: str, project_features: str, query: Optional[str]):
@@ -238,6 +269,18 @@ def main():
                 rebuild_index=args.rebuild_index,
                 dry_run=args.dry_run,
             )
+        elif step_name == "science_education":
+            science_config: ScienceEducationConfig = DEFAULT_SCIENCE_EDUCATION_CONFIG
+            science_generator = ScienceEducationGenerator(science_config)
+            _log_request("science_education", args.project_name, args.project_features, args.query)
+            results["science_education"] = science_generator.generate(
+                project_name=args.project_name,
+                project_features=args.project_features,
+                query=args.query,
+                top_k=args.top_k,
+                rebuild_index=args.rebuild_index,
+                dry_run=args.dry_run,
+            )
         elif step_name == "public_service":
             service_config: PublicServiceConfig = DEFAULT_PUBLIC_SERVICE_CONFIG
             service_generator = PublicServiceGenerator(service_config)
@@ -299,6 +342,8 @@ def main():
             title = "综合大厅与核心空间策划书"
         elif step_name == "special_theater":
             title = "特效影院区空间设计策划书"
+        elif step_name == "science_education":
+            title = "科教活动与空间融合策划书"
         elif step_name == "public_service":
             title = "公共服务区空间设计策划书"
         elif step_name == "business_research":
