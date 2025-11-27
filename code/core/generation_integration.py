@@ -18,19 +18,22 @@ logger = logging.getLogger(__name__)
 class GenerationIntegrationModule:
     """生成集成模块 - 负责LLM集成和回答生成"""
     
-    def __init__(self, provider: str, model_name: str, temperature: float = 0.1, max_tokens: int = 2048):
+    def __init__(self, provider: str, model_name: str, temperature: float = 0.1, max_tokens: int = 2048, timeout: int = 180):
         """
         初始化生成集成模块
         
         Args:
+            provider: LLM 提供商 (moonshot / minimax)
             model_name: 模型名称
             temperature: 生成温度
             max_tokens: 最大token数
+            timeout: 请求超时时间（秒），默认 180 秒
         """
         self.provider = provider
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.timeout = timeout
         self.llm = None
         self.setup_llm()
     
@@ -56,14 +59,15 @@ class GenerationIntegrationModule:
             if not group_id or not api_key:
                 raise ValueError("请为 'minimax' 设置 MINIMAX_GROUP_ID 和 MINIMAX_API_KEY 环境变量")
 
-
+            import httpx
             self.llm = MiniMaxChat(
                 model=self.model_name,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 minimax_api_key=api_key,
                 minimax_group_id=group_id,
-                base_url="https://api.minimax.chat/v1/text/chatcompletion_v2"
+                base_url="https://api.minimax.chat/v1/text/chatcompletion_v2",
+                timeout=httpx.Timeout(self.timeout, connect=30.0),
             )
             
         else:

@@ -10,12 +10,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import FAISS
 
-try:  # Prefer new package, fall back gracefully
-    from langchain_huggingface import HuggingFaceEmbeddings  # type: ignore
-except ImportError:  # pragma: no cover - compatibility path
-    from langchain_community.embeddings import HuggingFaceEmbeddings  # type: ignore
-
 from config import ExhibitionConfig
+from core.embedding_manager import get_embedding
 from utils.data_preparation import ExhibitionDataExtractor
 from core.generation_integration import GenerationIntegrationModule
 
@@ -27,10 +23,7 @@ class ExhibitionVectorStore:
 
     def __init__(self, config: ExhibitionConfig):
         self.config = config
-        self.embedding = HuggingFaceEmbeddings(
-            model_name=config.embedding_model,
-            encode_kwargs={"normalize_embeddings": True},
-        )
+        self.embedding = get_embedding(model_name=config.embedding_model)
         self.vectorstore: Optional[FAISS] = None
 
     def load(self) -> bool:

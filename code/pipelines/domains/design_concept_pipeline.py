@@ -12,13 +12,10 @@ from typing import Dict, List, Optional, Sequence
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-try:  # Prefer modern package to avoid deprecation
-    from langchain_huggingface import HuggingFaceEmbeddings  # type: ignore
-except ImportError:  # Fall back for environments not yet upgraded
-    from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
 from config import DesignConceptConfig
+from core.embedding_manager import get_embedding
 from core.generation_integration import GenerationIntegrationModule
 
 logger = logging.getLogger(__name__)
@@ -214,10 +211,7 @@ class DesignConceptVectorStore:
 
     def __init__(self, config: DesignConceptConfig):
         self.config = config
-        self.embedding = HuggingFaceEmbeddings(
-            model_name=config.embedding_model,
-            encode_kwargs={"normalize_embeddings": True}
-        )
+        self.embedding = get_embedding(model_name=config.embedding_model)
         self.vectorstore: Optional[FAISS] = None
 
     def load(self) -> bool:

@@ -1,11 +1,18 @@
-"""Entry point for design concept & exhibition-space generators."""
+"""Entry point for design concept & exhibition-space generators.
+
+支持两种执行模式：
+- sequential (默认): 顺序执行各模块
+- parallel: 使用 LangGraph 异步图引擎并行执行
+"""
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -35,7 +42,19 @@ from pipelines.domains.special_theater_pipeline import SpecialTheaterGenerator
 from pipelines.domains.science_education_pipeline import ScienceEducationGenerator
 from langchain_core.documents import Document
 
+# LangGraph 图引擎（延迟导入以保持向后兼容）
+_graph_engine = None
+
 logger = logging.getLogger(__name__)
+
+
+def _get_graph_engine():
+    """延迟加载 LangGraph 图引擎模块。"""
+    global _graph_engine
+    if _graph_engine is None:
+        from pipelines.graph_engine import create_initial_state, run_graph
+        _graph_engine = {"create_initial_state": create_initial_state, "run_graph": run_graph}
+    return _graph_engine
 
 # 尝试启用统一日志/消息捕获
 try:  # pragma: no cover
@@ -83,6 +102,12 @@ def _parse_args() -> argparse.Namespace:
         "--show-contexts",
         action="store_true",
         help="打印检索到的上下文摘要",
+    )
+    parser.add_argument(
+        "--mode",
+        default="sequential",
+        choices=["sequential", "parallel"],
+        help="执行模式：sequential (顺序) 或 parallel (并行，使用 LangGraph)",
     )
     return parser.parse_args()
 
@@ -343,6 +368,7 @@ def _resolve_output_path(project_name: str) -> Path:
 
 
 def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) -> None:
+    """顺序模式生成完整任务书。"""
     if args.dry_run:
         print("⚠️ 全案整合（full）暂不支持 --dry-run，请移除该参数后重试。")
         return
@@ -387,6 +413,61 @@ def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) ->
             print(f"   - {title}: {err}")
 
 
+async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
+    """
+    并行模式生成完整任务书（使用 LangGraph 图引擎）。
+
+    所有领域模块（7个）并行执行，完成后汇聚到组装节点。
+    相比顺序模式，可显著减少总执行时间。
+    """
+    engine = _get_graph_engine()
+    create_initial_state = engine["create_initial_state"]
+    run_graph = engine["run_graph"]
+
+    print("🚀 启动并行模式（LangGraph 图引擎）")
+    start_time = time.time()
+
+    # 创建初始状态
+    initial_state = create_initial_state(
+        project_name=args.project_name,
+        project_features=args.project_features,
+        query=args.query,
+        top_k=args.top_k,
+        rebuild_index=args.rebuild_index,
+        dry_run=args.dry_run,
+    )
+
+    # 执行图
+    print("⏳ 并行生成所有模块内容...")
+    final_state = await run_graph(initial_state)
+    elapsed = time.time() - start_time
+
+    # 检查错误
+    step_errors: List[Tuple[str, str]] = []
+    for module_key in EXECUTION_ORDER:
+        output = final_state.get(module_key, {})
+        if output.get("error"):
+            title = STEP_TITLES.get(module_key, module_key)
+            step_errors.append((title, output["error"]))
+
+    # 获取组装结果
+    markdown = final_state.get("assembled_brief", "")
+    if not markdown:
+        print("⚠️ 整合器未返回内容，请稍后重试。")
+        return
+
+    output_path = _resolve_output_path(args.project_name)
+    output_path.write_text(markdown, encoding="utf-8")
+    print(f"✅ 《{args.project_name} 建筑设计任务书》已生成 -> {output_path}")
+    print(f"⏱️ 并行执行总耗时: {elapsed:.1f} 秒")
+    _log_response("full", markdown[:2000])
+
+    if step_errors:
+        print("⚠️ 以下模块生成失败，已在任务书中标注：")
+        for title, err in step_errors:
+            print(f"   - {title}: {err}")
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     args = _parse_args()
@@ -395,8 +476,16 @@ def main():
     requested_steps: List[str] = _resolve_steps(args.step)
 
     if "full" in requested_steps:
-        generate_full_brief(args, filters)
+        # 全案整合模式：根据 --mode 选择执行方式
+        if args.mode == "parallel":
+            asyncio.run(generate_full_brief_parallel(args))
+        else:
+            generate_full_brief(args, filters)
         return
+
+    # 单步/多步模式：暂不支持并行，使用顺序执行
+    if args.mode == "parallel":
+        print("ℹ️ 并行模式仅支持 --step full，当前自动降级为顺序模式")
 
     steps: List[str] = [step for step in EXECUTION_ORDER if step in requested_steps]
     if not steps:
