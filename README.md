@@ -22,11 +22,12 @@
 ```text
 ArchitecturalBrief/
 ├── code/                           # 核心源代码
-│   ├── main.py                     # 传统 RAG 问答系统入口
+│   ├── main.py                     # 问答系统入口
 │   ├── design_generator.py         # 设计任务书生成 CLI 入口
 │   ├── config.py                   # 全局配置与模块默认参数
 │   │
-│   ├── core/                       # 🔧 底层基础设施
+│   ├── core/                       # 🔧 底层基础设施 (共享)
+│   │   ├── embedding_manager.py    # 共享 Embedding 单例 (线程安全)
 │   │   ├── index_construction.py   # FAISS 向量索引构建
 │   │   ├── retrieval_optimization.py # 混合检索 + RRF 重排
 │   │   └── generation_integration.py # LLM 调用封装
@@ -40,8 +41,14 @@ ArchitecturalBrief/
 │   │   │   ├── science_education_pipeline.py
 │   │   │   ├── public_service_pipeline.py
 │   │   │   └── business_research_pipeline.py
-│   │   └── orchestration/          # 编排与整合
-│   │       └── brief_assembly_pipeline.py
+│   │   │
+│   │   ├── orchestration/          # 编排与整合
+│   │   │   └── brief_assembly_pipeline.py  # 确定性 Markdown 拼接
+│   │   │
+│   │   └── graph_engine/           # LangGraph 并行执行引擎
+│   │       ├── state.py            # TypedDict 全局状态
+│   │       ├── nodes.py            # 异步节点包装器
+│   │       └── graph.py            # StateGraph 图构建
 │   │
 │   ├── utils/                      # 🛠️ 工具模块
 │   │   ├── data_preparation.py     # 数据加载、清洗、分块
@@ -89,17 +96,27 @@ MOONSHOT_API_KEY=your-api-key
 
 ### 3. 运行系统
 
-**传统问答模式：**
+**问答模式：**
 ```bash
 python main.py
 ```
 
-**生成完整设计任务书：**
+**生成完整设计任务书（并行模式，推荐）：**
 ```bash
 python design_generator.py \
   --project-name "海洋科技馆" \
   --project-features "滨海选址，强调生态教育与沉浸式互动" \
-  --step full
+  --step full \
+  --mode parallel
+```
+
+**生成完整设计任务书（顺序模式）：**
+```bash
+python design_generator.py \
+  --project-name "海洋科技馆" \
+  --project-features "滨海选址，强调生态教育与沉浸式互动" \
+  --step full \
+  --mode sequential
 ```
 
 **仅生成单个模块（如设计理念）：**
@@ -118,6 +135,7 @@ python design_generator.py \
 | `--project-name` | 项目名称 |
 | `--project-features` | 项目特征描述（选址、规模、体验重点等） |
 | `--step` | 生成阶段：`design` / `exhibition` / `central_hub` / `special_theater` / `science_education` / `public_service` / `business_research` / `full` |
+| `--mode` | 执行模式：`parallel`（并行，推荐）/ `sequential`（顺序） |
 | `--top-k` | 检索案例数量 |
 | `--rebuild-index` | 强制重建向量索引 |
 | `--dry-run` | 仅输出 Prompt，不调用 LLM |
@@ -136,10 +154,20 @@ python design_generator.py \
 
 | 模块 | 职责 |
 |------|------|
-| `core/` | 底层基础设施：向量索引构建、混合检索、LLM 调用封装 |
-| `pipelines/domains/` | 各领域专属生成器（展览、影院、科教等） |
-| `pipelines/orchestration/` | 全案任务书整合 |
+| `core/` | 底层基础设施：Embedding 管理、向量索引构建、混合检索、LLM 调用封装 |
+| `pipelines/domains/` | 各领域专属生成器（展览、影院、科教等），输出结构化 JSON |
+| `pipelines/orchestration/` | 确定性任务书整合（无 LLM，毫秒级） |
+| `pipelines/graph_engine/` | LangGraph 并行执行引擎，支持 7 模块并行 |
 | `utils/` | 数据预处理、日志工具 |
+
+## ⚡ 性能说明
+
+| 模式 | 执行时间（7 模块 + 组装） | 说明 |
+|------|--------------------------|------|
+| `--mode sequential` | ~100s | 依次执行各模块 |
+| `--mode parallel` | ~43s | LangGraph 并行执行，推荐 |
+
+组装阶段采用确定性模板拼接（<1ms），不调用 LLM。
 
 ## 📊 数据格式说明
 
@@ -153,4 +181,4 @@ python design_generator.py \
 
 ---
 
-*Last updated: 2025-11-27*
+*Last updated: 2025-06-12*
