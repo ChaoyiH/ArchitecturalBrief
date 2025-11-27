@@ -1,116 +1,176 @@
-"""Module that assembles module outputs into a final design brief."""
+"""
+确定性任务书组装模块
+
+将各模块的 JSON/字典输出按固定模板拼接为完整的 Markdown 设计任务书。
+不使用 LLM，执行速度为毫秒级，完整保留上游模块产生的所有数据细节。
+"""
 
 from __future__ import annotations
 
-import json
 import logging
-from typing import Any, Dict, Optional
-
-from config import DEFAULT_CONFIG
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-
-from core.generation_integration import GenerationIntegrationModule
+from datetime import datetime
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
 
 class BriefAssemblyPipeline:
-    """LLM-driven assembler that turns module JSON into a markdown design brief."""
+    """确定性模板拼接器，将模块输出组装为 Markdown 设计任务书。"""
 
-    SYSTEM_PROMPT = (
-        "你是一位拥有20年经验的建筑策划总师。"
-        "你的任务是依据各个专业顾问提供的详细数据（JSON格式），撰写一份结构严谨、逻辑清晰、文风专业的《建筑设计任务书》。"
-        "你需要将零散的数据点串联成通顺的段落，并使用 Markdown 格式进行排版。"
-    )
+    # 章节顺序与 key 映射
+    SECTION_ORDER = [
+        ("concept", "设计理念 (Design Concept)"),
+        ("central_hub", "核心枢纽 (Central Hub)"),
+        ("exhibition", "展陈体系 (Exhibition)"),
+        ("special_theater", "特效影院 (Special Theater)"),
+        ("science_education", "科教研学 (Science Education)"),
+        ("public_service", "公共服务 (Public Service)"),
+        ("business_research", "业务科研与后勤 (Business & Research)"),
+    ]
 
-    def __init__(
-        self,
-        provider: Optional[str] = None,
-        model_name: Optional[str] = None,
-        temperature: float = 0.2,
-        max_tokens: int = 6000,
-    ) -> None:
-        cfg = DEFAULT_CONFIG
-        self.provider = provider or cfg.llm_provider
-        self.model_name = model_name or cfg.llm_model
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-        self._llm_module: Optional[GenerationIntegrationModule] = None
-
-    def _ensure_llm(self) -> None:
-        if self._llm_module is None:
-            self._llm_module = GenerationIntegrationModule(
-                provider=self.provider,
-                model_name=self.model_name,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-            )
+    def __init__(self) -> None:
+        """初始化（无需 LLM 配置）。"""
+        pass
 
     @staticmethod
-    def _format_section(value: Any) -> str:
-        if value is None:
-            return "(暂无数据)"
-        if isinstance(value, str):
-            return value.strip() or "(暂无数据)"
-        try:
-            return json.dumps(value, ensure_ascii=False, indent=2)
-        except TypeError:
-            return str(value)
+    def _dict_to_markdown(data: Any, level: int = 3) -> str:
+        """
+        递归将字典/列表/字符串转换为 Markdown 格式文本。
 
-    def _build_user_prompt(
+        Args:
+            data: 待转换的数据（dict, list, str, 或其他）
+            level: 当前标题层级（默认 3，即 ###）
+
+        Returns:
+            格式化后的 Markdown 字符串
+        """
+        if data is None:
+            return "_（暂无数据）_\n"
+
+        if isinstance(data, str):
+            text = data.strip()
+            return f"{text}\n" if text else "_（暂无数据）_\n"
+
+        if isinstance(data, bool):
+            return f"{'是' if data else '否'}\n"
+
+        if isinstance(data, (int, float)):
+            return f"{data}\n"
+
+        if isinstance(data, list):
+            if not data:
+                return "_（暂无数据）_\n"
+            lines = []
+            for item in data:
+                if isinstance(item, dict):
+                    # 列表中的字典，展开为子项
+                    item_md = BriefAssemblyPipeline._dict_to_markdown(item, level + 1)
+                    lines.append(item_md)
+                elif isinstance(item, str):
+                    lines.append(f"- {item.strip()}")
+                else:
+                    lines.append(f"- {item}")
+            return "\n".join(lines) + "\n"
+
+        if isinstance(data, dict):
+            if not data:
+                return "_（暂无数据）_\n"
+
+            lines = []
+            header_prefix = "#" * min(level, 6)  # 最多 6 级标题
+
+            for key, value in data.items():
+                # 将 key 格式化为更友好的标题
+                title = BriefAssemblyPipeline._format_key_as_title(key)
+
+                if isinstance(value, dict):
+                    lines.append(f"{header_prefix} {title}\n")
+                    lines.append(BriefAssemblyPipeline._dict_to_markdown(value, level + 1))
+                elif isinstance(value, list):
+                    lines.append(f"{header_prefix} {title}\n")
+                    lines.append(BriefAssemblyPipeline._dict_to_markdown(value, level + 1))
+                elif isinstance(value, str) and len(value) > 100:
+                    # 长文本单独作为段落
+                    lines.append(f"{header_prefix} {title}\n")
+                    lines.append(f"{value.strip()}\n")
+                else:
+                    # 短文本/数字/布尔值作为行内描述
+                    formatted_value = BriefAssemblyPipeline._dict_to_markdown(value, level + 1).strip()
+                    lines.append(f"**{title}**: {formatted_value}\n")
+
+            return "\n".join(lines) + "\n"
+
+        # 其他类型直接转字符串
+        return f"{data}\n"
+
+    @staticmethod
+    def _format_key_as_title(key: str) -> str:
+        """
+        将字典的 key 格式化为更友好的标题。
+
+        Args:
+            key: 原始 key（如 snake_case 或 camelCase）
+
+        Returns:
+            格式化后的标题
+        """
+        title = key.replace("_", " ")
+        title = title.title()
+        return title
+
+    def assemble_generated_content(
         self,
         project_name: str,
         project_features: str,
-        sections: Dict[str, Any],
+        context: Dict[str, Any],
     ) -> str:
-        prompt = [
-            "# 项目背景",
-            f"项目名称: {project_name}",
-            f"项目特征: {project_features}",
-            "",
-            "# 各专业顾问输入数据",
-            "以下是各分项策划的详细要求：",
-            "",
-            "## 1. 设计理念与愿景",
-            self._format_section(sections.get("concept")),
-            "",
-            "## 2. 核心空间与中庭",
-            self._format_section(sections.get("central_hub")),
-            "",
-            "## 3. 展览空间体系",
-            self._format_section(sections.get("exhibition")),
-            "",
-            "## 4. 特效影院配置",
-            self._format_section(sections.get("special_theater")),
-            "",
-            "## 5. 科教与研学",
-            self._format_section(sections.get("science_education")),
-            "",
-            "## 6. 公共服务与运营",
-            self._format_section(sections.get("public_service")),
-            "",
-            "## 7. 业务科研与后勤",
-            self._format_section(sections.get("business_research")),
-            "",
-            "# 撰写任务",
-            f"请汇总上述信息，编写一份完整的《{project_name} 建筑设计任务书》。",
-            "",
-            "# 格式要求 (Markdown)",
-            "1.  **项目概况**: 简述项目背景和核心定位（基于设计理念的 analysis 部分）。",
-            "2.  **设计愿景 (Design Vision)**: 整合“设计理念”中的 directions，用富有感染力的语言描述。",
-            "3.  **核心空间 (The Hub)**: 描述综合大厅的空间意象和交通组织。",
-            "4.  **功能分区详述 (Functional Program)**:",
-            "    * **陈列展览区**: 详细列出各展厅名称、面积建议、空间要求（引用 exhibiton 数据）。",
-            "    * **影院与表演区**: 描述影院配置和空间工艺（引用 special_theater 数据）。",
-            "    * **教育与活动区**: 描述实验室、教室及空间融合策略（引用 science_education 数据）。",
-            "    * **公共服务区**: 描述门厅、餐饮、商业及人性化设施（引用 public_service 数据）。",
-            "    * **业务与后勤区**: 描述办公、修复、库房流线（引用 business_research 数据）。",
-            "5.  **关键技术指标总结**: 将文中提到的净高、跨度、荷载、环境要求汇总成一个表格。",
-            "",
-            "请保持专业、客观、指导性强的语调。",
-        ]
-        return "\n".join(prompt)
+        """
+        将各模块输出按模板拼接为完整的 Markdown 任务书。
+
+        Args:
+            project_name: 项目名称
+            project_features: 项目特征描述
+            context: 各模块输出字典，key 为模块名，value 为该模块生成的内容
+
+        Returns:
+            完整的 Markdown 文档字符串
+        """
+        lines: List[str] = []
+
+        # 标题
+        lines.append(f"# {project_name} 建筑设计任务书\n")
+        lines.append(f"> 生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        lines.append("---\n")
+
+        # 1. 项目概况
+        lines.append("## 1. 项目概况\n")
+        lines.append(f"{project_features}\n")
+        lines.append("")
+
+        # 2-8. 各专业章节
+        section_num = 2
+        for key, title in self.SECTION_ORDER:
+            lines.append(f"## {section_num}. {title}\n")
+
+            section_data = context.get(key)
+            if section_data is None:
+                lines.append("_（该模块暂无输出）_\n")
+            elif isinstance(section_data, str):
+                if section_data.startswith("生成失败"):
+                    lines.append(f"> ⚠️ {section_data}\n")
+                else:
+                    lines.append(f"{section_data.strip()}\n")
+            else:
+                lines.append(self._dict_to_markdown(section_data, level=3))
+
+            lines.append("")
+            section_num += 1
+
+        # 尾部
+        lines.append("---\n")
+        lines.append("*本任务书由 RAG 系统自动生成，仅供参考。*\n")
+
+        return "\n".join(lines)
 
     def generate_brief(
         self,
@@ -118,18 +178,21 @@ class BriefAssemblyPipeline:
         project_features: str,
         sections: Dict[str, Any],
     ) -> Dict[str, str]:
-        self._ensure_llm()
-        user_prompt = self._build_user_prompt(project_name, project_features, sections)
-        chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", self.SYSTEM_PROMPT),
-            ("human", "{user_prompt}"),
-        ])
-        chain = chat_prompt | self._llm_module.llm | StrOutputParser()
-        response = chain.invoke({"user_prompt": user_prompt})
+        """
+        生成设计任务书（接口兼容）。
+
+        Args:
+            project_name: 项目名称
+            project_features: 项目特征
+            sections: 各模块输出字典
+
+        Returns:
+            包含 "response" 键的字典，值为生成的 Markdown 文本
+        """
+        logger.info("开始组装任务书（确定性模板拼接）...")
+        markdown = self.assemble_generated_content(project_name, project_features, sections)
+        logger.info("任务书组装完成，长度: %d 字符", len(markdown))
+
         return {
-            "prompt": {
-                "system_prompt": self.SYSTEM_PROMPT,
-                "user_prompt": user_prompt,
-            },
-            "response": response,
+            "response": markdown,
         }
