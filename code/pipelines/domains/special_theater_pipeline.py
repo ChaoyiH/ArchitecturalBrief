@@ -14,6 +14,11 @@ from config import SpecialTheaterConfig
 from core.embedding_manager import get_embedding
 from utils.data_preparation import SpecialTheaterDataExtractor
 from core.generation_integration import GenerationIntegrationModule
+from prompts import (
+    SPECIAL_THEATER_SYSTEM,
+    SPECIAL_THEATER_JSON_SCHEMA,
+    SPECIAL_THEATER_USER_TEMPLATE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,39 +64,7 @@ class SpecialTheaterVectorStore:
 
 
 class SpecialTheaterPromptBuilder:
-    SYSTEM_PROMPT = (
-        "你是一位专业的文化建筑视听顾问和工艺设计师。"
-        "你的任务是规划博物馆/科技馆的特效影院系统。"
-        "你需要根据项目规模推荐合适的影院组合（如：巨幕+球幕+4D），并给出具体的空间工艺要求（净高、视线设计、声学隔离）。"
-    )
-
-    JSON_SCHEMA = (
-        "{\n"
-        "  \"theater_configuration\": [\n"
-        "    {\n"
-        "      \"type\": \"推荐影院类型1（如：IMAX球幕影院）\",\n"
-        "      \"capacity_suggestion\": \"建议座位数（如：200-250座）\",\n"
-        "      \"screen_spec\": \"建议屏幕规格（如：直径23米倾斜式球幕）\",\n"
-        "      \"feature_description\": \"该影院的体验特点及科普价值。\"\n"
-        "    },\n"
-        "    {\n"
-        "      \"type\": \"推荐影院类型2（如：4D动感影院）\",\n"
-        "      \"capacity_suggestion\": \"...\",\n"
-        "      \"screen_spec\": \"...\",\n"
-        "      \"feature_description\": \"...\"\n"
-        "    }\n"
-        "  ],\n"
-        "  \"spatial_requirements\": {\n"
-        "    \"clear_height\": \"针对所选影院的最大净高需求（如：球幕厅需净高25米以上）。\",\n"
-        "    \"structure_span\": \"建议的大跨度结构参数。\",\n"
-        "    \"acoustic_isolation\": \"关于影院与其他安静展区之间的隔声/减振策略。\"\n"
-        "  },\n"
-        "  \"operational_layout\": {\n"
-        "    \"access_strategy\": \"如何实现影院的单独对外开放（夜间运营）流线。\",\n"
-        "    \"support_rooms\": \"放映机房、排队等候区、3D眼镜分发回收区的布置建议。\"\n"
-        "  }\n"
-        "}\n"
-    )
+    """Builds prompts for special theater design using centralized prompt registry."""
 
     def build_prompt(
         self,
@@ -100,33 +73,20 @@ class SpecialTheaterPromptBuilder:
         retrieved_docs: Sequence[Document],
     ) -> Dict[str, str]:
         context = self._format_context(retrieved_docs)
-        schema = self.JSON_SCHEMA.replace("{", "{{").replace("}", "}}")
-        user_prompt = [
-            "# 任务背景",
-            f"项目名称: {project_name}",
-            f"项目特征: {project_features}",
-            "",
-            "# 知识库检索结果",
-            "以下是关于特效影院（IMAX、球幕、4D等）的配置标准、案例数据和设计规范：",
-            "---",
-            context,
-            "---",
-            "",
-            "# 生成任务",
-            "请为该项目编写《特效影院区空间设计策划书》。",
-            "请综合考虑：",
-            f"1.  **影院选型**: 根据项目定位（如{project_features}），推荐配置哪些类型的特效影院（如：特大型馆通常配置IMAX球幕）。",
-            "2.  **规模建议**: 各个影院的建议座位数和银幕/球幕直径。",
-            "3.  **空间工艺**: 对应的建筑层高要求（非常关键，球幕通常需要穿越多层）、结构跨度要求。",
-            "4.  **布局策略**: 影院应如何布置以方便独立运营（闭馆后单独开放）并解决隔声问题。",
-            "",
-            "# 输出要求",
-            "请严格按照以下 JSON 格式输出：",
-            schema,
-        ]
+        # 使用 prompts.py 中的模板，转义花括号以兼容 ChatPromptTemplate
+        json_schema_escaped = SPECIAL_THEATER_JSON_SCHEMA.replace("{", "{{").replace("}", "}}")
+        user_prompt = SPECIAL_THEATER_USER_TEMPLATE.format(
+            project_name=project_name,
+            project_features=project_features,
+            context=context,
+            json_schema=json_schema_escaped,
+        )
+        # 转义 user_prompt 中的花括号
+        user_prompt = user_prompt.replace("{", "{{").replace("}", "}}")
+
         return {
-            "system_prompt": self.SYSTEM_PROMPT,
-            "user_prompt": "\n".join(user_prompt),
+            "system_prompt": SPECIAL_THEATER_SYSTEM,
+            "user_prompt": user_prompt,
         }
 
     @staticmethod

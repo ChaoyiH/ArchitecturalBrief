@@ -14,6 +14,11 @@ from config import ScienceEducationConfig
 from core.embedding_manager import get_embedding
 from utils.data_preparation import ScienceEducationDataExtractor
 from core.generation_integration import GenerationIntegrationModule
+from prompts import (
+    SCIENCE_EDUCATION_SYSTEM,
+    SCIENCE_EDUCATION_JSON_SCHEMA,
+    SCIENCE_EDUCATION_USER_TEMPLATE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +64,7 @@ class ScienceEducationVectorStore:
 
 
 class ScienceEducationPromptBuilder:
-    SYSTEM_PROMPT = (
-        "你是一位专注于博物馆教育规划和学习空间设计的资深建筑师。"
-        "你的任务是策划博物馆/科技馆的科普教育活动体系，并提出相应的空间落位策略。"
-        "你需要打破传统“教室即教育”的观念，提出将教育活动融入中庭、展厅和公共空间的创新方案。"
-    )
+    SYSTEM_PROMPT = SCIENCE_EDUCATION_SYSTEM
 
     JSON_SCHEMA = (
         "{\n"
@@ -98,35 +99,16 @@ class ScienceEducationPromptBuilder:
         retrieved_docs: Sequence[Document],
     ) -> Dict[str, str]:
         context = self._format_context(retrieved_docs)
-        schema = self.JSON_SCHEMA.replace("{", "{{").replace("}", "}}")
-        user_prompt = [
-            "# 任务背景",
-            f"项目名称: {project_name}",
-            f"项目特征: {project_features}",
-            "",
-            "# 知识库检索结果",
-            "以下是关于科普活动类型、教育空间标准及优秀案例的参考信息：",
-            "---",
-            context,
-            "---",
-            "",
-            "# 生成任务",
-            "请为该项目编写《科教活动与空间融合策划书》。",
-            "请重点策划：",
-            "1.  **品牌活动**: 建议策划哪些特色的科普品牌活动（如：科学实验秀、专家讲坛、过夜活动）。",
-            "2.  **空间融合策略**:",
-            "    * **嵌入式教育**: 如何在展厅内部设置开放式实验室或工作坊（Workshop）。",
-            "    * **表演性教育**: 如何利用中庭或大台阶进行公开的科学表演。",
-            "3.  **专业教育区**: 独立教室/实验室的配置建议（物理/化学/生物/机器人）。",
-            "4.  **流线组织**: 研学团队如何快速到达教育区而不干扰普通观众。",
-            "",
-            "# 输出要求",
-            "请严格按照以下 JSON 格式输出：",
-            schema,
-        ]
+        escaped_schema = self.JSON_SCHEMA.replace("{", "{{").replace("}", "}}")
+        user_prompt = SCIENCE_EDUCATION_USER_TEMPLATE.format(
+            project_name=project_name,
+            project_features=project_features,
+            context=context,
+            json_schema=escaped_schema,
+        )
         return {
             "system_prompt": self.SYSTEM_PROMPT,
-            "user_prompt": "\n".join(user_prompt),
+            "user_prompt": user_prompt,
         }
 
     @staticmethod

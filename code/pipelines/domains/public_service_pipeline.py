@@ -14,6 +14,11 @@ from config import PublicServiceConfig
 from core.embedding_manager import get_embedding
 from utils.data_preparation import PublicServiceDataExtractor
 from core.generation_integration import GenerationIntegrationModule
+from prompts import (
+    PUBLIC_SERVICE_SYSTEM,
+    PUBLIC_SERVICE_JSON_SCHEMA,
+    PUBLIC_SERVICE_USER_TEMPLATE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +64,7 @@ class PublicServiceVectorStore:
 
 
 class PublicServicePromptBuilder:
-    SYSTEM_PROMPT = (
-        "你是一位专注于公共建筑体验设计的资深建筑师，特别擅长人流组织和人性化设计。"
-        "你的任务是为建筑任务书编写“公共服务区”的设计要求，确保空间既高效（解决拥堵）又舒适（提供关怀）。"
-    )
+    SYSTEM_PROMPT = PUBLIC_SERVICE_SYSTEM
 
     JSON_SCHEMA = (
         "{\n"
@@ -99,33 +101,16 @@ class PublicServicePromptBuilder:
         retrieved_docs: Sequence[Document],
     ) -> Dict[str, str]:
         context = self._format_context(retrieved_docs)
-        schema = self.JSON_SCHEMA.replace("{", "{{").replace("}", "}}")
-        user_prompt = [
-            "# 任务背景",
-            f"项目名称: {project_name}",
-            f"项目特征: {project_features}",
-            "",
-            "# 知识库检索结果",
-            "以下是关于公共服务区设计的规范要求、设计资料和案例参考：",
-            "---",
-            context,
-            "---",
-            "",
-            "# 生成任务",
-            "请为该项目编写《公共服务区空间设计策划书》。",
-            "请重点关注：",
-            "1.  **入馆流线**: 如何高效组织 售票 -> 安检 -> 存包 -> 检票 的流程，避免高峰期拥堵。",
-            "2.  **核心大厅**: 综合大厅（中庭）的尺度与功能定位。",
-            "3.  **人性化设施**: 卫生间（特别是女性厕位比例）、母婴室、无障碍设施的具体要求。",
-            "4.  **经营空间**: 纪念品商店和餐饮区的布局建议。",
-            "",
-            "# 输出要求",
-            "请严格按照以下 JSON 格式输出：",
-            schema,
-        ]
+        escaped_schema = self.JSON_SCHEMA.replace("{", "{{").replace("}", "}}")
+        user_prompt = PUBLIC_SERVICE_USER_TEMPLATE.format(
+            project_name=project_name,
+            project_features=project_features,
+            context=context,
+            json_schema=escaped_schema,
+        )
         return {
             "system_prompt": self.SYSTEM_PROMPT,
-            "user_prompt": "\n".join(user_prompt),
+            "user_prompt": user_prompt,
         }
 
     @staticmethod

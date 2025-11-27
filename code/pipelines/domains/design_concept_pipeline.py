@@ -17,6 +17,11 @@ from langchain_community.vectorstores import FAISS
 from config import DesignConceptConfig
 from core.embedding_manager import get_embedding
 from core.generation_integration import GenerationIntegrationModule
+from prompts import (
+    DESIGN_CONCEPT_SYSTEM,
+    DESIGN_CONCEPT_JSON_SCHEMA,
+    DESIGN_CONCEPT_USER_TEMPLATE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -297,26 +302,6 @@ class DesignConceptVectorStore:
 class DesignConceptPromptBuilder:
     """Builds prompts aligned with the design brief requirements."""
 
-    SYSTEM_PROMPT = (
-        "你是一位经验丰富的建筑策划总师和建筑理论家。"  # noqa: E501
-        "你的专长是分析建筑项目背景，并从过往的优秀案例中提炼出具有深度、创新性且可落地的设计理念。"
-        "你的输出必须专业、逻辑严密，并具备建筑学术语言风格。"
-    )
-
-    JSON_SCHEMA = (
-        "{{\n"
-        "  \"analysis\": \"...\",\n"
-        "  \"directions\": [\n"
-        "    {{\n"
-        "      \"title\": \"理念方向一：[四字或短语]\",\n"
-        "      \"concept_description\": \"...\",\n"
-        "      \"spatial_strategy\": \"...\",\n"
-        "      \"inspiration_source\": \"...\"\n"
-        "    }}\n"
-        "  ]\n"
-        "}}\n"
-    )
-
     def build_prompt(
         self,
         project_name: str,
@@ -324,21 +309,19 @@ class DesignConceptPromptBuilder:
         retrieved_docs: Sequence[Document],
     ) -> Dict[str, str]:
         context = self._format_context(retrieved_docs)
-        user_prompt = f"""# 任务背景\n"""
-        user_prompt += f"**项目名称/类型**: {project_name}\n"
-        user_prompt += f"**项目关键特征**: {project_features}\n\n"
-        user_prompt += "# 参考上下文 (Retrieved Context)\n"
-        user_prompt += "以下是从知识库中检索到的类似优秀项目的【设计理念】片段：\n---\n"
-        user_prompt += f"{context}\n---\n\n"
-        user_prompt += "# 生成任务\n"
-        user_prompt += "请结合【项目关键特征】和【参考上下文】，为该项目生成一份“设计理念建议书”。\n"
-        user_prompt += "请不要直接照抄参考文案，而是要分析这些案例背后的设计逻辑，并迁移到当前项目中。\n\n"
-        user_prompt += "# 输出要求\n"
-        user_prompt += "请严格按照以下 JSON 格式输出：\n"
-        user_prompt += self.JSON_SCHEMA
+        # 使用 prompts.py 中的模板，转义花括号以兼容 ChatPromptTemplate
+        json_schema_escaped = DESIGN_CONCEPT_JSON_SCHEMA.replace("{", "{{").replace("}", "}}")
+        user_prompt = DESIGN_CONCEPT_USER_TEMPLATE.format(
+            project_name=project_name,
+            project_features=project_features,
+            context=context,
+            json_schema=json_schema_escaped,
+        )
+        # 转义 user_prompt 中的花括号
+        user_prompt = user_prompt.replace("{", "{{").replace("}", "}}")
 
         return {
-            "system_prompt": self.SYSTEM_PROMPT,
+            "system_prompt": DESIGN_CONCEPT_SYSTEM,
             "user_prompt": user_prompt,
         }
 

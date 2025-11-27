@@ -14,6 +14,11 @@ from config import ExhibitionConfig
 from core.embedding_manager import get_embedding
 from utils.data_preparation import ExhibitionDataExtractor
 from core.generation_integration import GenerationIntegrationModule
+from prompts import (
+    EXHIBITION_SYSTEM,
+    EXHIBITION_JSON_SCHEMA,
+    EXHIBITION_USER_TEMPLATE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,47 +64,7 @@ class ExhibitionVectorStore:
 
 
 class ExhibitionPromptBuilder:
-    SYSTEM_PROMPT = (
-        "你是一位精通博物馆与科技馆设计的资深建筑师和展陈策划专家。"
-        "你需要根据项目背景，结合国家规范（硬指标）和优秀案例（软策略），"
-        "输出一份专业、可落地的《陈列展览区空间设计任务书》。"
-        "你的输出必须包含具体的空间参数、流线策略和功能分区建议，严禁泛泛而谈。"
-    )
-
-    JSON_SCHEMA = (
-        "{\n"
-        "  \"spatial_parameters\": {\n"
-        "    \"ceiling_height\": \"建议主要展厅净高范围（如：首层X米，标准层Y米），并引用规范或案例依据。\",\n"
-        "    \"column_grid\": \"建议柱网尺寸（如：Xm*Ym），以适应大型展项布置。\",\n"
-        "    \"floor_load\": \"建议楼面荷载值（kN/m2），特别是针对重型展品区。\"\n"
-        "  },\n"
-        "  \"layout_strategy\": {\n"
-        "    \"organization_type\": \"推荐的空间组合形式（如：大厅式、串联式、放射式），并说明理由。\",\n"
-        "    \"circulation_flow\": \"观众参观流线建议（如：单向强制流线、自由选择流线），以及如何处理人流高峰。\"\n"
-        "  },\n"
-        "  \"functional_zoning\": [\n"
-        "    {\n"
-        "      \"zone_name\": \"推荐展区1名称（如：儿童科技乐园）\",\n"
-        "      \"floor_suggestion\": \"建议楼层（如：首层）\",\n"
-        "      \"area_concept\": \"该展区的设计概念和空间特征描述。\",\n"
-        "      \"reference\": \"参考了哪个案例的设置。\"\n"
-        "    },\n"
-        "    {\n"
-        "      \"zone_name\": \"推荐展区2名称\",\n"
-        "      \"floor_suggestion\": \"...\",\n"
-        "      \"area_concept\": \"...\",\n"
-        "      \"reference\": \"...\"\n"
-        "    },\n"
-        "    {\n"
-        "      \"zone_name\": \"推荐展区3名称\",\n"
-        "      \"floor_suggestion\": \"...\",\n"
-        "      \"area_concept\": \"...\",\n"
-        "      \"reference\": \"...\"\n"
-        "    }\n"
-        "  ],\n"
-        "  \"environment_requirements\": \"关于光环境（自然光/人工光控制）和声学环境的具体要求。\"\n"
-        "}\n"
-    )
+    """Builds prompts for exhibition space design using centralized prompt registry."""
 
     def build_prompt(
         self,
@@ -108,32 +73,20 @@ class ExhibitionPromptBuilder:
         retrieved_docs: Sequence[Document],
     ) -> Dict[str, str]:
         context = self._format_context(retrieved_docs)
-        schema = self.JSON_SCHEMA.replace("{", "{{").replace("}", "}}")
-        user_prompt = [
-            "# 任务背景",
-            f"项目名称: {project_name}",
-            f"项目特征: {project_features}",
-            "",
-            "# 知识库检索结果 (Retrieved Context)",
-            "以下是从规范标准、设计资料和类似案例中检索到的相关信息：",
-            "---",
-            context,
-            "---",
-            "",
-            "# 生成任务",
-            (
-                "请为该项目编写“陈列展览区空间设计要求”。请综合考虑作为"
-                f"“{project_features}”的特殊性（例如科技馆对层高和荷载要求通常高于一般博物馆）。"
-            ),
-            "",
-            "# 输出要求",
-            "请严格按照以下 JSON 格式输出：",
-            schema,
-        ]
+        # 使用 prompts.py 中的模板，转义花括号以兼容 ChatPromptTemplate
+        json_schema_escaped = EXHIBITION_JSON_SCHEMA.replace("{", "{{").replace("}", "}}")
+        user_prompt = EXHIBITION_USER_TEMPLATE.format(
+            project_name=project_name,
+            project_features=project_features,
+            context=context,
+            json_schema=json_schema_escaped,
+        )
+        # 转义 user_prompt 中的花括号
+        user_prompt = user_prompt.replace("{", "{{").replace("}", "}}")
 
         return {
-            "system_prompt": self.SYSTEM_PROMPT,
-            "user_prompt": "\n".join(user_prompt),
+            "system_prompt": EXHIBITION_SYSTEM,
+            "user_prompt": user_prompt,
         }
 
     @staticmethod
