@@ -10,7 +10,7 @@ from config import DEFAULT_CONFIG
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-from rag_modules.generation_integration import GenerationIntegrationModule
+from core.generation_integration import GenerationIntegrationModule
 
 logger = logging.getLogger(__name__)
 

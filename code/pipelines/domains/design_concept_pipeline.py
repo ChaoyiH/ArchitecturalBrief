@@ -19,7 +19,7 @@ except ImportError:  # Fall back for environments not yet upgraded
 from langchain_community.vectorstores import FAISS
 
 from config import DesignConceptConfig
-from rag_modules.generation_integration import GenerationIntegrationModule
+from core.generation_integration import GenerationIntegrationModule
 
 logger = logging.getLogger(__name__)
 

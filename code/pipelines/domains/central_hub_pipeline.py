@@ -1,4 +1,4 @@
-"""Pipeline for planning science & education integrations."""
+"""Pipeline for generating central hall & circulation hub briefs."""
 
 from __future__ import annotations
 
@@ -15,17 +15,17 @@ try:
 except ImportError:  # pragma: no cover
     from langchain_community.embeddings import HuggingFaceEmbeddings  # type: ignore
 
-from config import ScienceEducationConfig
-from rag_modules.data_preparation import ScienceEducationDataExtractor
-from rag_modules.generation_integration import GenerationIntegrationModule
+from config import CentralHubConfig
+from utils.data_preparation import CentralHubDataExtractor
+from core.generation_integration import GenerationIntegrationModule
 
 logger = logging.getLogger(__name__)
 
 
-class ScienceEducationVectorStore:
-    """Vector store for science & education knowledge."""
+class CentralHubVectorStore:
+    """Vector store handler for central hub knowledge."""
 
-    def __init__(self, config: ScienceEducationConfig):
+    def __init__(self, config: CentralHubConfig):
         self.config = config
         self.embedding = HuggingFaceEmbeddings(
             model_name=config.embedding_model,
@@ -40,18 +40,18 @@ class ScienceEducationVectorStore:
                 self.embedding,
                 allow_dangerous_deserialization=True,
             )
-            logger.info("已加载科教活动索引: %s", self.config.index_save_path)
+            logger.info("已加载综合大厅索引: %s", self.config.index_save_path)
             return True
         except Exception:
             return False
 
     def build(self, documents: Sequence[Document]) -> None:
         if not documents:
-            raise ValueError("科教活动文档为空，无法构建索引")
-        logger.info("正在构建科教活动索引 (文档=%d)...", len(documents))
+            raise ValueError("综合大厅文档为空，无法构建索引")
+        logger.info("正在构建综合大厅索引 (文档=%d)...", len(documents))
         self.vectorstore = FAISS.from_documents(list(documents), self.embedding)
         self.vectorstore.save_local(self.config.index_save_path)
-        logger.info("科教活动索引保存至: %s", self.config.index_save_path)
+        logger.info("综合大厅索引保存至: %s", self.config.index_save_path)
 
     def ensure_ready(self, loader, rebuild: bool = False) -> None:
         if not rebuild and self.load():
@@ -61,39 +61,36 @@ class ScienceEducationVectorStore:
 
     def search(self, query: str, top_k: int) -> List[Document]:
         if self.vectorstore is None:
-            raise RuntimeError("科教活动索引尚未构建")
+            raise RuntimeError("综合大厅索引尚未构建")
         return self.vectorstore.similarity_search(query, k=top_k)
 
 
-class ScienceEducationPromptBuilder:
+class CentralHubPromptBuilder:
     SYSTEM_PROMPT = (
-        "你是一位专注于博物馆教育规划和学习空间设计的资深建筑师。"
-        "你的任务是策划博物馆/科技馆的科普教育活动体系，并提出相应的空间落位策略。"
-        "你需要打破传统“教室即教育”的观念，提出将教育活动融入中庭、展厅和公共空间的创新方案。"
+        "你是一位擅长公共空间塑造的建筑设计大师。"
+        "你的任务是为博物馆/科技馆策划“综合大厅（中庭）”。这是一个集交通枢纽、仪式感展示和环境调节于一体的核心空间。"
+        "你需要平衡空间的震撼力（视觉焦点）与功能性（人流集散）。"
     )
 
     JSON_SCHEMA = (
         "{\n"
-        "  \"education_concept\": \"一句话概括教育理念（如：从'参观'走向'探究'，馆校深度融合）。\",\n"
-        "  \"signature_activities\": [\n"
-        "    {\n"
-        "      \"name\": \"建议活动名称（如：奇妙化学实验秀）\",\n"
-        "      \"format\": \"活动形式（如：现场演示/互动体验）\",\n"
-        "      \"spatial_requirement\": \"对空间的要求（如：需配有排风设施的开放舞台，或需大跨度中庭）。\"\n"
-        "    },\n"
-        "    {\n"
-        "      \"name\": \"...\",\n"
-        "      \"format\": \"...\",\n"
-        "      \"spatial_requirement\": \"...\"\n"
-        "    }\n"
-        "  ],\n"
-        "  \"spatial_integration\": {\n"
-        "    \"embedded_labs\": \"关于在展厅内设置‘玻璃盒子’实验室或开放工坊的建议。\",\n"
-        "    \"public_performance\": \"关于利用门厅/中庭进行科学表演的空间利用策略。\"\n"
+        "  \"spatial_concept\": {\n"
+        "    \"theme_name\": \"为大厅起一个主题名（如：时空隧道、生态峡谷）\",\n"
+        "    \"form_description\": \"描述大厅的空间形态（如：X层通高的中庭，通过流线型栏板引导视线）。\",\n"
+        "    \"atmosphere\": \"描述空间氛围（如：明亮、科技感、甚至带有神圣感）。\"\n"
         "  },\n"
-        "  \"dedicated_education_zone\": {\n"
-        "    \"room_configuration\": \"独立教育区建议设置的房间类型及数量（如：2间通用教室，1间机器人工作室）。\",\n"
-        "    \"zoning_strategy\": \"教育区在建筑中的位置建议（如：独立首层入口，方便夜间或周末单独开放）。\"\n"
+        "  \"scale_reference\": {\n"
+        "    \"height_suggestion\": \"建议通高高度（如：24m，贯穿1-4层）。\",\n"
+        "    \"area_suggestion\": \"建议核心区面积范围。\",\n"
+        "    \"rationale\": \"基于规范或参考案例的理由。\"\n"
+        "  },\n"
+        "  \"circulation_hub\": {\n"
+        "    \"vertical_transport\": \"主要垂直交通工具的选型与布局建议（如：飞天梯、螺旋坡道）。\",\n"
+        "    \"visual_connection\": \"如何建立大厅与各层展厅的视线联系。\"\n"
+        "  },\n"
+        "  \"feature_element\": {\n"
+        "    \"type\": \"建议的标志性元素（如：悬挂展品、互动媒体墙、巨型雕塑）。\",\n"
+        "    \"description\": \"该元素的具体描述及其承载的文化/科技寓意。\"\n"
         "  }\n"
         "}\n"
     )
@@ -112,20 +109,18 @@ class ScienceEducationPromptBuilder:
             f"项目特征: {project_features}",
             "",
             "# 知识库检索结果",
-            "以下是关于科普活动类型、教育空间标准及优秀案例的参考信息：",
+            "以下是关于综合大厅、中庭和序厅的规范指标、设计资料及优秀案例：",
             "---",
             context,
             "---",
             "",
             "# 生成任务",
-            "请为该项目编写《科教活动与空间融合策划书》。",
-            "请重点策划：",
-            "1.  **品牌活动**: 建议策划哪些特色的科普品牌活动（如：科学实验秀、专家讲坛、过夜活动）。",
-            "2.  **空间融合策略**:",
-            "    * **嵌入式教育**: 如何在展厅内部设置开放式实验室或工作坊（Workshop）。",
-            "    * **表演性教育**: 如何利用中庭或大台阶进行公开的科学表演。",
-            "3.  **专业教育区**: 独立教室/实验室的配置建议（物理/化学/生物/机器人）。",
-            "4.  **流线组织**: 研学团队如何快速到达教育区而不干扰普通观众。",
+            "请为该项目编写《综合大厅与核心空间策划书》。",
+            "请重点关注：",
+            "1.  **空间形态**: 大厅的形态特征（如：通高空间、穹顶、线性长廊）。",
+            "2.  **视觉焦点**: 建议设置何种标志性装置或艺术品（如：上海科技馆的“生命之卵”）。",
+            "3.  **垂直交通**: 核心楼梯/扶梯的布置方式，如何引导观众向上层展厅流动。",
+            "4.  **物理环境**: 采光（天窗/幕墙）与通风策略。",
             "",
             "# 输出要求",
             "请严格按照以下 JSON 格式输出：",
@@ -152,14 +147,14 @@ class ScienceEducationPromptBuilder:
         return "\n".join(formatted)
 
 
-class ScienceEducationGenerator:
-    """Facade for science education planning."""
+class CentralHubGenerator:
+    """Facade for central hub task generation."""
 
-    def __init__(self, config: ScienceEducationConfig):
+    def __init__(self, config: CentralHubConfig):
         self.config = config
-        self.extractor = ScienceEducationDataExtractor(config)
-        self.vector_store = ScienceEducationVectorStore(config)
-        self.prompt_builder = ScienceEducationPromptBuilder()
+        self.extractor = CentralHubDataExtractor(config)
+        self.vector_store = CentralHubVectorStore(config)
+        self.prompt_builder = CentralHubPromptBuilder()
         self._llm_module: Optional[GenerationIntegrationModule] = None
 
     def ensure_index(self, rebuild: bool = False) -> None:
@@ -180,14 +175,14 @@ class ScienceEducationGenerator:
         project_features: str,
         base_query: Optional[str],
     ) -> List[str]:
-        base = base_query or project_name or project_features or "科教活动"
+        base = base_query or project_name or project_features or "综合大厅"
         seeds = [
             base,
-            "科技馆 科普活动 案例",
-            "博物馆 教育空间 设计规范",
-            "科学实验室 通风要求",
-            "研学流线 组织",
-            f"{project_features} 科教活动" if project_features else "科教活动 特色",
+            f"{project_name} 综合大厅 案例" if project_name else "博物馆 综合大厅 案例",
+            "博物馆 中庭 设计手法",
+            "科技馆 序厅 标志性展项",
+            "综合大厅 面积指标",
+            f"{project_features} 中庭 枢纽" if project_features else "中庭 交通 枢纽",
         ]
         unique: List[str] = []
         seen = set()

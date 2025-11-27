@@ -1,4 +1,4 @@
-"""Pipeline for generating special effects theater planning briefs."""
+"""Pipeline for generating public service area design briefs."""
 
 from __future__ import annotations
 
@@ -10,22 +10,22 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import FAISS
 
-try:
+try:  # Prefer new embeddings package
     from langchain_huggingface import HuggingFaceEmbeddings  # type: ignore
 except ImportError:  # pragma: no cover
     from langchain_community.embeddings import HuggingFaceEmbeddings  # type: ignore
 
-from config import SpecialTheaterConfig
-from rag_modules.data_preparation import SpecialTheaterDataExtractor
-from rag_modules.generation_integration import GenerationIntegrationModule
+from config import PublicServiceConfig
+from utils.data_preparation import PublicServiceDataExtractor
+from core.generation_integration import GenerationIntegrationModule
 
 logger = logging.getLogger(__name__)
 
 
-class SpecialTheaterVectorStore:
-    """Vector store wrapper for special theater knowledge."""
+class PublicServiceVectorStore:
+    """Vector store dedicated to public service area knowledge."""
 
-    def __init__(self, config: SpecialTheaterConfig):
+    def __init__(self, config: PublicServiceConfig):
         self.config = config
         self.embedding = HuggingFaceEmbeddings(
             model_name=config.embedding_model,
@@ -40,18 +40,18 @@ class SpecialTheaterVectorStore:
                 self.embedding,
                 allow_dangerous_deserialization=True,
             )
-            logger.info("已加载特效影院索引: %s", self.config.index_save_path)
+            logger.info("已加载公共服务区索引: %s", self.config.index_save_path)
             return True
         except Exception:
             return False
 
     def build(self, documents: Sequence[Document]) -> None:
         if not documents:
-            raise ValueError("特效影院文档为空，无法构建索引")
-        logger.info("正在构建特效影院索引 (文档=%d)...", len(documents))
+            raise ValueError("公共服务区文档为空，无法构建索引")
+        logger.info("正在构建公共服务区索引 (文档=%d)...", len(documents))
         self.vectorstore = FAISS.from_documents(list(documents), self.embedding)
         self.vectorstore.save_local(self.config.index_save_path)
-        logger.info("特效影院索引保存至: %s", self.config.index_save_path)
+        logger.info("公共服务区索引保存至: %s", self.config.index_save_path)
 
     def ensure_ready(self, loader, rebuild: bool = False) -> None:
         if not rebuild and self.load():
@@ -61,42 +61,41 @@ class SpecialTheaterVectorStore:
 
     def search(self, query: str, top_k: int) -> List[Document]:
         if self.vectorstore is None:
-            raise RuntimeError("特效影院索引尚未构建")
+            raise RuntimeError("公共服务区索引尚未构建")
         return self.vectorstore.similarity_search(query, k=top_k)
 
 
-class SpecialTheaterPromptBuilder:
+class PublicServicePromptBuilder:
     SYSTEM_PROMPT = (
-        "你是一位专业的文化建筑视听顾问和工艺设计师。"
-        "你的任务是规划博物馆/科技馆的特效影院系统。"
-        "你需要根据项目规模推荐合适的影院组合（如：巨幕+球幕+4D），并给出具体的空间工艺要求（净高、视线设计、声学隔离）。"
+        "你是一位专注于公共建筑体验设计的资深建筑师，特别擅长人流组织和人性化设计。"
+        "你的任务是为建筑任务书编写“公共服务区”的设计要求，确保空间既高效（解决拥堵）又舒适（提供关怀）。"
     )
 
     JSON_SCHEMA = (
         "{\n"
-        "  \"theater_configuration\": [\n"
+        "  \"entrance_lobby\": {\n"
+        "    \"flow_strategy\": \"描述入馆流线的组织策略（如：单向流线、分层检票等）。\",\n"
+        "    \"spatial_requirements\": \"门厅/综合大厅的空间尺度建议（面积、净高）及氛围营造。\",\n"
+        "    \"key_facilities\": [\"列出必备设施，如：智能储物柜、自动取票机、咨询台\"]\n"
+        "  },\n"
+        "  \"amenities_standard\": {\n"
+        "    \"restroom_config\": \"关于卫生间配置的具体建议（如：依据规范建议男女厕位比例、第三卫生间设置）。\",\n"
+        "    \"accessibility\": \"无障碍设计要求（坡道、电梯、盲道等）。\",\n"
+        "    \"special_care\": \"母婴室、医务室等关怀设施的要求。\"\n"
+        "  },\n"
+        "  \"commercial_dining\": [\n"
         "    {\n"
-        "      \"type\": \"推荐影院类型1（如：IMAX球幕影院）\",\n"
-        "      \"capacity_suggestion\": \"建议座位数（如：200-250座）\",\n"
-        "      \"screen_spec\": \"建议屏幕规格（如：直径23米倾斜式球幕）\",\n"
-        "      \"feature_description\": \"该影院的体验特点及科普价值。\"\n"
+        "      \"type\": \"餐饮/咖啡\",\n"
+        "      \"location\": \"建议位置（如：顶层景观区、首层临街等）\",\n"
+        "      \"design_note\": \"设计要点（如：独立出入口、排烟要求）。\"\n"
         "    },\n"
         "    {\n"
-        "      \"type\": \"推荐影院类型2（如：4D动感影院）\",\n"
-        "      \"capacity_suggestion\": \"...\",\n"
-        "      \"screen_spec\": \"...\",\n"
-        "      \"feature_description\": \"...\"\n"
+        "      \"type\": \"文创商店\",\n"
+        "      \"location\": \"建议位置（如：出口必经之路）\",\n"
+        "      \"design_note\": \"设计要点。\"\n"
         "    }\n"
         "  ],\n"
-        "  \"spatial_requirements\": {\n"
-        "    \"clear_height\": \"针对所选影院的最大净高需求（如：球幕厅需净高25米以上）。\",\n"
-        "    \"structure_span\": \"建议的大跨度结构参数。\",\n"
-        "    \"acoustic_isolation\": \"关于影院与其他安静展区之间的隔声/减振策略。\"\n"
-        "  },\n"
-        "  \"operational_layout\": {\n"
-        "    \"access_strategy\": \"如何实现影院的单独对外开放（夜间运营）流线。\",\n"
-        "    \"support_rooms\": \"放映机房、排队等候区、3D眼镜分发回收区的布置建议。\"\n"
-        "  }\n"
+        "  \"rest_area_concept\": \"关于非经营性公共休息座椅、视听区的布置理念。\"\n"
         "}\n"
     )
 
@@ -114,18 +113,18 @@ class SpecialTheaterPromptBuilder:
             f"项目特征: {project_features}",
             "",
             "# 知识库检索结果",
-            "以下是关于特效影院（IMAX、球幕、4D等）的配置标准、案例数据和设计规范：",
+            "以下是关于公共服务区设计的规范要求、设计资料和案例参考：",
             "---",
             context,
             "---",
             "",
             "# 生成任务",
-            "请为该项目编写《特效影院区空间设计策划书》。",
-            "请综合考虑：",
-            f"1.  **影院选型**: 根据项目定位（如{project_features}），推荐配置哪些类型的特效影院（如：特大型馆通常配置IMAX球幕）。",
-            "2.  **规模建议**: 各个影院的建议座位数和银幕/球幕直径。",
-            "3.  **空间工艺**: 对应的建筑层高要求（非常关键，球幕通常需要穿越多层）、结构跨度要求。",
-            "4.  **布局策略**: 影院应如何布置以方便独立运营（闭馆后单独开放）并解决隔声问题。",
+            "请为该项目编写《公共服务区空间设计策划书》。",
+            "请重点关注：",
+            "1.  **入馆流线**: 如何高效组织 售票 -> 安检 -> 存包 -> 检票 的流程，避免高峰期拥堵。",
+            "2.  **核心大厅**: 综合大厅（中庭）的尺度与功能定位。",
+            "3.  **人性化设施**: 卫生间（特别是女性厕位比例）、母婴室、无障碍设施的具体要求。",
+            "4.  **经营空间**: 纪念品商店和餐饮区的布局建议。",
             "",
             "# 输出要求",
             "请严格按照以下 JSON 格式输出：",
@@ -140,11 +139,11 @@ class SpecialTheaterPromptBuilder:
     def _format_context(docs: Sequence[Document]) -> str:
         if not docs:
             return "(未检索到参考内容)"
-        formatted: List[str] = []
+        formatted = []
         for idx, doc in enumerate(docs, 1):
             meta = doc.metadata or {}
             src = meta.get("source_type", "unknown")
-            name = meta.get("project_name") or meta.get("doc_name") or f"片段{idx}"
+            name = meta.get("project_name") or meta.get("doc_name") or f"案例{idx}"
             snippet = doc.page_content.strip()
             snippet = snippet[:800] + "..." if len(snippet) > 800 else snippet
             snippet = snippet.replace("{", "{{").replace("}", "}}")
@@ -152,14 +151,14 @@ class SpecialTheaterPromptBuilder:
         return "\n".join(formatted)
 
 
-class SpecialTheaterGenerator:
-    """Facade for special theater generation."""
+class PublicServiceGenerator:
+    """High-level facade for public service area planning."""
 
-    def __init__(self, config: SpecialTheaterConfig):
+    def __init__(self, config: PublicServiceConfig):
         self.config = config
-        self.extractor = SpecialTheaterDataExtractor(config)
-        self.vector_store = SpecialTheaterVectorStore(config)
-        self.prompt_builder = SpecialTheaterPromptBuilder()
+        self.extractor = PublicServiceDataExtractor(config)
+        self.vector_store = PublicServiceVectorStore(config)
+        self.prompt_builder = PublicServicePromptBuilder()
         self._llm_module: Optional[GenerationIntegrationModule] = None
 
     def ensure_index(self, rebuild: bool = False) -> None:
@@ -180,15 +179,16 @@ class SpecialTheaterGenerator:
         project_features: str,
         base_query: Optional[str],
     ) -> List[str]:
-        base = base_query or project_name or project_features or "特效影院"
+        base = base_query or project_name or project_features or "公共服务区"
         seeds = [
             base,
-            f"{project_name} 特效影院 配置" if project_name else "科技馆 特效影院 配置",
-            "球幕影院 建筑高度 要求",
-            "IMAX影院 座位数 案例",
-            "博物馆 4D影院 设计规范",
-            f"{project_features} 影院 组合" if project_features else "特效影院 组合",
+            f"{project_features} 门厅流线设计" if project_features else "博物馆 门厅流线设计",
+            "博物馆 卫生间 规范 数量",
+            "博物馆 纪念品商店 位置",
+            "无障碍设计规范",
+            f"{project_name} 综合大厅 规模" if project_name else "综合大厅 规模",
         ]
+        # remove empty & duplicates
         unique: List[str] = []
         seen = set()
         for term in seeds:

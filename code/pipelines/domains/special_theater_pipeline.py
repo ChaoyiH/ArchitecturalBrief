@@ -1,4 +1,4 @@
-"""Pipeline for generating central hall & circulation hub briefs."""
+"""Pipeline for generating special effects theater planning briefs."""
 
 from __future__ import annotations
 
@@ -15,17 +15,17 @@ try:
 except ImportError:  # pragma: no cover
     from langchain_community.embeddings import HuggingFaceEmbeddings  # type: ignore
 
-from config import CentralHubConfig
-from rag_modules.data_preparation import CentralHubDataExtractor
-from rag_modules.generation_integration import GenerationIntegrationModule
+from config import SpecialTheaterConfig
+from utils.data_preparation import SpecialTheaterDataExtractor
+from core.generation_integration import GenerationIntegrationModule
 
 logger = logging.getLogger(__name__)
 
 
-class CentralHubVectorStore:
-    """Vector store handler for central hub knowledge."""
+class SpecialTheaterVectorStore:
+    """Vector store wrapper for special theater knowledge."""
 
-    def __init__(self, config: CentralHubConfig):
+    def __init__(self, config: SpecialTheaterConfig):
         self.config = config
         self.embedding = HuggingFaceEmbeddings(
             model_name=config.embedding_model,
@@ -40,18 +40,18 @@ class CentralHubVectorStore:
                 self.embedding,
                 allow_dangerous_deserialization=True,
             )
-            logger.info("已加载综合大厅索引: %s", self.config.index_save_path)
+            logger.info("已加载特效影院索引: %s", self.config.index_save_path)
             return True
         except Exception:
             return False
 
     def build(self, documents: Sequence[Document]) -> None:
         if not documents:
-            raise ValueError("综合大厅文档为空，无法构建索引")
-        logger.info("正在构建综合大厅索引 (文档=%d)...", len(documents))
+            raise ValueError("特效影院文档为空，无法构建索引")
+        logger.info("正在构建特效影院索引 (文档=%d)...", len(documents))
         self.vectorstore = FAISS.from_documents(list(documents), self.embedding)
         self.vectorstore.save_local(self.config.index_save_path)
-        logger.info("综合大厅索引保存至: %s", self.config.index_save_path)
+        logger.info("特效影院索引保存至: %s", self.config.index_save_path)
 
     def ensure_ready(self, loader, rebuild: bool = False) -> None:
         if not rebuild and self.load():
@@ -61,36 +61,41 @@ class CentralHubVectorStore:
 
     def search(self, query: str, top_k: int) -> List[Document]:
         if self.vectorstore is None:
-            raise RuntimeError("综合大厅索引尚未构建")
+            raise RuntimeError("特效影院索引尚未构建")
         return self.vectorstore.similarity_search(query, k=top_k)
 
 
-class CentralHubPromptBuilder:
+class SpecialTheaterPromptBuilder:
     SYSTEM_PROMPT = (
-        "你是一位擅长公共空间塑造的建筑设计大师。"
-        "你的任务是为博物馆/科技馆策划“综合大厅（中庭）”。这是一个集交通枢纽、仪式感展示和环境调节于一体的核心空间。"
-        "你需要平衡空间的震撼力（视觉焦点）与功能性（人流集散）。"
+        "你是一位专业的文化建筑视听顾问和工艺设计师。"
+        "你的任务是规划博物馆/科技馆的特效影院系统。"
+        "你需要根据项目规模推荐合适的影院组合（如：巨幕+球幕+4D），并给出具体的空间工艺要求（净高、视线设计、声学隔离）。"
     )
 
     JSON_SCHEMA = (
         "{\n"
-        "  \"spatial_concept\": {\n"
-        "    \"theme_name\": \"为大厅起一个主题名（如：时空隧道、生态峡谷）\",\n"
-        "    \"form_description\": \"描述大厅的空间形态（如：X层通高的中庭，通过流线型栏板引导视线）。\",\n"
-        "    \"atmosphere\": \"描述空间氛围（如：明亮、科技感、甚至带有神圣感）。\"\n"
+        "  \"theater_configuration\": [\n"
+        "    {\n"
+        "      \"type\": \"推荐影院类型1（如：IMAX球幕影院）\",\n"
+        "      \"capacity_suggestion\": \"建议座位数（如：200-250座）\",\n"
+        "      \"screen_spec\": \"建议屏幕规格（如：直径23米倾斜式球幕）\",\n"
+        "      \"feature_description\": \"该影院的体验特点及科普价值。\"\n"
+        "    },\n"
+        "    {\n"
+        "      \"type\": \"推荐影院类型2（如：4D动感影院）\",\n"
+        "      \"capacity_suggestion\": \"...\",\n"
+        "      \"screen_spec\": \"...\",\n"
+        "      \"feature_description\": \"...\"\n"
+        "    }\n"
+        "  ],\n"
+        "  \"spatial_requirements\": {\n"
+        "    \"clear_height\": \"针对所选影院的最大净高需求（如：球幕厅需净高25米以上）。\",\n"
+        "    \"structure_span\": \"建议的大跨度结构参数。\",\n"
+        "    \"acoustic_isolation\": \"关于影院与其他安静展区之间的隔声/减振策略。\"\n"
         "  },\n"
-        "  \"scale_reference\": {\n"
-        "    \"height_suggestion\": \"建议通高高度（如：24m，贯穿1-4层）。\",\n"
-        "    \"area_suggestion\": \"建议核心区面积范围。\",\n"
-        "    \"rationale\": \"基于规范或参考案例的理由。\"\n"
-        "  },\n"
-        "  \"circulation_hub\": {\n"
-        "    \"vertical_transport\": \"主要垂直交通工具的选型与布局建议（如：飞天梯、螺旋坡道）。\",\n"
-        "    \"visual_connection\": \"如何建立大厅与各层展厅的视线联系。\"\n"
-        "  },\n"
-        "  \"feature_element\": {\n"
-        "    \"type\": \"建议的标志性元素（如：悬挂展品、互动媒体墙、巨型雕塑）。\",\n"
-        "    \"description\": \"该元素的具体描述及其承载的文化/科技寓意。\"\n"
+        "  \"operational_layout\": {\n"
+        "    \"access_strategy\": \"如何实现影院的单独对外开放（夜间运营）流线。\",\n"
+        "    \"support_rooms\": \"放映机房、排队等候区、3D眼镜分发回收区的布置建议。\"\n"
         "  }\n"
         "}\n"
     )
@@ -109,18 +114,18 @@ class CentralHubPromptBuilder:
             f"项目特征: {project_features}",
             "",
             "# 知识库检索结果",
-            "以下是关于综合大厅、中庭和序厅的规范指标、设计资料及优秀案例：",
+            "以下是关于特效影院（IMAX、球幕、4D等）的配置标准、案例数据和设计规范：",
             "---",
             context,
             "---",
             "",
             "# 生成任务",
-            "请为该项目编写《综合大厅与核心空间策划书》。",
-            "请重点关注：",
-            "1.  **空间形态**: 大厅的形态特征（如：通高空间、穹顶、线性长廊）。",
-            "2.  **视觉焦点**: 建议设置何种标志性装置或艺术品（如：上海科技馆的“生命之卵”）。",
-            "3.  **垂直交通**: 核心楼梯/扶梯的布置方式，如何引导观众向上层展厅流动。",
-            "4.  **物理环境**: 采光（天窗/幕墙）与通风策略。",
+            "请为该项目编写《特效影院区空间设计策划书》。",
+            "请综合考虑：",
+            f"1.  **影院选型**: 根据项目定位（如{project_features}），推荐配置哪些类型的特效影院（如：特大型馆通常配置IMAX球幕）。",
+            "2.  **规模建议**: 各个影院的建议座位数和银幕/球幕直径。",
+            "3.  **空间工艺**: 对应的建筑层高要求（非常关键，球幕通常需要穿越多层）、结构跨度要求。",
+            "4.  **布局策略**: 影院应如何布置以方便独立运营（闭馆后单独开放）并解决隔声问题。",
             "",
             "# 输出要求",
             "请严格按照以下 JSON 格式输出：",
@@ -147,14 +152,14 @@ class CentralHubPromptBuilder:
         return "\n".join(formatted)
 
 
-class CentralHubGenerator:
-    """Facade for central hub task generation."""
+class SpecialTheaterGenerator:
+    """Facade for special theater generation."""
 
-    def __init__(self, config: CentralHubConfig):
+    def __init__(self, config: SpecialTheaterConfig):
         self.config = config
-        self.extractor = CentralHubDataExtractor(config)
-        self.vector_store = CentralHubVectorStore(config)
-        self.prompt_builder = CentralHubPromptBuilder()
+        self.extractor = SpecialTheaterDataExtractor(config)
+        self.vector_store = SpecialTheaterVectorStore(config)
+        self.prompt_builder = SpecialTheaterPromptBuilder()
         self._llm_module: Optional[GenerationIntegrationModule] = None
 
     def ensure_index(self, rebuild: bool = False) -> None:
@@ -175,14 +180,14 @@ class CentralHubGenerator:
         project_features: str,
         base_query: Optional[str],
     ) -> List[str]:
-        base = base_query or project_name or project_features or "综合大厅"
+        base = base_query or project_name or project_features or "特效影院"
         seeds = [
             base,
-            f"{project_name} 综合大厅 案例" if project_name else "博物馆 综合大厅 案例",
-            "博物馆 中庭 设计手法",
-            "科技馆 序厅 标志性展项",
-            "综合大厅 面积指标",
-            f"{project_features} 中庭 枢纽" if project_features else "中庭 交通 枢纽",
+            f"{project_name} 特效影院 配置" if project_name else "科技馆 特效影院 配置",
+            "球幕影院 建筑高度 要求",
+            "IMAX影院 座位数 案例",
+            "博物馆 4D影院 设计规范",
+            f"{project_features} 影院 组合" if project_features else "特效影院 组合",
         ]
         unique: List[str] = []
         seen = set()

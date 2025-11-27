@@ -1,4 +1,4 @@
-"""Pipeline for generating exhibition space design requirements."""
+"""Pipeline for planning science & education integrations."""
 
 from __future__ import annotations
 
@@ -10,22 +10,22 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import FAISS
 
-try:  # Prefer new package, fall back gracefully
+try:
     from langchain_huggingface import HuggingFaceEmbeddings  # type: ignore
-except ImportError:  # pragma: no cover - compatibility path
+except ImportError:  # pragma: no cover
     from langchain_community.embeddings import HuggingFaceEmbeddings  # type: ignore
 
-from config import ExhibitionConfig
-from rag_modules.data_preparation import ExhibitionDataExtractor
-from rag_modules.generation_integration import GenerationIntegrationModule
+from config import ScienceEducationConfig
+from utils.data_preparation import ScienceEducationDataExtractor
+from core.generation_integration import GenerationIntegrationModule
 
 logger = logging.getLogger(__name__)
 
 
-class ExhibitionVectorStore:
-    """Vector index dedicated to exhibition space knowledge."""
+class ScienceEducationVectorStore:
+    """Vector store for science & education knowledge."""
 
-    def __init__(self, config: ExhibitionConfig):
+    def __init__(self, config: ScienceEducationConfig):
         self.config = config
         self.embedding = HuggingFaceEmbeddings(
             model_name=config.embedding_model,
@@ -40,18 +40,18 @@ class ExhibitionVectorStore:
                 self.embedding,
                 allow_dangerous_deserialization=True,
             )
-            logger.info("已加载展览空间索引: %s", self.config.index_save_path)
+            logger.info("已加载科教活动索引: %s", self.config.index_save_path)
             return True
         except Exception:
             return False
 
     def build(self, documents: Sequence[Document]) -> None:
         if not documents:
-            raise ValueError("展览空间文档为空，无法构建索引")
-        logger.info("正在构建设计展览空间索引 (文档=%d)...", len(documents))
+            raise ValueError("科教活动文档为空，无法构建索引")
+        logger.info("正在构建科教活动索引 (文档=%d)...", len(documents))
         self.vectorstore = FAISS.from_documents(list(documents), self.embedding)
         self.vectorstore.save_local(self.config.index_save_path)
-        logger.info("展览空间索引保存至: %s", self.config.index_save_path)
+        logger.info("科教活动索引保存至: %s", self.config.index_save_path)
 
     def ensure_ready(self, loader, rebuild: bool = False) -> None:
         if not rebuild and self.load():
@@ -61,50 +61,40 @@ class ExhibitionVectorStore:
 
     def search(self, query: str, top_k: int) -> List[Document]:
         if self.vectorstore is None:
-            raise RuntimeError("展览空间索引尚未构建")
+            raise RuntimeError("科教活动索引尚未构建")
         return self.vectorstore.similarity_search(query, k=top_k)
 
 
-class ExhibitionPromptBuilder:
+class ScienceEducationPromptBuilder:
     SYSTEM_PROMPT = (
-        "你是一位精通博物馆与科技馆设计的资深建筑师和展陈策划专家。"
-        "你需要根据项目背景，结合国家规范（硬指标）和优秀案例（软策略），"
-        "输出一份专业、可落地的《陈列展览区空间设计任务书》。"
-        "你的输出必须包含具体的空间参数、流线策略和功能分区建议，严禁泛泛而谈。"
+        "你是一位专注于博物馆教育规划和学习空间设计的资深建筑师。"
+        "你的任务是策划博物馆/科技馆的科普教育活动体系，并提出相应的空间落位策略。"
+        "你需要打破传统“教室即教育”的观念，提出将教育活动融入中庭、展厅和公共空间的创新方案。"
     )
 
     JSON_SCHEMA = (
         "{\n"
-        "  \"spatial_parameters\": {\n"
-        "    \"ceiling_height\": \"建议主要展厅净高范围（如：首层X米，标准层Y米），并引用规范或案例依据。\",\n"
-        "    \"column_grid\": \"建议柱网尺寸（如：Xm*Ym），以适应大型展项布置。\",\n"
-        "    \"floor_load\": \"建议楼面荷载值（kN/m2），特别是针对重型展品区。\"\n"
-        "  },\n"
-        "  \"layout_strategy\": {\n"
-        "    \"organization_type\": \"推荐的空间组合形式（如：大厅式、串联式、放射式），并说明理由。\",\n"
-        "    \"circulation_flow\": \"观众参观流线建议（如：单向强制流线、自由选择流线），以及如何处理人流高峰。\"\n"
-        "  },\n"
-        "  \"functional_zoning\": [\n"
+        "  \"education_concept\": \"一句话概括教育理念（如：从'参观'走向'探究'，馆校深度融合）。\",\n"
+        "  \"signature_activities\": [\n"
         "    {\n"
-        "      \"zone_name\": \"推荐展区1名称（如：儿童科技乐园）\",\n"
-        "      \"floor_suggestion\": \"建议楼层（如：首层）\",\n"
-        "      \"area_concept\": \"该展区的设计概念和空间特征描述。\",\n"
-        "      \"reference\": \"参考了哪个案例的设置。\"\n"
+        "      \"name\": \"建议活动名称（如：奇妙化学实验秀）\",\n"
+        "      \"format\": \"活动形式（如：现场演示/互动体验）\",\n"
+        "      \"spatial_requirement\": \"对空间的要求（如：需配有排风设施的开放舞台，或需大跨度中庭）。\"\n"
         "    },\n"
         "    {\n"
-        "      \"zone_name\": \"推荐展区2名称\",\n"
-        "      \"floor_suggestion\": \"...\",\n"
-        "      \"area_concept\": \"...\",\n"
-        "      \"reference\": \"...\"\n"
-        "    },\n"
-        "    {\n"
-        "      \"zone_name\": \"推荐展区3名称\",\n"
-        "      \"floor_suggestion\": \"...\",\n"
-        "      \"area_concept\": \"...\",\n"
-        "      \"reference\": \"...\"\n"
+        "      \"name\": \"...\",\n"
+        "      \"format\": \"...\",\n"
+        "      \"spatial_requirement\": \"...\"\n"
         "    }\n"
         "  ],\n"
-        "  \"environment_requirements\": \"关于光环境（自然光/人工光控制）和声学环境的具体要求。\"\n"
+        "  \"spatial_integration\": {\n"
+        "    \"embedded_labs\": \"关于在展厅内设置‘玻璃盒子’实验室或开放工坊的建议。\",\n"
+        "    \"public_performance\": \"关于利用门厅/中庭进行科学表演的空间利用策略。\"\n"
+        "  },\n"
+        "  \"dedicated_education_zone\": {\n"
+        "    \"room_configuration\": \"独立教育区建议设置的房间类型及数量（如：2间通用教室，1间机器人工作室）。\",\n"
+        "    \"zoning_strategy\": \"教育区在建筑中的位置建议（如：独立首层入口，方便夜间或周末单独开放）。\"\n"
+        "  }\n"
         "}\n"
     )
 
@@ -121,23 +111,26 @@ class ExhibitionPromptBuilder:
             f"项目名称: {project_name}",
             f"项目特征: {project_features}",
             "",
-            "# 知识库检索结果 (Retrieved Context)",
-            "以下是从规范标准、设计资料和类似案例中检索到的相关信息：",
+            "# 知识库检索结果",
+            "以下是关于科普活动类型、教育空间标准及优秀案例的参考信息：",
             "---",
             context,
             "---",
             "",
             "# 生成任务",
-            (
-                "请为该项目编写“陈列展览区空间设计要求”。请综合考虑作为"
-                f"“{project_features}”的特殊性（例如科技馆对层高和荷载要求通常高于一般博物馆）。"
-            ),
+            "请为该项目编写《科教活动与空间融合策划书》。",
+            "请重点策划：",
+            "1.  **品牌活动**: 建议策划哪些特色的科普品牌活动（如：科学实验秀、专家讲坛、过夜活动）。",
+            "2.  **空间融合策略**:",
+            "    * **嵌入式教育**: 如何在展厅内部设置开放式实验室或工作坊（Workshop）。",
+            "    * **表演性教育**: 如何利用中庭或大台阶进行公开的科学表演。",
+            "3.  **专业教育区**: 独立教室/实验室的配置建议（物理/化学/生物/机器人）。",
+            "4.  **流线组织**: 研学团队如何快速到达教育区而不干扰普通观众。",
             "",
             "# 输出要求",
             "请严格按照以下 JSON 格式输出：",
             schema,
         ]
-
         return {
             "system_prompt": self.SYSTEM_PROMPT,
             "user_prompt": "\n".join(user_prompt),
@@ -147,28 +140,26 @@ class ExhibitionPromptBuilder:
     def _format_context(docs: Sequence[Document]) -> str:
         if not docs:
             return "(未检索到参考内容)"
-        formatted = []
+        formatted: List[str] = []
         for idx, doc in enumerate(docs, 1):
             meta = doc.metadata or {}
             src = meta.get("source_type", "unknown")
-            name = meta.get("project_name") or meta.get("doc_name") or f"案例{idx}"
+            name = meta.get("project_name") or meta.get("doc_name") or f"片段{idx}"
             snippet = doc.page_content.strip()
             snippet = snippet[:800] + "..." if len(snippet) > 800 else snippet
             snippet = snippet.replace("{", "{{").replace("}", "}}")
-            formatted.append(
-                f"【片段{idx} | 来源:{src} | 名称:{name}】\n{snippet}"
-            )
+            formatted.append(f"【片段{idx} | 来源:{src} | 名称:{name}】\n{snippet}")
         return "\n".join(formatted)
 
 
-class ExhibitionGenerator:
-    """High-level facade for exhibition space requirement generation."""
+class ScienceEducationGenerator:
+    """Facade for science education planning."""
 
-    def __init__(self, config: ExhibitionConfig):
+    def __init__(self, config: ScienceEducationConfig):
         self.config = config
-        self.extractor = ExhibitionDataExtractor(config)
-        self.vector_store = ExhibitionVectorStore(config)
-        self.prompt_builder = ExhibitionPromptBuilder()
+        self.extractor = ScienceEducationDataExtractor(config)
+        self.vector_store = ScienceEducationVectorStore(config)
+        self.prompt_builder = ScienceEducationPromptBuilder()
         self._llm_module: Optional[GenerationIntegrationModule] = None
 
     def ensure_index(self, rebuild: bool = False) -> None:
@@ -189,22 +180,23 @@ class ExhibitionGenerator:
         project_features: str,
         base_query: Optional[str],
     ) -> List[str]:
-        core = base_query or project_name or project_features or "展览空间"
-        terms = [
-            core,
-            f"{project_name} 展厅净高 规范" if project_name else "展厅净高 规范",
-            f"{project_name} 展览流线 案例" if project_name else "展览流线 案例",
-            f"{project_name} 常设展览 内容" if project_name else "常设展览 内容",
-            f"{project_features} 展厅荷载" if project_features else "展厅荷载",
-            f"{project_features} 陈列柱网" if project_features else "陈列柱网",
+        base = base_query or project_name or project_features or "科教活动"
+        seeds = [
+            base,
+            "科技馆 科普活动 案例",
+            "博物馆 教育空间 设计规范",
+            "科学实验室 通风要求",
+            "研学流线 组织",
+            f"{project_features} 科教活动" if project_features else "科教活动 特色",
         ]
+        unique: List[str] = []
         seen = set()
-        expanded = []
-        for term in terms:
-            if term and term not in seen:
-                seen.add(term)
-                expanded.append(term)
-        return expanded
+        for term in seeds:
+            cleaned = term.strip()
+            if cleaned and cleaned not in seen:
+                seen.add(cleaned)
+                unique.append(cleaned)
+        return unique
 
     def retrieve_contexts(
         self,
@@ -219,11 +211,7 @@ class ExhibitionGenerator:
         for q in queries:
             docs = self.vector_store.search(q, top_k=limit)
             for doc in docs:
-                key = (
-                    doc.metadata.get("chunk_id")
-                    or doc.metadata.get("source")
-                    or doc.page_content[:50]
-                )
+                key = doc.metadata.get("chunk_id") or doc.metadata.get("source") or doc.page_content[:50]
                 if key not in collected:
                     collected[key] = doc
             if len(collected) >= limit:
@@ -254,4 +242,3 @@ class ExhibitionGenerator:
         chain = chat_prompt | self._llm_module.llm | StrOutputParser()
         response = chain.invoke({})
         return {"prompt": prompt, "contexts": contexts, "response": response}
-

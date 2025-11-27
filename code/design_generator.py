@@ -25,21 +25,21 @@ from config import (
     ScienceEducationConfig,
     PublicServiceConfig,
 )
-from rag_modules.brief_assembly_pipeline import BriefAssemblyPipeline
-from rag_modules.business_research_pipeline import BusinessResearchGenerator
-from rag_modules.central_hub_pipeline import CentralHubGenerator
-from rag_modules.design_concept_pipeline import DesignConceptGenerator
-from rag_modules.exhibition_pipeline import ExhibitionGenerator
-from rag_modules.public_service_pipeline import PublicServiceGenerator
-from rag_modules.special_theater_pipeline import SpecialTheaterGenerator
-from rag_modules.science_education_pipeline import ScienceEducationGenerator
+from pipelines.orchestration.brief_assembly_pipeline import BriefAssemblyPipeline
+from pipelines.domains.business_research_pipeline import BusinessResearchGenerator
+from pipelines.domains.central_hub_pipeline import CentralHubGenerator
+from pipelines.domains.design_concept_pipeline import DesignConceptGenerator
+from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
+from pipelines.domains.public_service_pipeline import PublicServiceGenerator
+from pipelines.domains.special_theater_pipeline import SpecialTheaterGenerator
+from pipelines.domains.science_education_pipeline import ScienceEducationGenerator
 from langchain_core.documents import Document
 
 logger = logging.getLogger(__name__)
 
 # 尝试启用统一日志/消息捕获
 try:  # pragma: no cover
-    from log_setup import setup as _log_setup, record_message as _record_msg
+    from utils.log_setup import setup as _log_setup, record_message as _record_msg
 
     _log_setup()
 except Exception:  # noqa: BLE001

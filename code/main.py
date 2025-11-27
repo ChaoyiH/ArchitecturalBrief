@@ -14,14 +14,14 @@ sys.path.append(str(Path(__file__).parent))
 from dotenv import load_dotenv
 # 终端输出捕获与消息记录（独立模块，可用环境变量 LOG_CAPTURE/MSG_CAPTURE 开关，默认开启）
 try:
-    from log_setup import setup as _log_setup, record_message as _record_msg
+    from utils.log_setup import setup as _log_setup, record_message as _record_msg
     _log_setup()
 except Exception:
     # 捕获失败不影响系统运行
     pass
 from config import DEFAULT_CONFIG, RAGConfig
-from rag_modules import (
-    DataPreparationModule,
+from utils.data_preparation import DataPreparationModule
+from core import (
     IndexConstructionModule,
     RetrievalOptimizationModule,
     GenerationIntegrationModule

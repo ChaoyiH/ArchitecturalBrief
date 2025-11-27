@@ -1,4 +1,4 @@
-"""Pipeline for generating business & research area briefs."""
+"""Pipeline for generating exhibition space design requirements."""
 
 from __future__ import annotations
 
@@ -10,22 +10,22 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import FAISS
 
-try:
+try:  # Prefer new package, fall back gracefully
     from langchain_huggingface import HuggingFaceEmbeddings  # type: ignore
-except ImportError:  # pragma: no cover
+except ImportError:  # pragma: no cover - compatibility path
     from langchain_community.embeddings import HuggingFaceEmbeddings  # type: ignore
 
-from config import BusinessResearchConfig
-from rag_modules.data_preparation import BusinessResearchDataExtractor
-from rag_modules.generation_integration import GenerationIntegrationModule
+from config import ExhibitionConfig
+from utils.data_preparation import ExhibitionDataExtractor
+from core.generation_integration import GenerationIntegrationModule
 
 logger = logging.getLogger(__name__)
 
 
-class BusinessResearchVectorStore:
-    """Vector store for business & research knowledge."""
+class ExhibitionVectorStore:
+    """Vector index dedicated to exhibition space knowledge."""
 
-    def __init__(self, config: BusinessResearchConfig):
+    def __init__(self, config: ExhibitionConfig):
         self.config = config
         self.embedding = HuggingFaceEmbeddings(
             model_name=config.embedding_model,
@@ -40,18 +40,18 @@ class BusinessResearchVectorStore:
                 self.embedding,
                 allow_dangerous_deserialization=True,
             )
-            logger.info("已加载业务科研区索引: %s", self.config.index_save_path)
+            logger.info("已加载展览空间索引: %s", self.config.index_save_path)
             return True
         except Exception:
             return False
 
     def build(self, documents: Sequence[Document]) -> None:
         if not documents:
-            raise ValueError("业务科研区文档为空，无法构建索引")
-        logger.info("正在构建业务科研区索引 (文档=%d)...", len(documents))
+            raise ValueError("展览空间文档为空，无法构建索引")
+        logger.info("正在构建设计展览空间索引 (文档=%d)...", len(documents))
         self.vectorstore = FAISS.from_documents(list(documents), self.embedding)
         self.vectorstore.save_local(self.config.index_save_path)
-        logger.info("业务科研区索引保存至: %s", self.config.index_save_path)
+        logger.info("展览空间索引保存至: %s", self.config.index_save_path)
 
     def ensure_ready(self, loader, rebuild: bool = False) -> None:
         if not rebuild and self.load():
@@ -61,32 +61,50 @@ class BusinessResearchVectorStore:
 
     def search(self, query: str, top_k: int) -> List[Document]:
         if self.vectorstore is None:
-            raise RuntimeError("业务科研区索引尚未构建")
+            raise RuntimeError("展览空间索引尚未构建")
         return self.vectorstore.similarity_search(query, k=top_k)
 
 
-class BusinessResearchPromptBuilder:
+class ExhibitionPromptBuilder:
     SYSTEM_PROMPT = (
-        "你是一位专注于博物馆后台工艺设计和行政办公流线规划的资深建筑师。"
-        "你的任务是编写“业务科研区”的设计任务书，重点解决“藏品安全流线”、“科研环境要求”和“行政办公效率”三个问题。"
+        "你是一位精通博物馆与科技馆设计的资深建筑师和展陈策划专家。"
+        "你需要根据项目背景，结合国家规范（硬指标）和优秀案例（软策略），"
+        "输出一份专业、可落地的《陈列展览区空间设计任务书》。"
+        "你的输出必须包含具体的空间参数、流线策略和功能分区建议，严禁泛泛而谈。"
     )
 
     JSON_SCHEMA = (
         "{\n"
-        "  \"collection_management\": {\n"
-        "    \"process_flow\": \"描述库前区的工作流线组织建议（如：洁污分区）。\",\n"
-        "    \"key_rooms\": [\"列出必备房间，如：卸货平台、缓冲间、鉴选室、摄影室等\"],\n"
-        "    \"security_level\": \"关于该区域安防等级和门禁控制的建议。\"\n"
+        "  \"spatial_parameters\": {\n"
+        "    \"ceiling_height\": \"建议主要展厅净高范围（如：首层X米，标准层Y米），并引用规范或案例依据。\",\n"
+        "    \"column_grid\": \"建议柱网尺寸（如：Xm*Ym），以适应大型展项布置。\",\n"
+        "    \"floor_load\": \"建议楼面荷载值（kN/m2），特别是针对重型展品区。\"\n"
         "  },\n"
-        "  \"research_conservation\": {\n"
-        "    \"labs_requirements\": \"各类修复室/实验室的物理环境要求（如：北向采光、独立排风系统、地面承重等）。\",\n"
-        "    \"equipment_space\": \"对大型仪器设备空间的预留建议。\"\n"
+        "  \"layout_strategy\": {\n"
+        "    \"organization_type\": \"推荐的空间组合形式（如：大厅式、串联式、放射式），并说明理由。\",\n"
+        "    \"circulation_flow\": \"观众参观流线建议（如：单向强制流线、自由选择流线），以及如何处理人流高峰。\"\n"
         "  },\n"
-        "  \"admin_office\": {\n"
-        "    \"zoning\": \"行政区与业务区的关系建议（如：集中布置或分散布置）。\",\n"
-        "    \"layout_style\": \"办公空间形式建议（如：大空间与独立办公室结合）。\"\n"
-        "  },\n"
-        "  \"circulation_strategy\": \"关于内部流线（员工/藏品）与外部流线（观众）彻底分离的策略描述。\"\n"
+        "  \"functional_zoning\": [\n"
+        "    {\n"
+        "      \"zone_name\": \"推荐展区1名称（如：儿童科技乐园）\",\n"
+        "      \"floor_suggestion\": \"建议楼层（如：首层）\",\n"
+        "      \"area_concept\": \"该展区的设计概念和空间特征描述。\",\n"
+        "      \"reference\": \"参考了哪个案例的设置。\"\n"
+        "    },\n"
+        "    {\n"
+        "      \"zone_name\": \"推荐展区2名称\",\n"
+        "      \"floor_suggestion\": \"...\",\n"
+        "      \"area_concept\": \"...\",\n"
+        "      \"reference\": \"...\"\n"
+        "    },\n"
+        "    {\n"
+        "      \"zone_name\": \"推荐展区3名称\",\n"
+        "      \"floor_suggestion\": \"...\",\n"
+        "      \"area_concept\": \"...\",\n"
+        "      \"reference\": \"...\"\n"
+        "    }\n"
+        "  ],\n"
+        "  \"environment_requirements\": \"关于光环境（自然光/人工光控制）和声学环境的具体要求。\"\n"
         "}\n"
     )
 
@@ -103,24 +121,23 @@ class BusinessResearchPromptBuilder:
             f"项目名称: {project_name}",
             f"项目特征: {project_features}",
             "",
-            "# 知识库检索结果",
-            "以下是关于业务科研与行政办公区域的规范要求、设计资料和案例参考：",
+            "# 知识库检索结果 (Retrieved Context)",
+            "以下是从规范标准、设计资料和类似案例中检索到的相关信息：",
             "---",
             context,
             "---",
             "",
             "# 生成任务",
-            "请为该项目编写《业务科研区空间设计策划书》。",
-            "请重点关注：",
-            "1.  **库前区工艺**: 藏品卸车 -> 暂存 -> 拆箱 -> 鉴选 -> 摄影 -> 入库 的流程空间要求。",
-            "2.  **技术修复**: 文物修复室/标本制作室的特殊环境要求（如采光、通风、排气）。",
-            "3.  **办公科研**: 行政办公与专业研究室的布局策略（如动静分区、独立出入口）。",
-            "4.  **流线隔离**: 如何确保 藏品流线、员工流线 与 观众流线 互不干扰。",
+            (
+                "请为该项目编写“陈列展览区空间设计要求”。请综合考虑作为"
+                f"“{project_features}”的特殊性（例如科技馆对层高和荷载要求通常高于一般博物馆）。"
+            ),
             "",
             "# 输出要求",
             "请严格按照以下 JSON 格式输出：",
             schema,
         ]
+
         return {
             "system_prompt": self.SYSTEM_PROMPT,
             "user_prompt": "\n".join(user_prompt),
@@ -144,14 +161,14 @@ class BusinessResearchPromptBuilder:
         return "\n".join(formatted)
 
 
-class BusinessResearchGenerator:
-    """Facade for business & research task generation."""
+class ExhibitionGenerator:
+    """High-level facade for exhibition space requirement generation."""
 
-    def __init__(self, config: BusinessResearchConfig):
+    def __init__(self, config: ExhibitionConfig):
         self.config = config
-        self.extractor = BusinessResearchDataExtractor(config)
-        self.vector_store = BusinessResearchVectorStore(config)
-        self.prompt_builder = BusinessResearchPromptBuilder()
+        self.extractor = ExhibitionDataExtractor(config)
+        self.vector_store = ExhibitionVectorStore(config)
+        self.prompt_builder = ExhibitionPromptBuilder()
         self._llm_module: Optional[GenerationIntegrationModule] = None
 
     def ensure_index(self, rebuild: bool = False) -> None:
@@ -172,23 +189,22 @@ class BusinessResearchGenerator:
         project_features: str,
         base_query: Optional[str],
     ) -> List[str]:
-        base = base_query or project_name or project_features or "业务科研区"
-        seeds = [
-            base,
-            "博物馆 库前区 流程",
-            "文物修复室 设计要求",
-            "博物馆 办公区 流线",
-            "藏品 摄影室 采光",
-            f"{project_features} 行政办公" if project_features else "行政办公 布局",
+        core = base_query or project_name or project_features or "展览空间"
+        terms = [
+            core,
+            f"{project_name} 展厅净高 规范" if project_name else "展厅净高 规范",
+            f"{project_name} 展览流线 案例" if project_name else "展览流线 案例",
+            f"{project_name} 常设展览 内容" if project_name else "常设展览 内容",
+            f"{project_features} 展厅荷载" if project_features else "展厅荷载",
+            f"{project_features} 陈列柱网" if project_features else "陈列柱网",
         ]
-        unique: List[str] = []
         seen = set()
-        for term in seeds:
-            cleaned = term.strip()
-            if cleaned and cleaned not in seen:
-                seen.add(cleaned)
-                unique.append(cleaned)
-        return unique
+        expanded = []
+        for term in terms:
+            if term and term not in seen:
+                seen.add(term)
+                expanded.append(term)
+        return expanded
 
     def retrieve_contexts(
         self,
@@ -203,7 +219,11 @@ class BusinessResearchGenerator:
         for q in queries:
             docs = self.vector_store.search(q, top_k=limit)
             for doc in docs:
-                key = doc.metadata.get("chunk_id") or doc.metadata.get("source") or doc.page_content[:50]
+                key = (
+                    doc.metadata.get("chunk_id")
+                    or doc.metadata.get("source")
+                    or doc.page_content[:50]
+                )
                 if key not in collected:
                     collected[key] = doc
             if len(collected) >= limit:
@@ -234,3 +254,4 @@ class BusinessResearchGenerator:
         chain = chat_prompt | self._llm_module.llm | StrOutputParser()
         response = chain.invoke({})
         return {"prompt": prompt, "contexts": contexts, "response": response}
+

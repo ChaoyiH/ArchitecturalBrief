@@ -1,44 +1,57 @@
-from .data_preparation import DataPreparationModule
-from .index_construction import IndexConstructionModule
-from .retrieval_optimization import RetrievalOptimizationModule
-from .generation_integration import GenerationIntegrationModule
-from .design_concept_pipeline import (
+"""Backward-compatible re-exports from new module locations.
+
+DEPRECATED: Import from core/, pipelines/, or utils/ directly.
+This module is kept for backward compatibility only.
+"""
+
+# Core infrastructure
+from core.index_construction import IndexConstructionModule
+from core.retrieval_optimization import RetrievalOptimizationModule
+from core.generation_integration import GenerationIntegrationModule
+
+# Utils
+from utils.data_preparation import DataPreparationModule
+
+# Domain pipelines
+from pipelines.domains.design_concept_pipeline import (
     DesignConceptGenerator,
     DesignConceptETL,
     DesignConceptPromptBuilder,
     DesignConceptVectorStore,
 )
-from .exhibition_pipeline import (
+from pipelines.domains.exhibition_pipeline import (
     ExhibitionGenerator,
     ExhibitionPromptBuilder,
     ExhibitionVectorStore,
 )
-from .public_service_pipeline import (
+from pipelines.domains.public_service_pipeline import (
     PublicServiceGenerator,
     PublicServicePromptBuilder,
     PublicServiceVectorStore,
 )
-from .central_hub_pipeline import (
+from pipelines.domains.central_hub_pipeline import (
     CentralHubGenerator,
     CentralHubPromptBuilder,
     CentralHubVectorStore,
 )
-from .special_theater_pipeline import (
+from pipelines.domains.special_theater_pipeline import (
     SpecialTheaterGenerator,
     SpecialTheaterPromptBuilder,
     SpecialTheaterVectorStore,
 )
-from .science_education_pipeline import (
+from pipelines.domains.science_education_pipeline import (
     ScienceEducationGenerator,
     ScienceEducationPromptBuilder,
     ScienceEducationVectorStore,
 )
-from .brief_assembly_pipeline import BriefAssemblyPipeline
-from .business_research_pipeline import (
+from pipelines.domains.business_research_pipeline import (
     BusinessResearchGenerator,
     BusinessResearchPromptBuilder,
     BusinessResearchVectorStore,
 )
+
+# Orchestration
+from pipelines.orchestration.brief_assembly_pipeline import BriefAssemblyPipeline
 
 __all__ = [
     'DataPreparationModule',
