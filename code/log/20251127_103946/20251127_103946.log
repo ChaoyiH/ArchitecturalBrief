@@ -1,0 +1,105 @@
+==== RUN START 2025-11-27T10:39:46.935707 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: design_generator.py --project-name 示例博物馆 --project-features 滨水复合型科普场馆 --step full --rebuild-index --top-k 4
+=================================
+
+➡️ 正在生成 设计理念建议书...
+2025-11-27 10:39:51,952 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 10:39:51,953 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 10:39:57,944 - rag_modules.design_concept_pipeline - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 10:39:58,029 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\china提取理念 48 条
+2025-11-27 10:39:58,124 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\world提取理念 50 条
+2025-11-27 10:39:58,241 - rag_modules.design_concept_pipeline - INFO - 从ArchDaily提取理念 52 条
+2025-11-27 10:39:58,244 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\zlj\bwg.md提取知识段落 2 条
+2025-11-27 10:39:58,245 - rag_modules.design_concept_pipeline - INFO - 设计理念ETL完成，共提取 152 条语义单元
+2025-11-27 10:39:58,245 - rag_modules.design_concept_pipeline - INFO - 正在构建设计理念向量索引（文档=152）...
+2025-11-27 10:40:04,212 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-11-27 10:40:04,330 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-11-27 10:40:04,347 - rag_modules.design_concept_pipeline - INFO - 设计理念索引保存至: D:\016_RAG\project\code\vector_index\design_concepts
+2025-11-27 10:40:04,366 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 10:40:04,378 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 10:40:27,350 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+➡️ 正在生成 综合大厅与核心空间策划书...
+2025-11-27 10:40:27,355 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 10:40:27,355 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 10:40:32,823 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 10:40:33,088 - rag_modules.data_preparation - INFO - 综合大厅/交通枢纽数据抽取完成，共 147 条
+2025-11-27 10:40:33,088 - rag_modules.central_hub_pipeline - INFO - 正在构建综合大厅索引 (文档=147)...
+2025-11-27 10:40:38,488 - rag_modules.central_hub_pipeline - INFO - 综合大厅索引保存至: D:\016_RAG\project\code\vector_index\central_hub
+2025-11-27 10:40:38,514 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 10:40:38,514 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 10:40:56,438 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-11-27 10:40:56,441 - __main__ - WARNING - 模块输出非 JSON，按原始文本返回 (前200字): {
+  "spatial_concept": {
+    "theme_name": "时空生态峡谷",
+    "form_description": "采用线性长廊与通高瀑布式挑空的综合中庭，1层至5层贯通，顶部为ETFE气枕天窗与可开合采光带；南北立面以透明聚碳酸酯板与内发光肌理形成均匀透光的连续面，滨水侧辅以可遮雨的彩色金属雨蓬与落水，形成面向水体与天空打开的仪式感核心。",
+    "a
+➡️ 正在生成 展览空间设计要求...
+2025-11-27 10:40:56,442 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 10:40:56,442 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 10:41:01,983 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 10:41:02,051 - rag_modules.data_preparation - INFO - 展览空间数据抽取完成，共 455 条
+2025-11-27 10:41:02,051 - rag_modules.exhibition_pipeline - INFO - 正在构建设计展览空间索引 (文档=455)...
+2025-11-27 10:41:16,088 - rag_modules.exhibition_pipeline - INFO - 展览空间索引保存至: D:\016_RAG\project\code\vector_index\exhibition_space
+2025-11-27 10:41:16,117 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 10:41:16,118 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 10:41:50,437 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+➡️ 正在生成 特效影院区空间设计策划书...
+2025-11-27 10:41:50,441 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 10:41:50,442 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 10:41:55,923 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 10:41:56,272 - rag_modules.data_preparation - INFO - 特效影院数据抽取完成，共 144 条
+2025-11-27 10:41:56,273 - rag_modules.special_theater_pipeline - INFO - 正在构建特效影院索引 (文档=144)...
+2025-11-27 10:42:01,468 - rag_modules.special_theater_pipeline - INFO - 特效影院索引保存至: D:\016_RAG\project\code\vector_index\special_theater
+2025-11-27 10:42:01,485 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 10:42:01,486 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 10:42:19,700 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-11-27 10:42:19,703 - __main__ - WARNING - 模块输出非 JSON，按原始文本返回 (前200字): ```json
+{
+  "theater_configuration": [
+    {
+      "type": "IMAX球幕影院",
+      "capacity_suggestion": "200-250座",
+      "screen_spec": "直径23米倾斜式球幕（投影FOV≥160°），采用8K分辨率双机激光投影系统",
+      "feature_descriptio
+➡️ 正在生成 科教活动与空间融合策划书...
+2025-11-27 10:42:19,705 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 10:42:19,705 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 10:42:25,158 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 10:42:25,242 - rag_modules.data_preparation - INFO - 科教活动数据抽取完成，共 276 条
+2025-11-27 10:42:25,243 - rag_modules.science_education_pipeline - INFO - 正在构建科教活动索引 (文档=276)...
+2025-11-27 10:42:33,229 - rag_modules.science_education_pipeline - INFO - 科教活动索引保存至: D:\016_RAG\project\code\vector_index\science_education
+2025-11-27 10:42:33,261 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 10:42:33,262 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 10:42:56,069 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+➡️ 正在生成 公共服务区空间设计策划书...
+2025-11-27 10:42:56,074 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 10:42:56,074 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 10:43:01,973 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 10:43:02,365 - rag_modules.data_preparation - INFO - 公共服务区数据抽取完成，共 406 条
+2025-11-27 10:43:02,366 - rag_modules.public_service_pipeline - INFO - 正在构建公共服务区索引 (文档=406)...
+2025-11-27 10:43:12,219 - rag_modules.public_service_pipeline - INFO - 公共服务区索引保存至: D:\016_RAG\project\code\vector_index\public_service
+2025-11-27 10:43:12,234 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 10:43:12,235 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 10:43:41,039 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+➡️ 正在生成 业务科研区空间设计策划书...
+2025-11-27 10:43:41,044 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 10:43:41,044 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 10:43:46,931 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 10:43:47,250 - rag_modules.data_preparation - INFO - 业务科研区数据抽取完成，共 193 条
+2025-11-27 10:43:47,250 - rag_modules.business_research_pipeline - INFO - 正在构建业务科研区索引 (文档=193)...
+2025-11-27 10:43:54,376 - rag_modules.business_research_pipeline - INFO - 业务科研区索引保存至: D:\016_RAG\project\code\vector_index\business_research
+2025-11-27 10:43:54,392 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 10:43:54,392 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 10:44:28,776 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-11-27 10:44:28,779 - __main__ - WARNING - 模块输出非 JSON，按原始文本返回 (前200字): {
+  "collection_management": {
+    "process_flow": "建议采用“单向+递进”工艺流线，形成洁污分流：卸货平台→地磅/签收→缓冲间（脱尘、脱湿、登记）→拆箱操作间（缓冲与拆箱分区）→鉴选室（复核、编号、取样）→影像室/摄影台（标准光棚、低振动拍摄）→预登记区（录入系统、打标、条码/RFID绑定）→入库缓冲间（最终检视与条码核验）→安全通道/货梯直达藏
+2025-11-27 10:44:28,779 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 10:44:28,779 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 10:45:23,721 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+✅ 《示例博物馆 建筑设计任务书》已生成 -> D:\016_RAG\project\code\示例博物馆_设计任务书.md
+
+=================================
+==== RUN END   2025-11-27T10:45:23.728955 ====

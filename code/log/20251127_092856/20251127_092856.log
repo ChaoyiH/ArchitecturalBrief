@@ -1,0 +1,132 @@
+==== RUN START 2025-11-27T09:28:56.673546 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: design_generator.py --project-name 示例博物馆 --project-features 滨水复合型科普场馆 --step full --rebuild-index --top-k 4
+=================================
+
+➡️ 正在生成 设计理念建议书...
+2025-11-27 09:29:21,332 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 09:29:21,332 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 09:29:28,018 - rag_modules.design_concept_pipeline - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 09:29:29,189 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\china提取理念 48 条
+2025-11-27 09:29:30,345 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\world提取理念 50 条
+2025-11-27 09:29:30,680 - rag_modules.design_concept_pipeline - INFO - 从ArchDaily提取理念 52 条
+2025-11-27 09:29:30,689 - rag_modules.design_concept_pipeline - INFO - 从D:\016_RAG\project\data\zlj\bwg.md提取知识段落 2 条
+2025-11-27 09:29:30,690 - rag_modules.design_concept_pipeline - INFO - 设计理念ETL完成，共提取 152 条语义单元
+2025-11-27 09:29:30,691 - rag_modules.design_concept_pipeline - INFO - 正在构建设计理念向量索引（文档=152）...
+2025-11-27 09:29:36,617 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-11-27 09:29:37,088 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-11-27 09:29:37,222 - rag_modules.design_concept_pipeline - INFO - 设计理念索引保存至: D:\016_RAG\project\code\vector_index\design_concepts
+2025-11-27 09:29:37,247 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 09:29:37,285 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 09:29:58,766 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+➡️ 正在生成 综合大厅与核心空间策划书...
+2025-11-27 09:29:58,781 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 09:29:58,781 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 09:30:06,092 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 09:30:06,530 - rag_modules.data_preparation - INFO - 综合大厅/交通枢纽数据抽取完成，共 147 条
+2025-11-27 09:30:06,530 - rag_modules.central_hub_pipeline - INFO - 正在构建综合大厅索引 (文档=147)...
+2025-11-27 09:30:11,688 - rag_modules.central_hub_pipeline - INFO - 综合大厅索引保存至: D:\016_RAG\project\code\vector_index\central_hub
+2025-11-27 09:30:11,737 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 09:30:11,737 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 09:30:31,662 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+➡️ 正在生成 展览空间设计要求...
+2025-11-27 09:30:31,667 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 09:30:31,667 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 09:30:37,516 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 09:30:37,977 - rag_modules.data_preparation - INFO - 展览空间数据抽取完成，共 455 条
+2025-11-27 09:30:37,977 - rag_modules.exhibition_pipeline - INFO - 正在构建设计展览空间索引 (文档=455)...
+2025-11-27 09:30:49,707 - rag_modules.exhibition_pipeline - INFO - 展览空间索引保存至: D:\016_RAG\project\code\vector_index\exhibition_space
+2025-11-27 09:30:49,757 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 09:30:49,757 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 09:31:25,016 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+➡️ 正在生成 特效影院区空间设计策划书...
+2025-11-27 09:31:25,024 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 09:31:25,025 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 09:31:31,090 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 09:31:32,179 - rag_modules.data_preparation - INFO - 特效影院数据抽取完成，共 144 条
+2025-11-27 09:31:32,180 - rag_modules.special_theater_pipeline - INFO - 正在构建特效影院索引 (文档=144)...
+2025-11-27 09:31:36,523 - rag_modules.special_theater_pipeline - INFO - 特效影院索引保存至: D:\016_RAG\project\code\vector_index\special_theater
+2025-11-27 09:31:36,540 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 09:31:36,541 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 09:31:59,473 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-11-27 09:31:59,476 - __main__ - WARNING - 模块输出非 JSON，按原始文本返回 (前200字): # 特效影院区空间设计策划书（示例博物馆·滨水复合型科普场馆）
+
+{
+  "theater_configuration": [
+    {
+      "type": "IMAX大型格式影院（GT或LP）",
+      "capacity_suggestion": "400-500座",
+      "screen_spec": "银幕约18m×24m（GT）/约15m×20m（LP），15/7
+➡️ 正在生成 科教活动与空间融合策划书...
+2025-11-27 09:31:59,477 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 09:31:59,477 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 09:32:05,853 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 09:32:06,293 - rag_modules.data_preparation - INFO - 科教活动数据抽取完成，共 276 条
+2025-11-27 09:32:06,294 - rag_modules.science_education_pipeline - INFO - 正在构建科教活动索引 (文档=276)...
+2025-11-27 09:32:15,856 - rag_modules.science_education_pipeline - INFO - 科教活动索引保存至: D:\016_RAG\project\code\vector_index\science_education
+2025-11-27 09:32:15,899 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 09:32:15,899 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 09:32:43,206 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-11-27 09:32:43,211 - __main__ - WARNING - 模块输出非 JSON，按原始文本返回 (前200字): {
+  "education_concept": "从“参观”走向“探究”，将展品、环境与人群作为课堂；以滨水生态与科技创新为线索，构建跨学科的项目化学习与公众表演的融合教育体系。",
+  "signature_activities": [
+    {
+      "name": "奇妙化学实验秀",
+      "format": "现场演示与互动体验",
+      "spatial_requ
+➡️ 正在生成 公共服务区空间设计策划书...
+2025-11-27 09:32:43,213 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 09:32:43,213 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 09:32:48,969 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 09:32:49,423 - rag_modules.data_preparation - INFO - 公共服务区数据抽取完成，共 406 条
+2025-11-27 09:32:49,424 - rag_modules.public_service_pipeline - INFO - 正在构建公共服务区索引 (文档=406)...
+2025-11-27 09:32:58,060 - rag_modules.public_service_pipeline - INFO - 公共服务区索引保存至: D:\016_RAG\project\code\vector_index\public_service
+2025-11-27 09:32:58,081 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 09:32:58,082 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 09:33:22,855 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+➡️ 正在生成 业务科研区空间设计策划书...
+2025-11-27 09:33:22,917 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-11-27 09:33:22,920 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-11-27 09:33:28,492 - rag_modules.data_preparation - WARNING - 读取D:\016_RAG\project\data\china\中国科学技术馆.json失败: Expecting value: line 1 column 1 (char 0)
+2025-11-27 09:33:28,862 - rag_modules.data_preparation - INFO - 业务科研区数据抽取完成，共 193 条
+2025-11-27 09:33:28,862 - rag_modules.business_research_pipeline - INFO - 正在构建业务科研区索引 (文档=193)...
+2025-11-27 09:33:35,368 - rag_modules.business_research_pipeline - INFO - 业务科研区索引保存至: D:\016_RAG\project\code\vector_index\business_research
+2025-11-27 09:33:35,390 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 09:33:35,391 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 09:33:56,700 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-11-27 09:33:56,704 - rag_modules.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-11-27 09:33:56,704 - rag_modules.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-11-27 09:33:56,705 - __main__ - ERROR - 设计理念生成模块运行失败: 'Input to ChatPromptTemplate is missing variables {\'\\n  "collection_management"\', \'\\n  "education_concept"\', \'\\n  "spatial_parameters"\', \'\\n  "analysis"\', \'\\n  "spatial_concept"\', \'\\n  "theater_configuration"\', \'\\n  "entrance_lobby"\'}.  Expected: [\'\\n  "analysis"\', \'\\n  "collection_management"\', \'\\n  "education_concept"\', \'\\n  "entrance_lobby"\', \'\\n  "spatial_concept"\', \'\\n  "spatial_parameters"\', \'\\n  "theater_configuration"\'] Received: []\nNote: if you intended {\n  "collection_management"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{\n  "collection_management"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\design_generator.py", line 446, in <module>
+    main()
+  File "D:\016_RAG\project\code\design_generator.py", line 398, in main
+    generate_full_brief(args, filters)
+  File "D:\016_RAG\project\code\design_generator.py", line 373, in generate_full_brief
+    assembly = assembler.generate_brief(args.project_name, args.project_features, context_data)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\rag_modules\brief_assembly_pipeline.py", line 128, in generate_brief
+    response = chain.invoke({})
+               ^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 3244, in invoke
+    input_ = context.run(step.invoke, input_, config, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\prompts\base.py", line 214, in invoke
+    return self._call_with_config(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 2092, in _call_with_config
+    context.run(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\config.py", line 430, in call_func_with_variable_args
+    return func(input, **kwargs)  # type: ignore[call-arg]
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\prompts\base.py", line 187, in _format_prompt_with_error_handling
+    inner_input_ = self._validate_input(inner_input)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\prompts\base.py", line 181, in _validate_input
+    raise KeyError(
+KeyError: 'Input to ChatPromptTemplate is missing variables {\'\\n  "collection_management"\', \'\\n  "education_concept"\', \'\\n  "spatial_parameters"\', \'\\n  "analysis"\', \'\\n  "spatial_concept"\', \'\\n  "theater_configuration"\', \'\\n  "entrance_lobby"\'}.  Expected: [\'\\n  "analysis"\', \'\\n  "collection_management"\', \'\\n  "education_concept"\', \'\\n  "entrance_lobby"\', \'\\n  "spatial_concept"\', \'\\n  "spatial_parameters"\', \'\\n  "theater_configuration"\'] Received: []\nNote: if you intended {\n  "collection_management"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{\n  "collection_management"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+系统错误: 'Input to ChatPromptTemplate is missing variables {\'\\n  "collection_management"\', \'\\n  "education_concept"\', \'\\n  "spatial_parameters"\', \'\\n  "analysis"\', \'\\n  "spatial_concept"\', \'\\n  "theater_configuration"\', \'\\n  "entrance_lobby"\'}.  Expected: [\'\\n  "analysis"\', \'\\n  "collection_management"\', \'\\n  "education_concept"\', \'\\n  "entrance_lobby"\', \'\\n  "spatial_concept"\', \'\\n  "spatial_parameters"\', \'\\n  "theater_configuration"\'] Received: []\nNote: if you intended {\n  "collection_management"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{\n  "collection_management"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+
+=================================
+==== RUN END   2025-11-27T09:33:56.722182 ====

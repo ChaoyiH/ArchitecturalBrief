@@ -33,6 +33,7 @@ from .science_education_pipeline import (
     ScienceEducationPromptBuilder,
     ScienceEducationVectorStore,
 )
+from .brief_assembly_pipeline import BriefAssemblyPipeline
 from .business_research_pipeline import (
     BusinessResearchGenerator,
     BusinessResearchPromptBuilder,
@@ -63,6 +64,7 @@ __all__ = [
     'ScienceEducationGenerator',
     'ScienceEducationPromptBuilder',
     'ScienceEducationVectorStore',
+    'BriefAssemblyPipeline',
     'BusinessResearchGenerator',
     'BusinessResearchPromptBuilder',
     'BusinessResearchVectorStore'

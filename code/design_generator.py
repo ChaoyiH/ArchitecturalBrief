@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 from config import (
     DEFAULT_BUSINESS_RESEARCH_CONFIG,
@@ -23,6 +25,7 @@ from config import (
     ScienceEducationConfig,
     PublicServiceConfig,
 )
+from rag_modules.brief_assembly_pipeline import BriefAssemblyPipeline
 from rag_modules.business_research_pipeline import BusinessResearchGenerator
 from rag_modules.central_hub_pipeline import CentralHubGenerator
 from rag_modules.design_concept_pipeline import DesignConceptGenerator
@@ -67,7 +70,7 @@ def _parse_args() -> argparse.Namespace:
         "--step",
         default="design",
         help=(
-            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / business_research / both / all，"
+            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / business_research / both / all / full（全案整合），"
             "或以逗号分隔组合"
         ),
     )
@@ -116,6 +119,8 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "special-theater": ["special_theater"],
         "theater": ["special_theater"],
         "cinema": ["special_theater"],
+        "full": ["full"],
+        "all": ["full"],
         "science_education": ["science_education"],
         "science-education": ["science_education"],
         "education": ["science_education"],
@@ -125,15 +130,6 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "business": ["business_research"],
         "research": ["business_research"],
         "both": ["design", "exhibition"],
-        "all": [
-            "design",
-            "central_hub",
-            "exhibition",
-            "special_theater",
-            "science_education",
-            "public_service",
-            "business_research",
-        ],
     }
 
     if lowered in alias_map:
@@ -149,6 +145,7 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "science_education",
         "public_service",
         "business_research",
+        "full",
     }
     for token in tokens:
         mapped = alias_map.get(token, [token])
@@ -169,6 +166,27 @@ EXECUTION_ORDER = [
     "public_service",
     "business_research",
 ]
+
+SECTION_KEY_MAP = {
+    "design": "concept",
+    "central_hub": "central_hub",
+    "exhibition": "exhibition",
+    "special_theater": "special_theater",
+    "science_education": "science_education",
+    "public_service": "public_service",
+    "business_research": "business_research",
+}
+
+STEP_TITLES = {
+    "design": "设计理念建议书",
+    "central_hub": "综合大厅与核心空间策划书",
+    "exhibition": "展览空间设计要求",
+    "special_theater": "特效影院区空间设计策划书",
+    "science_education": "科教活动与空间融合策划书",
+    "public_service": "公共服务区空间设计策划书",
+    "business_research": "业务科研区空间设计策划书",
+    "full": "建筑设计任务书",
+}
 
 
 def _log_request(step: str, project_name: str, project_features: str, query: Optional[str]):
@@ -207,104 +225,187 @@ def _print_contexts(contexts: List[Document]):
         print("-" * 40)
 
 
+def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, object]) -> Dict[str, object]:
+    if step_name == "design":
+        design_config: DesignConceptConfig = DEFAULT_DESIGN_CONCEPT_CONFIG
+        design_generator = DesignConceptGenerator(design_config)
+        design_generator.ensure_index(rebuild=args.rebuild_index)
+        _log_request("design", args.project_name, args.project_features, args.query)
+        return design_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            filters=filters if filters else None,
+            dry_run=args.dry_run,
+        )
+
+    if step_name == "central_hub":
+        hub_config: CentralHubConfig = DEFAULT_CENTRAL_HUB_CONFIG
+        hub_generator = CentralHubGenerator(hub_config)
+        _log_request("central_hub", args.project_name, args.project_features, args.query)
+        return hub_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
+
+    if step_name == "exhibition":
+        exhibition_config: ExhibitionConfig = DEFAULT_EXHIBITION_CONFIG
+        exhibition_generator = ExhibitionGenerator(exhibition_config)
+        _log_request("exhibition", args.project_name, args.project_features, args.query)
+        return exhibition_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
+
+    if step_name == "special_theater":
+        theater_config: SpecialTheaterConfig = DEFAULT_SPECIAL_THEATER_CONFIG
+        theater_generator = SpecialTheaterGenerator(theater_config)
+        _log_request("special_theater", args.project_name, args.project_features, args.query)
+        return theater_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
+
+    if step_name == "science_education":
+        science_config: ScienceEducationConfig = DEFAULT_SCIENCE_EDUCATION_CONFIG
+        science_generator = ScienceEducationGenerator(science_config)
+        _log_request("science_education", args.project_name, args.project_features, args.query)
+        return science_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
+
+    if step_name == "public_service":
+        service_config: PublicServiceConfig = DEFAULT_PUBLIC_SERVICE_CONFIG
+        service_generator = PublicServiceGenerator(service_config)
+        _log_request("public_service", args.project_name, args.project_features, args.query)
+        return service_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
+
+    if step_name == "business_research":
+        business_config: BusinessResearchConfig = DEFAULT_BUSINESS_RESEARCH_CONFIG
+        business_generator = BusinessResearchGenerator(business_config)
+        _log_request("business_research", args.project_name, args.project_features, args.query)
+        return business_generator.generate(
+            project_name=args.project_name,
+            project_features=args.project_features,
+            query=args.query,
+            top_k=args.top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
+
+    raise ValueError(f"未知的步骤: {step_name}")
+
+
+def _parse_json_response(response_text: Optional[str]) -> Any:
+    if not response_text:
+        return {}
+    text = response_text.strip()
+    if not text:
+        return {}
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        logger.warning("模块输出非 JSON，按原始文本返回 (前200字): %s", text[:200])
+        return text
+
+
+def _resolve_output_path(project_name: str) -> Path:
+    sanitized = "".join((ch if ch not in '<>:"/\\|?*' else "_") for ch in project_name).strip()
+    if not sanitized:
+        sanitized = "项目"
+    filename = f"{sanitized}_设计任务书.md"
+    return Path(__file__).resolve().parent / filename
+
+
+def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) -> None:
+    if args.dry_run:
+        print("⚠️ 全案整合（full）暂不支持 --dry-run，请移除该参数后重试。")
+        return
+
+    context_data: Dict[str, Any] = {}
+    step_errors: List[Tuple[str, str]] = []
+
+    for step_name in EXECUTION_ORDER:
+        title = STEP_TITLES.get(step_name, step_name)
+        print(f"➡️ 正在生成 {title}...")
+        try:
+            result = _execute_step(step_name, args, filters)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("模块 %s 生成失败", step_name)
+            step_errors.append((title, str(exc)))
+            context_data[SECTION_KEY_MAP.get(step_name, step_name)] = f"生成失败: {exc}"
+            continue
+
+        response_payload = result.get("response")
+        parsed_payload = _parse_json_response(response_payload)
+        context_data[SECTION_KEY_MAP.get(step_name, step_name)] = parsed_payload or "(暂无内容)"
+
+    if not context_data:
+        print("⚠️ 未获取到任何模块输出，无法整合任务书。")
+        return
+
+    assembler = BriefAssemblyPipeline()
+    assembly = assembler.generate_brief(args.project_name, args.project_features, context_data)
+    markdown = assembly.get("response")
+    if not markdown:
+        print("⚠️ 整合器未返回内容，请稍后重试。")
+        return
+
+    output_path = _resolve_output_path(args.project_name)
+    output_path.write_text(markdown, encoding="utf-8")
+    print(f"✅ 《{args.project_name} 建筑设计任务书》已生成 -> {output_path}")
+    _log_response("full", markdown[:2000])
+
+    if step_errors:
+        print("⚠️ 以下模块生成失败，已在任务书中标注：")
+        for title, err in step_errors:
+            print(f"   - {title}: {err}")
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     args = _parse_args()
     filters = _build_filters(args)
 
     requested_steps: List[str] = _resolve_steps(args.step)
+
+    if "full" in requested_steps:
+        generate_full_brief(args, filters)
+        return
+
     steps: List[str] = [step for step in EXECUTION_ORDER if step in requested_steps]
     if not steps:
-        steps = requested_steps
+        steps = [step for step in requested_steps if step != "full"] or ["design"]
 
     results: Dict[str, Dict[str, object]] = {}
 
     for step_name in steps:
-        if step_name == "design":
-            design_config: DesignConceptConfig = DEFAULT_DESIGN_CONCEPT_CONFIG
-            design_generator = DesignConceptGenerator(design_config)
-            design_generator.ensure_index(rebuild=args.rebuild_index)
-            _log_request("design", args.project_name, args.project_features, args.query)
-            results["design"] = design_generator.generate(
-                project_name=args.project_name,
-                project_features=args.project_features,
-                query=args.query,
-                top_k=args.top_k,
-                filters=filters if filters else None,
-                dry_run=args.dry_run,
-            )
-        elif step_name == "central_hub":
-            hub_config: CentralHubConfig = DEFAULT_CENTRAL_HUB_CONFIG
-            hub_generator = CentralHubGenerator(hub_config)
-            _log_request("central_hub", args.project_name, args.project_features, args.query)
-            results["central_hub"] = hub_generator.generate(
-                project_name=args.project_name,
-                project_features=args.project_features,
-                query=args.query,
-                top_k=args.top_k,
-                rebuild_index=args.rebuild_index,
-                dry_run=args.dry_run,
-            )
-        elif step_name == "exhibition":
-            exhibition_config: ExhibitionConfig = DEFAULT_EXHIBITION_CONFIG
-            exhibition_generator = ExhibitionGenerator(exhibition_config)
-            _log_request("exhibition", args.project_name, args.project_features, args.query)
-            results["exhibition"] = exhibition_generator.generate(
-                project_name=args.project_name,
-                project_features=args.project_features,
-                query=args.query,
-                top_k=args.top_k,
-                rebuild_index=args.rebuild_index,
-                dry_run=args.dry_run,
-            )
-        elif step_name == "special_theater":
-            theater_config: SpecialTheaterConfig = DEFAULT_SPECIAL_THEATER_CONFIG
-            theater_generator = SpecialTheaterGenerator(theater_config)
-            _log_request("special_theater", args.project_name, args.project_features, args.query)
-            results["special_theater"] = theater_generator.generate(
-                project_name=args.project_name,
-                project_features=args.project_features,
-                query=args.query,
-                top_k=args.top_k,
-                rebuild_index=args.rebuild_index,
-                dry_run=args.dry_run,
-            )
-        elif step_name == "science_education":
-            science_config: ScienceEducationConfig = DEFAULT_SCIENCE_EDUCATION_CONFIG
-            science_generator = ScienceEducationGenerator(science_config)
-            _log_request("science_education", args.project_name, args.project_features, args.query)
-            results["science_education"] = science_generator.generate(
-                project_name=args.project_name,
-                project_features=args.project_features,
-                query=args.query,
-                top_k=args.top_k,
-                rebuild_index=args.rebuild_index,
-                dry_run=args.dry_run,
-            )
-        elif step_name == "public_service":
-            service_config: PublicServiceConfig = DEFAULT_PUBLIC_SERVICE_CONFIG
-            service_generator = PublicServiceGenerator(service_config)
-            _log_request("public_service", args.project_name, args.project_features, args.query)
-            results["public_service"] = service_generator.generate(
-                project_name=args.project_name,
-                project_features=args.project_features,
-                query=args.query,
-                top_k=args.top_k,
-                rebuild_index=args.rebuild_index,
-                dry_run=args.dry_run,
-            )
-        elif step_name == "business_research":
-            business_config: BusinessResearchConfig = DEFAULT_BUSINESS_RESEARCH_CONFIG
-            business_generator = BusinessResearchGenerator(business_config)
-            _log_request("business_research", args.project_name, args.project_features, args.query)
-            results["business_research"] = business_generator.generate(
-                project_name=args.project_name,
-                project_features=args.project_features,
-                query=args.query,
-                top_k=args.top_k,
-                rebuild_index=args.rebuild_index,
-                dry_run=args.dry_run,
-            )
+        results[step_name] = _execute_step(step_name, args, filters)
 
     for step_name in steps:
         result = results.get(step_name)
@@ -314,9 +415,10 @@ def main():
         contexts = result.get("contexts", [])
         prompt = result.get("prompt")
         response = result.get("response")
+        title = STEP_TITLES.get(step_name, step_name)
 
         print("=" * 80)
-        print(f"🎯 项目: {args.project_name} | 步骤: {step_name}")
+        print(f"🎯 项目: {args.project_name} | 步骤: {title}")
         print(f"🧭 特征: {args.project_features}")
         print("=" * 80)
 
@@ -334,22 +436,6 @@ def main():
             print("⚠️ 未获得模型输出")
             continue
 
-        if step_name == "design":
-            title = "设计理念建议书"
-        elif step_name == "exhibition":
-            title = "展览空间设计要求"
-        elif step_name == "central_hub":
-            title = "综合大厅与核心空间策划书"
-        elif step_name == "special_theater":
-            title = "特效影院区空间设计策划书"
-        elif step_name == "science_education":
-            title = "科教活动与空间融合策划书"
-        elif step_name == "public_service":
-            title = "公共服务区空间设计策划书"
-        elif step_name == "business_research":
-            title = "业务科研区空间设计策划书"
-        else:
-            title = step_name
         print(f"🧠 {title} (JSON):\n")
         print(response)
         _log_response(step_name, str(response))
