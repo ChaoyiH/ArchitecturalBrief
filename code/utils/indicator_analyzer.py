@@ -23,7 +23,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # 动态路径修复：确保可以从 utils/ 中导入上层的 config.py 等模块
@@ -46,6 +46,57 @@ except Exception:  # noqa: BLE001 - 配置缺失时使用回退路径
 from utils.log_setup import setup as setup_logging
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# 0. 《科学技术馆建设标准》规范常量 (GB_SCIENCE_MUSEUM_STANDARD)
+# =============================================================================
+
+GB_SCIENCE_MUSEUM_STANDARD: Dict[str, Any] = {
+    "classification_thresholds": {
+        "extra_large": {"name": "特大型馆", "min_area": 30000.0, "max_area": None},
+        "large": {"name": "大型馆", "min_area": 15000.0, "max_area": 30000.0},
+        "medium": {"name": "中型馆", "min_area": 8000.0, "max_area": 15000.0},
+        "small": {"name": "小型馆", "min_area": 0.0, "max_area": 8000.0},
+    },
+    "function_ratios": {
+        # 百分比区间，均为占总建筑面积的比例
+        "特大型馆": {
+            "exhibition_education": (55.0, 60.0),  # 展览教育用房
+            "public_service": (15.0, 20.0),        # 公共服务用房
+            "business_research": (10.0, 15.0),     # 业务研究用房
+            "management": (10.0, 15.0),            # 管理保障用房
+        },
+        "大型馆": {
+            "exhibition_education": (60.0, 65.0),
+            "public_service": (10.0, 15.0),
+            "business_research": (10.0, 15.0),
+            "management": (10.0, 15.0),
+        },
+        "中型馆": {
+            "exhibition_education": (65.0, 70.0),
+            "public_service": (5.0, 10.0),
+            "business_research": (5.0, 10.0),
+            "management": (15.0, 20.0),
+        },
+        "小型馆": {
+            "exhibition_education": (65.0, 75.0),
+            "public_service": (5.0, 10.0),
+            "business_research": (5.0, 10.0),
+            "management": (10.0, 20.0),
+        },
+    },
+    "technical_indicators": {
+        # 单位：m²/件
+        "exhibit_density_sqm_per_piece": (15.0, 30.0),
+        # 单位：人/m²（基于展厅面积）
+        "instantaneous_occupancy_person_per_sqm": (0.2, 0.25),
+        # 常设展厅最小面积 (m²)
+        "permanent_exhibition_min_area": 3000.0,
+        # 建议的小型馆下限（用于提示）
+        "recommended_min_building_area": 5000.0,
+    },
+}
 
 
 # =============================================================================
@@ -138,37 +189,15 @@ def parse_area_value(value: Any) -> Optional[float]:
     return result if result > 0 else None
 
 
-# =============================================================================
-# 2. 内置分级标准 (Hardcoded Standard)
-# =============================================================================
-
-# 《科学技术馆建设标准》分级表
-# | 种类     | 规模与面积           | 设计使用年限 |
-# |----------|---------------------|-------------|
-# | 特大型馆 | 大于 40,000 m²       | 宜 100 年    |
-# | 大型馆   | 20,000 ~ 40,000 m²   | 宜 100 年    |
-# | 中型馆   | 8,000 ~ 20,000 m²    | 50 年        |
-# | 小型馆   | 小于 8,000 m²        | 50 年        |
-
-SIZE_CLASS_THRESHOLDS = [
-    # (下限, 上限, 等级名称, 设计年限)
-    # 注意：上限使用 None 表示无穷大
-    (40000, None, "特大型馆", 100),
-    (20000, 40000, "大型馆", 100),
-    (8000, 20000, "中型馆", 50),
-    (0, 8000, "小型馆", 50),
-]
-
-
 def get_size_class(area_sqm: float) -> Dict[str, Any]:
     """
     根据面积判定科技馆等级（依据《科学技术馆建设标准》）。
     
-    分级标准（硬编码）：
-    - 特大型馆：面积 > 40,000 m² (设计使用年限: 100年)
-    - 大型馆：20,000 m² ≤ 面积 ≤ 40,000 m² (设计使用年限: 100年)
-    - 中型馆：8,000 m² ≤ 面积 < 20,000 m² (设计使用年限: 50年)
-    - 小型馆：面积 < 8,000 m² (设计使用年限: 50年)
+    分级标准（依据《科学技术馆建设标准》）：
+    - 特大型馆：面积 > 30,000 m² (设计使用年限: 100年)
+    - 大型馆：15,000 m² < 面积 ≤ 30,000 m² (设计使用年限: 100年)
+    - 中型馆：8,000 m² < 面积 ≤ 15,000 m² (设计使用年限: 50年)
+    - 小型馆：面积 ≤ 8,000 m² (设计使用年限: 50年)
     
     Args:
         area_sqm: 建筑面积（平方米）
@@ -187,35 +216,33 @@ def get_size_class(area_sqm: float) -> Dict[str, Any]:
             "area_range": "无效面积",
         }
     
-    # 特大型馆：> 40,000 m²
-    if area_sqm > 40000:
+    thresholds = GB_SCIENCE_MUSEUM_STANDARD["classification_thresholds"]
+
+    if area_sqm > thresholds["extra_large"]["min_area"]:
         return {
-            "class_name": "特大型馆",
+            "class_name": thresholds["extra_large"]["name"],
             "design_life": 100,
-            "area_range": "> 40,000 m²",
+            "area_range": "> 30,000 m²",
         }
-    
-    # 大型馆：20,000 ~ 40,000 m²
-    if area_sqm >= 20000:
+
+    if thresholds["large"]["min_area"] < area_sqm <= thresholds["large"]["max_area"]:
         return {
-            "class_name": "大型馆",
+            "class_name": thresholds["large"]["name"],
             "design_life": 100,
-            "area_range": "20,000 ~ 40,000 m²",
+            "area_range": "15,000 ~ 30,000 m²",
         }
-    
-    # 中型馆：8,000 ~ 20,000 m²
-    if area_sqm >= 8000:
+
+    if thresholds["medium"]["min_area"] < area_sqm <= thresholds["medium"]["max_area"]:
         return {
-            "class_name": "中型馆",
+            "class_name": thresholds["medium"]["name"],
             "design_life": 50,
-            "area_range": "8,000 ~ 20,000 m²",
+            "area_range": "8,000 ~ 15,000 m²",
         }
-    
-    # 小型馆：< 8,000 m²
+
     return {
-        "class_name": "小型馆",
+        "class_name": thresholds["small"]["name"],
         "design_life": 50,
-        "area_range": "< 8,000 m²",
+        "area_range": "≤ 8,000 m²",
     }
 
 
@@ -348,6 +375,97 @@ def _extract_name(data: Dict[str, Any], filepath: Path) -> str:
     return filepath.stem
 
 
+def _clamp_percentage_range(rng: Tuple[float, float]) -> Tuple[float, float]:
+    """归一化百分比区间，确保有序且在 0~100 之间。"""
+
+    low, high = rng
+    low = max(0.0, min(100.0, low))
+    high = max(0.0, min(100.0, high))
+    if high < low:
+        low, high = high, low
+    return low, high
+
+
+def calculate_compliance(target_area: float, size_class_name: str) -> Dict[str, Any]:
+    """根据《科学技术馆建设标准》对目标面积进行合规性推演。
+
+    输出内容包括：
+    - 各功能用房面积区间（m²）及对应百分比
+    - 估算展厅面积
+    - 理论展品数量区间
+    - 瞬时最大观众容量区间
+    - 关键提醒（如建筑面积过小等）
+    """
+
+    tech = GB_SCIENCE_MUSEUM_STANDARD["technical_indicators"]
+    ratios_all = GB_SCIENCE_MUSEUM_STANDARD["function_ratios"]
+
+    func_ratios = ratios_all.get(size_class_name)
+    if func_ratios is None:
+        return {
+            "size_class_name": size_class_name,
+            "function_area_ranges": {},
+            "exhibition_area_estimate": None,
+            "exhibit_count_range": None,
+            "instantaneous_occupancy_range": None,
+            "warnings": [f"未找到等级 '{size_class_name}' 的功能占比配置"],
+        }
+
+    total_area = max(0.0, float(target_area))
+
+    function_area_ranges: Dict[str, Dict[str, float]] = {}
+    for key, (pct_min, pct_max) in func_ratios.items():
+        pct_min, pct_max = _clamp_percentage_range((pct_min, pct_max))
+        area_min = total_area * pct_min / 100.0
+        area_max = total_area * pct_max / 100.0
+        function_area_ranges[key] = {
+            "percent_min": round(pct_min, 1),
+            "percent_max": round(pct_max, 1),
+            "area_min_sqm": round(area_min, 1),
+            "area_max_sqm": round(area_max, 1),
+        }
+
+    # 展览教育用房面积区间
+    exhibit_ratio = func_ratios["exhibition_education"]
+    ex_pct_min, ex_pct_max = _clamp_percentage_range(exhibit_ratio)
+    ex_area_min = total_area * ex_pct_min / 100.0
+    ex_area_max = total_area * ex_pct_max / 100.0
+    # 采用平均值作为展厅面积的估算值
+    exhibition_area_estimate = (ex_area_min + ex_area_max) / 2.0 if total_area > 0 else 0.0
+
+    # 展品密度：m²/件 → 件数 = 面积 / 单位面积
+    density_min, density_max = tech["exhibit_density_sqm_per_piece"]
+    exhibit_count_min = exhibition_area_estimate / density_max if density_max > 0 else 0.0
+    exhibit_count_max = exhibition_area_estimate / density_min if density_min > 0 else 0.0
+
+    # 瞬时最大承载量：人/m² × 展厅面积
+    occ_min, occ_max = tech["instantaneous_occupancy_person_per_sqm"]
+    instantaneous_min = exhibition_area_estimate * occ_min
+    instantaneous_max = exhibition_area_estimate * occ_max
+
+    warnings: List[str] = []
+    if total_area < tech["recommended_min_building_area"]:
+        warnings.append("建筑面积不宜小于 5000 m² (小型科技馆合理下限)")
+    if exhibition_area_estimate < tech["permanent_exhibition_min_area"]:
+        warnings.append("估算展厅面积小于 3000 m²，可能难以满足常设展厅最小面积要求")
+
+    return {
+        "size_class_name": size_class_name,
+        "total_area_sqm": round(total_area, 1),
+        "function_area_ranges": function_area_ranges,
+        "exhibition_area_estimate": round(exhibition_area_estimate, 1),
+        "exhibit_count_range": (
+            int(exhibit_count_min),
+            int(exhibit_count_max),
+        ),
+        "instantaneous_occupancy_range": (
+            int(instantaneous_min),
+            int(instantaneous_max),
+        ),
+        "warnings": warnings,
+    }
+
+
 def load_all_cases(
     data_dirs: Optional[List[str]] = None,
     base_path: Optional[Path] = None,
@@ -423,8 +541,9 @@ def analyze_indicators(
     
     分析内容：
     1. 定级：根据《科学技术馆建设标准》判定目标馆等级
-    2. 同级统计：计算同等级案例的面积均值、最大值、最小值、近年趋势
-    3. 相似案例匹配：寻找面积最接近的前 K 个案例
+    2. 规范合规性推演：根据功能用房占比与核心技术指标计算建议面积区间、展品数量与瞬时承载量
+    3. 同级统计：计算同等级案例的面积均值、最大值、最小值、近年趋势
+    4. 相似案例匹配：寻找面积最接近的前 K 个案例
     
     Args:
         target_area: 目标建筑面积（平方米）
@@ -449,6 +568,7 @@ def analyze_indicators(
                 "recent_count": int,
                 "recent_mean_area": float | None,
             },
+            "compliance_analysis": {...},
             "similar_cases": [
                 {
                     "name": str,
@@ -466,12 +586,15 @@ def analyze_indicators(
     all_cases = load_all_cases(data_dirs=data_dirs, base_path=base_path)
     
     # Step B: 执行分析
-    
+
     # B1: 定级
     classification = get_size_class(target_area)
     target_class = classification["class_name"]
-    
-    # B2: 同级统计
+
+    # B2: 规范合规性推演
+    compliance = calculate_compliance(target_area, target_class)
+
+    # B3: 同级统计
     same_class_cases = [c for c in all_cases if c.size_class == target_class]
     same_class_areas = [c.area for c in same_class_cases if c.area is not None]
     
@@ -499,7 +622,7 @@ def analyze_indicators(
     if recent_areas:
         stats["recent_mean_area"] = round(sum(recent_areas) / len(recent_areas), 2)
     
-    # B3: 相似案例匹配（全局）
+    # B4: 相似案例匹配（全局）
     cases_with_diff = [
         (c, abs(c.area - target_area))
         for c in all_cases
@@ -525,6 +648,7 @@ def analyze_indicators(
         "target_area": target_area,
         "target_classification": classification,
         "statistics": stats,
+        "compliance_analysis": compliance,
         "similar_cases": similar_cases,
         "all_cases_count": len(all_cases),
     }
@@ -553,6 +677,55 @@ def format_analysis_report(result: Dict[str, Any]) -> str:
     lines.append(f"   • 面积范围: {cls['area_range']}")
     lines.append(f"   • 建议设计使用年限: {cls['design_life']} 年")
     
+    # 合规性推演
+    comp = result.get("compliance_analysis") or {}
+    lines.append(f"\n📋 国家标准合规性推演 (依据：建标 101-2007):")
+    lines.append(
+        f"   • 判定等级: {cls['class_name']} | 面积范围: {cls['area_range']}"
+    )
+
+    func_ranges = comp.get("function_area_ranges") or {}
+    if func_ranges:
+        lines.append("   • 功能用房面积分配建议：")
+        name_map = {
+            "exhibition_education": "展览教育用房",
+            "public_service": "公共服务用房",
+            "business_research": "业务研究用房",
+            "management": "管理保障用房",
+        }
+        for key in ("exhibition_education", "public_service", "business_research", "management"):
+            if key not in func_ranges:
+                continue
+            fr = func_ranges[key]
+            label = name_map.get(key, key)
+            pct_min = fr.get("percent_min")
+            pct_max = fr.get("percent_max")
+            a_min = fr.get("area_min_sqm")
+            a_max = fr.get("area_max_sqm")
+            lines.append(
+                f"      - {label}: {pct_min:.1f}–{pct_max:.1f}% 约 {a_min:,.0f}–{a_max:,.0f} m²"
+            )
+
+    ex_area = comp.get("exhibition_area_estimate")
+    exhibit_range = comp.get("exhibit_count_range") or (None, None)
+    occ_range = comp.get("instantaneous_occupancy_range") or (None, None)
+    if ex_area is not None:
+        lines.append(
+            f"   • 展厅面积估算: {ex_area:,.0f} m² (用于下述指标推演)"
+        )
+    if all(v is not None for v in exhibit_range):
+        lines.append(
+            f"   • 理论展品数量: 约 {exhibit_range[0]:,d}–{exhibit_range[1]:,d} 件"
+        )
+    if all(v is not None for v in occ_range):
+        lines.append(
+            f"   • 瞬时最大观众容量: 约 {occ_range[0]:,d}–{occ_range[1]:,d} 人"
+        )
+
+    warnings = comp.get("warnings") or []
+    for w in warnings:
+        lines.append(f"   ⚠️ {w}")
+
     # 同级统计
     stats = result["statistics"]
     lines.append(f"\n📈 同级案例统计 ({cls['class_name']}):")
