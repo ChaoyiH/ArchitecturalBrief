@@ -36,6 +36,7 @@ from pipelines.domains.public_service_pipeline import PublicServiceGenerator
 from pipelines.domains.science_education_pipeline import ScienceEducationGenerator
 from pipelines.domains.special_theater_pipeline import SpecialTheaterGenerator
 from pipelines.orchestration.brief_assembly_pipeline import BriefAssemblyPipeline
+from utils.indicator_analyzer import analyze_indicators
 
 from .state import BriefGenerationState, ModuleOutput, SECTION_KEY_MAP
 
@@ -331,6 +332,72 @@ async def business_research_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 
 # =============================================================================
+# 经济技术指标节点
+# =============================================================================
+
+
+def _extract_target_area(input_data: Dict[str, Any]) -> float:
+    """从输入中提取建筑面积，支持多种字段名与类型。"""
+
+    candidates = [
+        "target_area",
+        "building_area",
+        "gross_floor_area",
+    ]
+
+    value = None
+    for key in candidates:
+        if key in input_data and input_data[key] is not None:
+            value = input_data[key]
+            break
+
+    if value is None:
+        return 0.0
+
+    # 兼容字符串/数字
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    if isinstance(value, str):
+        text = value.strip().replace(",", "")
+        try:
+            return float(text)
+        except ValueError:
+            logger.warning("无法解析输入面积字段为数值: %r", value)
+            return 0.0
+
+    logger.warning("未知的面积字段类型: %r", type(value))
+    return 0.0
+
+
+def _run_indicators_sync(state: BriefGenerationState) -> ModuleOutput:
+    """同步执行经济技术指标分析。"""
+
+    inp = state.get("input", {})
+    try:
+        target_area = _extract_target_area(inp)
+        if target_area <= 0:
+            raise ValueError("未提供有效的建筑面积参数（target_area/building_area/gross_floor_area）。")
+
+        result = analyze_indicators(target_area)
+        # 将字典结果序列化为 JSON 字符串，方便下游统一处理
+        response_text = json.dumps(result, ensure_ascii=False, indent=2)
+        return ModuleOutput(response=response_text)
+    except Exception as exc:
+        logger.exception("经济技术指标模块执行失败")
+        return ModuleOutput(error=str(exc))
+
+
+async def indicator_node(state: BriefGenerationState) -> Dict[str, Any]:
+    """异步经济技术指标节点。"""
+
+    logger.info("📐 开始执行: 经济技术指标模块")
+    output = await asyncio.to_thread(_run_indicators_sync, state)
+    logger.info("📐 完成: 经济技术指标模块")
+    return {"indicators": output}
+
+
+# =============================================================================
 # 任务书组装节点
 # =============================================================================
 
@@ -343,6 +410,7 @@ def _run_assembly_sync(state: BriefGenerationState) -> str:
     sections: Dict[str, Any] = {}
     for module_key in [
         "design",
+        "indicators",
         "central_hub",
         "exhibition",
         "special_theater",
@@ -391,6 +459,7 @@ async def assembly_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 NODE_REGISTRY = {
     "design": design_node,
+    "indicators": indicator_node,
     "central_hub": central_hub_node,
     "exhibition": exhibition_node,
     "special_theater": special_theater_node,
@@ -403,6 +472,7 @@ NODE_REGISTRY = {
 # 第一阶段并行节点（不依赖其他模块输出）
 PARALLEL_NODES = [
     "design",
+    "indicators",
     "central_hub",
     "exhibition",
     "special_theater",

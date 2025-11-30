@@ -45,6 +45,7 @@ class BriefGenerationState(TypedDict, total=False):
     Attributes:
         input: 用户输入参数（不可变）
         design: 设计理念模块输出
+        indicators: 经济技术指标分析模块输出
         central_hub: 综合大厅模块输出
         exhibition: 展览空间模块输出
         special_theater: 特效影院模块输出
@@ -61,6 +62,7 @@ class BriefGenerationState(TypedDict, total=False):
 
     # ========== 模块输出层（第一阶段并行） ==========
     design: ModuleOutput
+    indicators: ModuleOutput
     central_hub: ModuleOutput
     exhibition: ModuleOutput
     special_theater: ModuleOutput
@@ -111,6 +113,7 @@ def create_initial_state(
             filters=filters,
         ),
         design={},
+        indicators={},
         central_hub={},
         exhibition={},
         special_theater={},
@@ -126,6 +129,7 @@ def create_initial_state(
 # 模块名到状态字段的映射（便于动态访问）
 MODULE_STATE_KEYS = [
     "design",
+    "indicators",
     "central_hub",
     "exhibition",
     "special_theater",
@@ -137,6 +141,7 @@ MODULE_STATE_KEYS = [
 # 模块名到任务书章节键的映射
 SECTION_KEY_MAP = {
     "design": "concept",
+    "indicators": "indicators",
     "central_hub": "central_hub",
     "exhibition": "exhibition",
     "special_theater": "special_theater",

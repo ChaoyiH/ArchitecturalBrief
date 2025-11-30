@@ -37,6 +37,7 @@ from .nodes import (
     central_hub_node,
     design_node,
     exhibition_node,
+    indicator_node,
     public_service_node,
     science_education_node,
     special_theater_node,
@@ -58,6 +59,7 @@ def build_brief_generation_graph() -> StateGraph:
 
     # 添加所有领域节点
     graph.add_node("design", design_node)
+    graph.add_node("indicators", indicator_node)
     graph.add_node("central_hub", central_hub_node)
     graph.add_node("exhibition", exhibition_node)
     graph.add_node("special_theater", special_theater_node)

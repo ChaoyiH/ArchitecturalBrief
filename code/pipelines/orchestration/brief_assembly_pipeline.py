@@ -20,6 +20,7 @@ class BriefAssemblyPipeline:
     # 章节顺序与 key 映射
     SECTION_ORDER = [
         ("concept", "设计理念 (Design Concept)"),
+        ("indicators", "经济技术指标 (Technical Indicators)"),
         ("central_hub", "核心枢纽 (Central Hub)"),
         ("exhibition", "展陈体系 (Exhibition)"),
         ("special_theater", "特效影院 (Special Theater)"),

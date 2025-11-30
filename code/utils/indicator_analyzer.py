@@ -18,10 +18,15 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
-from dataclasses import dataclass, field
+import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
+
+from config import DATA_ROOT
+from utils.log_setup import setup as setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -282,10 +287,13 @@ def load_all_cases(
     """
     if data_dirs is None:
         data_dirs = ["archdaily", "china", "world"]
-    
+
+    # 优先使用全局配置中的 DATA_ROOT，其次回退到相对路径
     if base_path is None:
-        # 默认路径：code/utils/indicator_analyzer.py -> code/../data
-        base_path = Path(__file__).parent.parent.parent / "data"
+        try:
+            base_path = DATA_ROOT
+        except Exception:
+            base_path = Path(__file__).resolve().parents[2] / "data"
     
     cases: List[BuildingCase] = []
     
@@ -500,16 +508,55 @@ def format_analysis_report(result: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-if __name__ == "__main__":
-    import sys
-    
-    # 配置日志
+def query_building_indicators(target_area: float) -> str:
+    """通过建筑面积查询国家标准等级及相似案例的工具。
+
+    该函数作为对外暴露的 Agent / Graph 工具入口：
+
+    - 输入目标建筑面积（单位：平方米）
+    - 基于《科学技术馆建设标准》自动判定馆舍等级与设计使用年限
+    - 结合内置案例库，统计同等级项目的面积分布与近年趋势
+    - 返回人类可读的文本报告，便于 LLM 直接引用与总结
+
+    Args:
+        target_area: 目标建筑面积（平方米）。
+
+    Returns:
+        已格式化的经济技术指标分析报告文本。
+    """
+
+    result = analyze_indicators(target_area)
+    return format_analysis_report(result)
+
+
+def _configure_sys_path() -> None:
+    """确保以模块方式运行时可以正确导入项目内模块。
+
+    支持在项目根目录下执行：
+
+        python -m code.utils.indicator_analyzer 35000
+    """
+
+    project_root = Path(__file__).resolve().parents[2]
+    code_dir = project_root / "code"
+
+    for p in (project_root, code_dir):
+        p_str = str(p)
+        if p_str not in sys.path:
+            sys.path.insert(0, p_str)
+
+
+def main() -> None:
+    """命令行入口：在终端中快速运行指标分析。"""
+
+    _configure_sys_path()
+    setup_logging()
+
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    
-    # 解析命令行参数
+
     if len(sys.argv) > 1:
         try:
             target = float(sys.argv[1])
@@ -518,12 +565,12 @@ if __name__ == "__main__":
             sys.exit(1)
     else:
         # 默认测试值
-        target = 25000
-    
+        target = 25000.0
+
     print(f"\n分析目标面积: {target:,.0f} m²\n")
-    
-    # 执行分析
     result = analyze_indicators(target)
-    
-    # 输出报告
     print(format_analysis_report(result))
+
+
+if __name__ == "__main__":
+    main()
