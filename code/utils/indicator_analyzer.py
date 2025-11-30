@@ -25,7 +25,24 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from config import DATA_ROOT
+# ---------------------------------------------------------------------------
+# 动态路径修复：确保可以从 utils/ 中导入上层的 config.py 等模块
+# ---------------------------------------------------------------------------
+
+current_file = Path(__file__).resolve()
+# 当前文件位于 code/utils/indicator_analyzer.py → project_root = code/
+project_root = current_file.parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+# 尝试安全加载配置中的数据根目录
+try:
+    from config import DATA_ROOT as _DATA_ROOT
+    DATA_ROOT = _DATA_ROOT
+except Exception:  # noqa: BLE001 - 配置缺失时使用回退路径
+    # 回退到 code/../data 目录，并给出日志警告
+    DATA_ROOT = (project_root.parent / "data").resolve()
+
 from utils.log_setup import setup as setup_logging
 
 logger = logging.getLogger(__name__)
@@ -509,6 +526,22 @@ def format_analysis_report(result: Dict[str, Any]) -> str:
 
 
 def query_building_indicators(target_area: float) -> str:
+    """Run building indicator analysis and return a formatted report.
+
+    Useful for retrieving building cases and technical indicators based on area.
+
+    This is the primary tool-style entrypoint for agents/graphs:
+    - Takes a target gross floor area (m²)
+    - Classifies the building size per national standards
+    - Computes statistics over similar-scale reference projects
+    - Returns a human-readable Markdown-like text report.
+    """
+
+    result = analyze_indicators(target_area)
+    return format_analysis_report(result)
+
+
+def query_building_indicators(target_area: float) -> str:
     """通过建筑面积查询国家标准等级及相似案例的工具。
 
     该函数作为对外暴露的 Agent / Graph 工具入口：
@@ -573,4 +606,30 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        # 基本日志配置，配合 log_setup 做文件记录
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+
+        # 显示当前数据根目录，便于排查路径问题
+        print(f"当前数据目录: {DATA_ROOT}")
+
+        if len(sys.argv) > 1:
+            try:
+                target = float(sys.argv[1])
+            except ValueError:
+                print(f"错误: 无法解析面积参数 '{sys.argv[1]}'，请提供数字，例如 35000")
+                sys.exit(1)
+        else:
+            # 默认测试面积
+            target = 35000.0
+
+        print(f"\n分析目标面积: {target:,.0f} m²\n")
+        setup_logging()
+        result = analyze_indicators(target)
+        print(format_analysis_report(result))
+    except Exception as exc:  # noqa: BLE001
+        print(f"运行过程中发生错误: {exc}")
+        sys.exit(1)
