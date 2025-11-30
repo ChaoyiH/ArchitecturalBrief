@@ -1,0 +1,30 @@
+==== RUN START 2025-11-30T23:33:28.331353 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: D:\016_RAG\project\code\design_generator.py --project-name 某科技馆项目 --project-features 城市中心区，科技+人文融合 --step full --mode parallel --target-area 35000
+=================================
+
+🚀 启动并行模式（LangGraph 图引擎）
+2025-11-30 23:33:28,600 - __main__ - ERROR - 设计理念生成模块运行失败: create_initial_state() got an unexpected keyword argument 'target_area'
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\design_generator.py", line 567, in <module>
+    main()
+  File "D:\016_RAG\project\code\design_generator.py", line 513, in main
+    asyncio.run(generate_full_brief_parallel(args))
+  File "D:\Anaconda\envs\cook-rag-1\Lib\asyncio\runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\asyncio\base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\design_generator.py", line 462, in generate_full_brief_parallel
+    initial_state = create_initial_state(
+                    ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_initial_state() got an unexpected keyword argument 'target_area'
+系统错误: create_initial_state() got an unexpected keyword argument 'target_area'
+
+=================================
+==== RUN END   2025-11-30T23:33:28.626206 ====

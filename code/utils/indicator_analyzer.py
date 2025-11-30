@@ -227,10 +227,11 @@ def get_size_class(area_sqm: float) -> Dict[str, Any]:
 class BuildingCase:
     """建筑案例数据结构"""
     name: str
-    area: Optional[float]  # 平方米
+    area: Optional[float]  # 建筑面积（平方米）
     year: Optional[int]
     filepath: str
     source: str  # "archdaily", "china", "world"
+    height: Optional[float] = None  # 建筑总高度（米）
     size_class: Optional[str] = None  # 等级名称
     
     def __post_init__(self):
@@ -274,6 +275,65 @@ def _extract_area(data: Dict[str, Any]) -> Optional[float]:
             if area is not None:
                 return area
     return None
+
+
+def _extract_height(data: Dict[str, Any]) -> Optional[float]:
+    """从 JSON 数据中提取建筑总高度（米）。
+
+    支持字段名：Height, height, 建筑高度, building_height 等；
+    支持单位：m, meter(s), 米；若包含 ft/feet，则自动换算为米 (1 ft = 0.3048 m)。
+    若解析出的高度 < 3m 或 > 800m，则视为异常值并丢弃。
+    """
+
+    height_fields = [
+        "Height",
+        "height",
+        "建筑高度",
+        "building_height",
+    ]
+
+    raw_value: Any | None = None
+    for key in height_fields:
+        if key in data and data[key] is not None:
+            raw_value = data[key]
+            break
+
+    if raw_value is None:
+        return None
+
+    # 统一转为字符串以便正则解析
+    if isinstance(raw_value, (int, float)):
+        text = str(raw_value)
+    else:
+        text = str(raw_value).strip()
+
+    if not text:
+        return None
+
+    lower = text.lower()
+
+    # 是否为英尺单位
+    is_feet = "ft" in lower or "feet" in lower
+
+    # 提取第一个连续数值（整数或小数，支持千分位）
+    match = re.search(r"-?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?", lower)
+    if not match:
+        return None
+
+    num_str = match.group().replace(",", "")
+    try:
+        value = float(num_str)
+    except ValueError:
+        return None
+
+    if is_feet:
+        value *= 0.3048
+
+    # 过滤异常高度：过低/过高
+    if value < 3 or value > 800:
+        return None
+
+    return value
 
 
 def _extract_name(data: Dict[str, Any], filepath: Path) -> str:
@@ -331,10 +391,12 @@ def load_all_cases(
             area = _extract_area(data)
             if area is None:
                 continue  # 跳过无有效面积的案例
+            height = _extract_height(data)
             
             case = BuildingCase(
                 name=_extract_name(data, json_file),
                 area=area,
+                height=height,
                 year=_extract_year(data),
                 filepath=str(json_file),
                 source=dir_name,
@@ -450,6 +512,7 @@ def analyze_indicators(
         similar_cases.append({
             "name": case.name,
             "area": case.area,
+            "height": case.height,
             "year": case.year,
             "source": case.source,
             "filepath": case.filepath,
@@ -517,6 +580,10 @@ def format_analysis_report(result: Dict[str, Any]) -> str:
             f"等级: {case['size_class']}"
             f"{year_str}"
         )
+        if case.get("height") is not None:
+            lines.append(
+                f"      📐 建筑高度: {case['height']:.1f} m"
+            )
     
     lines.append("\n" + "=" * 60)
     lines.append(f"数据来源: {result['all_cases_count']} 个建筑案例")

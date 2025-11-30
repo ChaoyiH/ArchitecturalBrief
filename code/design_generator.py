@@ -40,6 +40,7 @@ from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
 from pipelines.domains.public_service_pipeline import PublicServiceGenerator
 from pipelines.domains.special_theater_pipeline import SpecialTheaterGenerator
 from pipelines.domains.science_education_pipeline import ScienceEducationGenerator
+from utils.indicator_analyzer import analyze_indicators
 from langchain_core.documents import Document
 
 # LangGraph 图引擎（延迟导入以保持向后兼容）
@@ -80,6 +81,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--min-area", type=float, help="按建筑面积下限过滤")
     parser.add_argument("--max-area", type=float, help="按建筑面积上限过滤")
     parser.add_argument("--category", help="按项目类别过滤")
+    parser.add_argument(
+        "--target-area",
+        type=float,
+        default=None,
+        help="目标建筑面积 (m²)，用于经济技术指标分析",
+    )
     parser.add_argument(
         "--rebuild-index",
         action="store_true",
@@ -140,6 +147,10 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "central": ["central_hub"],
         "atrium": ["central_hub"],
         "hub": ["central_hub"],
+        "indicators": ["indicators"],
+        "indicator": ["indicators"],
+        "area": ["indicators"],
+        "data": ["indicators"],
         "special_theater": ["special_theater"],
         "special-theater": ["special_theater"],
         "theater": ["special_theater"],
@@ -184,6 +195,7 @@ def _resolve_steps(step_arg: str) -> List[str]:
 
 EXECUTION_ORDER = [
     "design",
+    "indicators",
     "central_hub",
     "exhibition",
     "special_theater",
@@ -194,6 +206,7 @@ EXECUTION_ORDER = [
 
 SECTION_KEY_MAP = {
     "design": "concept",
+    "indicators": "indicators",
     "central_hub": "central_hub",
     "exhibition": "exhibition",
     "special_theater": "special_theater",
@@ -204,6 +217,7 @@ SECTION_KEY_MAP = {
 
 STEP_TITLES = {
     "design": "设计理念建议书",
+    "indicators": "经济技术指标分析报告",
     "central_hub": "综合大厅与核心空间策划书",
     "exhibition": "展览空间设计要求",
     "special_theater": "特效影院区空间设计策划书",
@@ -264,6 +278,23 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             filters=filters if filters else None,
             dry_run=args.dry_run,
         )
+
+    if step_name == "indicators":
+        # 推导目标面积：优先使用显式传入的 target_area，其次尝试从最小/最大面积取中值
+        target_area: Optional[float] = args.target_area
+        if target_area is None:
+            if args.min_area is not None and args.max_area is not None and args.max_area >= args.min_area:
+                target_area = (args.min_area + args.max_area) / 2.0
+            elif args.min_area is not None:
+                target_area = args.min_area
+            elif args.max_area is not None:
+                target_area = args.max_area
+            else:
+                target_area = 0.0
+
+        _log_request("indicators", args.project_name, args.project_features, args.query)
+        result = analyze_indicators(float(target_area)) if target_area is not None else {}
+        return {"response": json.dumps(result, ensure_ascii=False)}
 
     if step_name == "central_hub":
         hub_config: CentralHubConfig = DEFAULT_CENTRAL_HUB_CONFIG
@@ -427,7 +458,7 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
     print("🚀 启动并行模式（LangGraph 图引擎）")
     start_time = time.time()
 
-    # 创建初始状态
+    # 创建初始状态（保持签名兼容，Graph 内部从 state.input 中读取 target_area）
     initial_state = create_initial_state(
         project_name=args.project_name,
         project_features=args.project_features,
@@ -436,6 +467,21 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
         rebuild_index=args.rebuild_index,
         dry_run=args.dry_run,
     )
+
+    # 注入 target_area 到初始状态的 input 字段，供 indicators 节点使用
+    try:
+        if isinstance(initial_state, dict):
+            input_payload = initial_state.get("input") or {}
+            if not isinstance(input_payload, dict):
+                input_payload = {}
+            input_payload.setdefault("project_name", args.project_name)
+            input_payload.setdefault("project_features", args.project_features)
+            if args.query is not None:
+                input_payload.setdefault("query", args.query)
+            input_payload["target_area"] = args.target_area
+            initial_state["input"] = input_payload
+    except Exception:  # noqa: BLE001
+        logger.exception("无法在初始状态中注入 target_area，将继续使用默认图配置")
 
     # 执行图
     print("⏳ 并行生成所有模块内容...")
