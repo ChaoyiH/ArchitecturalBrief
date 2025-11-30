@@ -2,7 +2,7 @@
   "name": "中国地质博物馆",
   "english_name": "The Geological Museum of China",
   "opening_date": "1916年07月14日",
-  "total_construction_area_sqm": 11000,
+  "total_construction_area_sqm": "11000",
   "floors_above_ground": 6,
   "floors_under_ground": null,
   "building_height_meters": null,
