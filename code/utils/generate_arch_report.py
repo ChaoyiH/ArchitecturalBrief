@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CODE_ROOT = PROJECT_ROOT / "code"
-OUTPUT_PATH = PROJECT_ROOT / "ARCHITECTURE_REPORT.md"
+OUTPUT_PATH = CODE_ROOT / "ARCHITECTURE_REPORT.md"
 
 
 IGNORED_DIR_NAMES = {"__pycache__", ".git", "logs", "log", "vector_index"}
