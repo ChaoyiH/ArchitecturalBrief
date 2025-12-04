@@ -1,4 +1,0 @@
-[
-{"role": "system", "content": "session started", "timestamp": "2025-11-25T01:37:02.198194", "meta": {"cwd": "D:\\016_RAG\\project\\code", "python": "3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]", "argv": ["design_generator.py", "--project-name", "济南科技馆", "--project-features", "省会城市科技馆，位于黄河边", "--step", "exhibition"], "start": "2025-11-25T01:37:02.198194"}},
-{"role": "user", "content": "Exhibition brief: 济南科技馆", "timestamp": "2025-11-25T01:37:21.883369", "meta": {"features": "省会城市科技馆，位于黄河边", "query": null}}
-]

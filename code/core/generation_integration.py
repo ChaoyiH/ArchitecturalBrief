@@ -2,9 +2,11 @@
 生成集成模块
 """
 
+import asyncio
+import importlib
 import os
 import logging
-from typing import List
+from typing import Any, List, Sequence
 
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_community.chat_models.moonshot import MoonshotChat
@@ -12,8 +14,119 @@ from langchain_community.chat_models import MiniMaxChat
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.outputs import ChatGeneration, ChatResult
+try:  # LangChain >=0.2
+    from langchain_core.pydantic_v1 import PrivateAttr  # type: ignore
+except ImportError:  # pragma: no cover - fallback for其他版本
+    from pydantic import PrivateAttr  # type: ignore
 
 logger = logging.getLogger(__name__)
+
+
+class GeminiChatModel(BaseChatModel):
+    """轻量封装的 Gemini 2.5 Pro ChatModel，兼容 LangChain Runnable 接口。"""
+
+    model_name: str
+    temperature: float
+    max_tokens: int
+    timeout: int
+
+    _client: Any = PrivateAttr()
+    _types: Any = PrivateAttr()
+
+    def __init__(
+        self,
+        model_name: str,
+        temperature: float,
+        max_tokens: int,
+        timeout: int,
+    ) -> None:
+        super().__init__(
+            model_name=model_name,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            timeout=timeout,
+        )
+        try:  # 延迟导入，避免在未使用 Gemini 时强依赖
+            genai_module = importlib.import_module("google.genai")
+            types_module = importlib.import_module("google.genai.types")
+        except ImportError as exc:  # pragma: no cover - 运行期才会触发
+            raise ImportError(
+                "缺少 google-genai 依赖，请先执行 `pip install google-genai`"
+            ) from exc
+
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("请设置 GEMINI_API_KEY 环境变量以使用 Gemini 模式")
+
+        # Gemini API 至少需要 10s deadline；直接使用默认 http 配置以避免 1s 限制
+        self._client = genai_module.Client(api_key=api_key)
+        self._types = types_module
+
+    @property
+    def _llm_type(self) -> str:  # noqa: D401
+        return "gemini"
+
+    def _build_config(self):
+        return self._types.GenerateContentConfig(
+            temperature=self.temperature,
+            max_output_tokens=self.max_tokens,
+        )
+
+    def _convert_messages(self, messages: Sequence[BaseMessage]):
+        contents = []
+        for msg in messages:
+            role = "user"
+            if msg.type == "ai":
+                role = "model"
+
+            parts = []
+            payload = msg.content
+            if isinstance(payload, str):
+                parts.append(self._types.Part.from_text(text=payload))
+            elif isinstance(payload, list):
+                for chunk in payload:
+                    if isinstance(chunk, str):
+                        parts.append(self._types.Part.from_text(text=chunk))
+                    elif isinstance(chunk, dict) and chunk.get("type") == "text":
+                        parts.append(self._types.Part.from_text(text=str(chunk.get("text", ""))))
+                    elif isinstance(chunk, dict) and "text" in chunk:
+                        parts.append(self._types.Part.from_text(text=str(chunk["text"])) )
+            if not parts:
+                parts.append(self._types.Part.from_text(text=str(payload)))
+
+            contents.append(self._types.Content(role=role, parts=parts))
+        return contents
+
+    def _run_completion(self, messages: Sequence[BaseMessage]) -> str:
+        if not messages:
+            raise ValueError("提示词为空，无法调用 Gemini")
+
+        contents = self._convert_messages(messages)
+        response = self._client.models.generate_content(
+            model=self.model_name,
+            contents=contents,
+            config=self._build_config(),
+        )
+        text = self._extract_text(response)
+        if not text:
+            raise ValueError("Gemini API 返回空响应，请稍后重试或检查提示词格式")
+        return text
+
+    def _extract_text(self, response: Any) -> str:
+        return response.text
+
+    def _generate(self, messages: Sequence[BaseMessage], stop: Sequence[str] | None = None, **kwargs) -> ChatResult:
+        text = self._run_completion(messages)
+        message = AIMessage(content=text)
+        generation = ChatGeneration(message=message, text=text)
+        return ChatResult(generations=[generation])
+
+    async def _agenerate(self, messages: Sequence[BaseMessage], stop: Sequence[str] | None = None, **kwargs) -> ChatResult:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: self._generate(messages, stop=stop, **kwargs))
 
 class GenerationIntegrationModule:
     """生成集成模块 - 负责LLM集成和回答生成"""
@@ -23,14 +136,14 @@ class GenerationIntegrationModule:
         provider: str,
         model_name: str,
         temperature: float = 0.1,
-        max_tokens: int = 2048,
+        max_tokens: int = 16384,
         timeout: int = 300,
     ) -> None:
         """
         初始化生成集成模块
         
         Args:
-            provider: LLM 提供商 (moonshot / minimax)
+            provider: LLM 提供商 (moonshot / minimax / gemini)
             model_name: 模型名称
             temperature: 生成温度
             max_tokens: 最大token数
@@ -75,6 +188,14 @@ class GenerationIntegrationModule:
                 minimax_group_id=group_id,
                 base_url="https://api.minimax.chat/v1/text/chatcompletion_v2",
                 timeout=httpx.Timeout(self.timeout, connect=30.0),
+            )
+
+        elif self.provider == "gemini":
+            self.llm = GeminiChatModel(
+                model_name=self.model_name,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                timeout=self.timeout,
             )
             
         else:

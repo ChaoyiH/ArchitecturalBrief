@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from dataclasses import replace
 from typing import Any, Dict
 
 from config import (
@@ -62,6 +63,19 @@ def ensure_embedding_loaded() -> None:
     preload_embedding()
     _embedding_preloaded = True
     logger.info("embedding 模型预加载完成")
+
+
+def _override_llm_config(config, input_payload: Dict[str, Any]):
+    overrides = {}
+    provider = input_payload.get("llm_provider") if isinstance(input_payload, dict) else None
+    model = input_payload.get("llm_model") if isinstance(input_payload, dict) else None
+    if provider:
+        overrides["llm_provider"] = provider
+    if model:
+        overrides["llm_model"] = model
+    if not overrides:
+        return config
+    return replace(config, **overrides)
 
 
 def _should_skip_module(state: BriefGenerationState, module_key: str) -> bool:
@@ -116,7 +130,8 @@ def _run_design_sync(state: BriefGenerationState) -> ModuleOutput:
 
     inp = state.get("input", {})
     try:
-        generator = DesignConceptGenerator(DEFAULT_DESIGN_CONCEPT_CONFIG)
+        config = _override_llm_config(DEFAULT_DESIGN_CONCEPT_CONFIG, inp)
+        generator = DesignConceptGenerator(config)
         generator.ensure_index(rebuild=inp.get("rebuild_index", False))
         result = generator.generate(
             project_name=inp.get("project_name", ""),
@@ -157,7 +172,8 @@ def _run_central_hub_sync(state: BriefGenerationState) -> ModuleOutput:
 
     inp = state.get("input", {})
     try:
-        generator = CentralHubGenerator(DEFAULT_CENTRAL_HUB_CONFIG)
+        config = _override_llm_config(DEFAULT_CENTRAL_HUB_CONFIG, inp)
+        generator = CentralHubGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -197,7 +213,8 @@ def _run_exhibition_sync(state: BriefGenerationState) -> ModuleOutput:
 
     inp = state.get("input", {})
     try:
-        generator = ExhibitionGenerator(DEFAULT_EXHIBITION_CONFIG)
+        config = _override_llm_config(DEFAULT_EXHIBITION_CONFIG, inp)
+        generator = ExhibitionGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -237,7 +254,8 @@ def _run_special_theater_sync(state: BriefGenerationState) -> ModuleOutput:
 
     inp = state.get("input", {})
     try:
-        generator = SpecialTheaterGenerator(DEFAULT_SPECIAL_THEATER_CONFIG)
+        config = _override_llm_config(DEFAULT_SPECIAL_THEATER_CONFIG, inp)
+        generator = SpecialTheaterGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -277,7 +295,8 @@ def _run_science_education_sync(state: BriefGenerationState) -> ModuleOutput:
 
     inp = state.get("input", {})
     try:
-        generator = ScienceEducationGenerator(DEFAULT_SCIENCE_EDUCATION_CONFIG)
+        config = _override_llm_config(DEFAULT_SCIENCE_EDUCATION_CONFIG, inp)
+        generator = ScienceEducationGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -317,7 +336,8 @@ def _run_public_service_sync(state: BriefGenerationState) -> ModuleOutput:
 
     inp = state.get("input", {})
     try:
-        generator = PublicServiceGenerator(DEFAULT_PUBLIC_SERVICE_CONFIG)
+        config = _override_llm_config(DEFAULT_PUBLIC_SERVICE_CONFIG, inp)
+        generator = PublicServiceGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -357,7 +377,8 @@ def _run_business_research_sync(state: BriefGenerationState) -> ModuleOutput:
 
     inp = state.get("input", {})
     try:
-        generator = BusinessResearchGenerator(DEFAULT_BUSINESS_RESEARCH_CONFIG)
+        config = _override_llm_config(DEFAULT_BUSINESS_RESEARCH_CONFIG, inp)
+        generator = BusinessResearchGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),

@@ -1,0 +1,92 @@
+==== RUN START 2025-12-05T02:25:17.591118 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: .\design_generator.py --project-name 济南科技馆 --project-feature 在黄河边，以黄河为概念 --target-area 40000 --step design --mode parallel --llm-provider gemini --llm-model gemini-2.5-pro
+=================================
+
+ℹ️ 并行模式仅支持 --step full，当前自动降级为顺序模式
+2025-12-05 02:25:17,594 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2025-12-05 02:25:17,595 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-12-05 02:25:23,536 - core.embedding_manager - INFO - 共享 embedding 模型初始化完成: BAAI/bge-small-zh-v1.5
+2025-12-05 02:25:23,540 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-12-05 02:25:23,558 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-12-05 02:25:23,570 - pipelines.domains.design_concept_pipeline - INFO - 已加载设计理念向量索引: D:\016_RAG\project\code\vector_index\design_concepts
+2025-12-05 02:25:23,597 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-2.5-pro
+2025-12-05 02:25:25,459 - core.generation_integration - INFO - LLM (gemini) 初始化完成
+2025-12-05 02:25:25,466 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-05 02:25:26,509 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent "HTTP/1.1 400 Bad Request"
+2025-12-05 02:25:26,510 - __main__ - ERROR - 设计理念生成模块运行失败: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Please use a valid role: user, model.', 'status': 'INVALID_ARGUMENT'}}
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\design_generator.py", line 657, in <module>
+    main()
+  File "D:\016_RAG\project\code\design_generator.py", line 619, in main
+    results[step_name] = _execute_step(step_name, args, filters)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\design_generator.py", line 298, in _execute_step
+    return design_generator.generate(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\pipelines\domains\design_concept_pipeline.py", line 454, in generate
+    raw = chain.invoke({})
+          ^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 3129, in invoke
+    input_ = context.run(step.invoke, input_, config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 398, in invoke
+    self.generate_prompt(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1117, in generate_prompt
+    return self.generate(prompt_messages, stop=stop, callbacks=callbacks, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 927, in generate
+    self._generate_with_cache(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1225, in _generate_with_cache
+    result = self._generate(messages, stop=stop, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\core\generation_integration.py", line 149, in _generate
+    text = self._run_completion(messages)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\core\generation_integration.py", line 110, in _run_completion
+    response = self._client.models.generate_content(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\google\genai\models.py", line 5218, in generate_content
+    response = self._generate_content(
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\google\genai\models.py", line 4000, in _generate_content
+    response = self._api_client.request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\google\genai\_api_client.py", line 1388, in request
+    response = self._request(http_request, http_options, stream=False)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\google\genai\_api_client.py", line 1224, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\tenacity\__init__.py", line 477, in __call__
+    do = self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\tenacity\__init__.py", line 378, in iter
+    result = action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\tenacity\__init__.py", line 420, in exc_check
+    raise retry_exc.reraise()
+          ^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\tenacity\__init__.py", line 187, in reraise
+    raise self.last_attempt.result()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\tenacity\__init__.py", line 480, in __call__
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\google\genai\_api_client.py", line 1201, in _request_once
+    errors.APIError.raise_for_response(response)
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\google\genai\errors.py", line 106, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\google\genai\errors.py", line 131, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Please use a valid role: user, model.', 'status': 'INVALID_ARGUMENT'}}
+系统错误: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'Please use a valid role: user, model.', 'status': 'INVALID_ARGUMENT'}}
+
+=================================
+==== RUN END   2025-12-05T02:25:26.524012 ====

@@ -1,4 +1,0 @@
-[
-{"role": "system", "content": "session started", "timestamp": "2025-11-25T00:43:46.554294", "meta": {"cwd": "D:\\016_RAG\\project\\code", "python": "3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]", "argv": ["design_generator.py", "--project-name", "示例项目", "--project-features", "示例特征", "--rebuild-index", "--dry-run"], "start": "2025-11-25T00:43:46.554294"}},
-{"role": "user", "content": "Design Concept brief: 示例项目", "timestamp": "2025-11-25T00:44:10.816114", "meta": {"features": "示例特征", "query": null}}
-]

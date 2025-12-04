@@ -17,11 +17,6 @@ from langchain_community.vectorstores import FAISS
 from config import DesignConceptConfig
 from core.embedding_manager import get_embedding
 from core.generation_integration import GenerationIntegrationModule
-from prompts import (
-    DESIGN_CONCEPT_SYSTEM,
-    DESIGN_CONCEPT_JSON_SCHEMA,
-    DESIGN_CONCEPT_USER_TEMPLATE,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -300,7 +295,27 @@ class DesignConceptVectorStore:
 
 
 class DesignConceptPromptBuilder:
-    """Builds prompts aligned with the design brief requirements."""
+    """Builds structured prompts for the design concept report."""
+
+    SYSTEM_PROMPT_TEMPLATE = (
+        "你是一个专业的建筑策划顾问。你的任务是为《{project_name} 设计理念策划专报》提供内容。"  # noqa: E501
+        "该项目的核心特征是：{project_features}。\n\n"
+        "请基于以下参考案例（Context）以及你掌握的建筑理论，从四个维度展开：\n"
+        "{context_block}\n\n"
+        "### 1. 理念溯源 (Origins & Archetypes)\n"
+        "- 归纳科技馆建筑常见理念来源，并结合本项目特征锁定最适切的理论源头。\n\n"
+        "### 2. 相似案例理念参照 (Case Benchmarking)\n"
+        "- 从 Context 中挑选 2-3 个最相关案例，逐一说明其理念生成逻辑与对本项目的启示，必须显式引用案例名称。\n\n"
+        "### 3. 设计趋势研判 (Future Trends)\n"
+        "- 分析 2015 年以来科技馆理念演变趋势，若 Context 偏旧，可结合行业共识补充最新洞察。\n\n"
+        "### 4. 本项目概念生成 (Concept Generation)\n"
+        "- 生成 2 个理念方案，并包含“核心隐喻 / 造型意向 / 空间氛围”。\n\n"
+        "输出格式：必须使用 Markdown，结构清晰，便于直接发送给甲方或设计团队。"
+    )
+
+    USER_PROMPT_TEMPLATE = (
+        "请按照系统指令，撰写《{project_name} 设计理念策划专报》。"
+    )
 
     def build_prompt(
         self,
@@ -308,42 +323,65 @@ class DesignConceptPromptBuilder:
         project_features: str,
         retrieved_docs: Sequence[Document],
     ) -> Dict[str, str]:
-        context = self._format_context(retrieved_docs)
-        # 使用 prompts.py 中的模板，转义花括号以兼容 ChatPromptTemplate
-        json_schema_escaped = DESIGN_CONCEPT_JSON_SCHEMA.replace("{", "{{").replace("}", "}}")
-        user_prompt = DESIGN_CONCEPT_USER_TEMPLATE.format(
+        context_block = self._format_context(retrieved_docs)
+        system_prompt = self.SYSTEM_PROMPT_TEMPLATE.format(
             project_name=project_name,
-            project_features=project_features,
-            context=context,
-            json_schema=json_schema_escaped,
+            project_features=project_features or "（未提供特征）",
+            context_block=context_block,
         )
-        # 转义 user_prompt 中的花括号
-        user_prompt = user_prompt.replace("{", "{{").replace("}", "}}")
+        user_prompt = self.USER_PROMPT_TEMPLATE.format(project_name=project_name)
+        return {"system_prompt": system_prompt, "user_prompt": user_prompt}
 
-        return {
-            "system_prompt": DESIGN_CONCEPT_SYSTEM,
-            "user_prompt": user_prompt,
-        }
+    def _format_context(self, docs: Sequence[Document]) -> str:
+        if not docs:
+            return "Context:\n（暂无检索案例，可结合行业知识自行补充对标与趋势。）"
+
+        formatted: List[str] = []
+        for idx, doc in enumerate(docs, 1):
+            formatted.append(self._format_single_context(idx, doc))
+        return "Context:\n" + "\n".join(formatted)
+
+    def _format_single_context(self, idx: int, doc: Document) -> str:
+        meta = doc.metadata or {}
+        name = str(meta.get("project_name") or f"案例{idx}")
+        year = self._extract_year(meta)
+        location = meta.get("region") or meta.get("city") or meta.get("country") or "未知地区"
+        typology = meta.get("project_type") or meta.get("categories") or "类型未明"
+        source_label = meta.get("source_type") or "unknown"
+        snippet = doc.page_content.strip()
+        snippet = snippet.replace("\n", " ")
+        snippet = snippet[:600] + "..." if len(snippet) > 600 else snippet
+        return (
+            f"[{year}] {name}（{location} | {typology} | 来源:{source_label}）\n"
+            f"{snippet}\n"
+            "—— 请引用此案例名称进行对标"
+        )
 
     @staticmethod
-    def _format_context(docs: Sequence[Document]) -> str:
-        if not docs:
-            return "(未检索到上下文，参考语料为空)"
-
-        formatted = []
-        for idx, doc in enumerate(docs, 1):
-            meta = doc.metadata or {}
-            name = meta.get("project_name", f"案例{idx}")
-            src_type = meta.get("source_type", "unknown")
-            area = meta.get("total_area") or meta.get("total_area_num")
-            region = meta.get("region") or meta.get("city") or meta.get("country")
-            snippet = doc.page_content.strip()
-            snippet = snippet[:800] + "..." if len(snippet) > 800 else snippet
-            formatted.append(
-                f"【案例{idx} | {name} | 来源:{src_type} | 区域:{region or '未知'} | 面积:{area or '未知'}】\n"
-                f"{snippet}\n"
-            )
-        return "\n".join(formatted)
+    def _extract_year(metadata: Dict[str, object]) -> str:
+        year_fields = (
+            "year",
+            "Year",
+            "completion_year",
+            "completionYear",
+            "year_completed",
+            "built_year",
+            "建成时间",
+            "建成年份",
+        )
+        for field in year_fields:
+            value = metadata.get(field)
+            if not value:
+                continue
+            if isinstance(value, (int, float)):
+                year = int(value)
+                if 1900 <= year <= 2100:
+                    return str(year)
+            if isinstance(value, str):
+                match = re.search(r"(19|20)\d{2}", value)
+                if match:
+                    return match.group(0)
+        return "未知年份"
 
 
 class DesignConceptGenerator:
@@ -359,14 +397,23 @@ class DesignConceptGenerator:
     def ensure_index(self, rebuild: bool = False) -> None:
         self.vector_store.ensure_ready(self.etl.load_documents, rebuild=rebuild)
 
-    def _ensure_llm(self):
-        if self._llm_module is None:
-            self._llm_module = GenerationIntegrationModule(
-                provider=self.config.llm_provider,
-                model_name=self.config.llm_model,
-                temperature=self.config.temperature,
-                max_tokens=self.config.max_tokens,
-            )
+    def _ensure_llm(self) -> None:
+        desired_temperature = self._resolve_creative_temperature()
+        if (
+            self._llm_module is not None
+            and abs(self._llm_module.temperature - desired_temperature) < 1e-6
+        ):
+            return
+        self._llm_module = GenerationIntegrationModule(
+            provider=self.config.llm_provider,
+            model_name=self.config.llm_model,
+            temperature=desired_temperature,
+            max_tokens=self.config.max_tokens,
+        )
+
+    def _resolve_creative_temperature(self) -> float:
+        base_temp = self.config.temperature if self.config.temperature is not None else 0.4
+        return max(0.3, min(0.5, base_temp))
 
     def retrieve_contexts(
         self,

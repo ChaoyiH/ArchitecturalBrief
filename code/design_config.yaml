@@ -1,0 +1,32 @@
+# 设计任务书生成入口配置示例
+# 将本文件复制为 design_config.yaml 后按需修改
+
+project:
+  name: "济南科技馆"
+  features: "在黄河边，以黄河为概念"
+  target_area: 40000
+  # 可选：自定义检索 query，不填则使用 features
+  query: null
+
+llm:
+  # 可选值: minimax / moonshot / gemini
+  provider: "gemini"
+  # 对应 provider 的模型：
+  # minimax:   "Minimax-M2" (默认)，或其它 minimax 文本模型
+  # moonshot:  如 "kimi-k2-0711-preview"
+  # gemini:    如 "gemini-3-pro-preview" 或 "gemini-2.5-pro"
+  model: "gemini-3-pro-preview"
+
+pipeline:
+  # step: design / central_hub / exhibition / special_theater /
+  #       science_education / public_service / business_research /
+  #       full / all / both
+  step: "design"
+  mode: "sequential"   # sequential / parallel (仅 step=full 时生效)
+  top_k: 6              # 检索案例数量
+  min_area: null        # 建筑面积下限
+  max_area: null        # 建筑面积上限
+  category: null        # 案例类别过滤
+  rebuild_index: false  # 是否强制重建索引
+  dry_run: false        # 仅预览 Prompt，不调用 LLM
+  show_contexts: false  # 是否打印检索上下文

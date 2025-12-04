@@ -1,0 +1,47 @@
+==== RUN START 2025-12-05T02:14:06.098040 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: .\design_generator.py --project-name 济南科技馆 --project-feature 在黄河边，以黄河为概念 --target-area 40000 --step design --mode parallel --llm-provider gemini --llm-model gemini-2.5-pro
+=================================
+
+ℹ️ 并行模式仅支持 --step full，当前自动降级为顺序模式
+2025-12-05 02:14:06,100 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2025-12-05 02:14:06,101 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-12-05 02:14:12,501 - core.embedding_manager - INFO - 共享 embedding 模型初始化完成: BAAI/bge-small-zh-v1.5
+2025-12-05 02:14:12,504 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-12-05 02:14:12,519 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-12-05 02:14:12,535 - pipelines.domains.design_concept_pipeline - INFO - 已加载设计理念向量索引: D:\016_RAG\project\code\vector_index\design_concepts
+2025-12-05 02:14:12,562 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-2.5-pro
+2025-12-05 02:14:14,969 - __main__ - ERROR - 设计理念生成模块运行失败: "GeminiChatModel" object has no field "client"
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\design_generator.py", line 657, in <module>
+    main()
+  File "D:\016_RAG\project\code\design_generator.py", line 619, in main
+    results[step_name] = _execute_step(step_name, args, filters)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\design_generator.py", line 298, in _execute_step
+    return design_generator.generate(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\pipelines\domains\design_concept_pipeline.py", line 446, in generate
+    self._ensure_llm()
+  File "D:\016_RAG\project\code\pipelines\domains\design_concept_pipeline.py", line 407, in _ensure_llm
+    self._llm_module = GenerationIntegrationModule(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\core\generation_integration.py", line 127, in __init__
+    self.setup_llm()
+  File "D:\016_RAG\project\code\core\generation_integration.py", line 163, in setup_llm
+    self.llm = GeminiChatModel(
+               ^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\core\generation_integration.py", line 47, in __init__
+    self.client = genai_module.Client(api_key=api_key, http_options={"timeout": timeout})
+    ^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\pydantic\main.py", line 1032, in __setattr__
+    elif (setattr_handler := self._setattr_handler(name, value)) is not None:
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\pydantic\main.py", line 1079, in _setattr_handler
+    raise ValueError(f'"{cls.__name__}" object has no field "{name}"')
+ValueError: "GeminiChatModel" object has no field "client"
+系统错误: "GeminiChatModel" object has no field "client"
+
+=================================
+==== RUN END   2025-12-05T02:14:14.976239 ====

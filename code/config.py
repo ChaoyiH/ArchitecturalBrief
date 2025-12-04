@@ -80,7 +80,7 @@ class ExhibitionConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -121,7 +121,7 @@ class PublicServiceConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -162,7 +162,7 @@ class CentralHubConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -203,7 +203,7 @@ class SpecialTheaterConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -244,7 +244,7 @@ class ScienceEducationConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -285,7 +285,7 @@ class BusinessResearchConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -324,7 +324,7 @@ class DesignConceptConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 2048
+    max_tokens: int = 8192
     top_k: int = 4
 
     def __post_init__(self):

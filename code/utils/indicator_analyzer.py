@@ -49,15 +49,16 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# 0. 《科学技术馆建设标准》规范常量 (GB_SCIENCE_MUSEUM_STANDARD)
+# 0. 数字法规库与行业参考 (Dual-Track Knowledge Base)
 # =============================================================================
 
-GB_SCIENCE_MUSEUM_STANDARD: Dict[str, Any] = {
-    "classification_thresholds": {
-        "extra_large": {"name": "特大型馆", "min_area": 30000.0, "max_area": None},
-        "large": {"name": "大型馆", "min_area": 15000.0, "max_area": 30000.0},
-        "medium": {"name": "中型馆", "min_area": 8000.0, "max_area": 15000.0},
-        "small": {"name": "小型馆", "min_area": 0.0, "max_area": 8000.0},
+DIGITAL_STANDARD: Dict[str, Any] = {
+    "source": "《科学技术馆建设标准》(建标 101-2007)",
+    "classification": {
+        "extra_large": {"name": "特大型馆", "min_area": 30000.0, "max_area": None, "design_life": 100},
+        "large": {"name": "大型馆", "min_area": 15000.0, "max_area": 30000.0, "design_life": 100},
+        "medium": {"name": "中型馆", "min_area": 8000.0, "max_area": 15000.0, "design_life": 50},
+        "small": {"name": "小型馆", "min_area": 0.0, "max_area": 8000.0, "design_life": 50},
     },
     "function_ratios": {
         # 百分比区间，均为占总建筑面积的比例
@@ -86,16 +87,18 @@ GB_SCIENCE_MUSEUM_STANDARD: Dict[str, Any] = {
             "management": (10.0, 20.0),
         },
     },
-    "technical_indicators": {
-        # 单位：m²/件
-        "exhibit_density_sqm_per_piece": (15.0, 30.0),
-        # 单位：人/m²（基于展厅面积）
-        "instantaneous_occupancy_person_per_sqm": (0.2, 0.25),
-        # 常设展厅最小面积 (m²)
-        "permanent_exhibition_min_area": 3000.0,
-        # 建议的小型馆下限（用于提示）
-        "recommended_min_building_area": 5000.0,
+    "technical_parameters": {
+        "exhibit_density_sqm_per_piece": (15.0, 30.0),  # m²/件
+        "instantaneous_people_per_sqm": (0.2, 0.25),    # 人/m²（基于展厅面积）
+        "permanent_exhibition_min_sqm": 3000.0,
+        "recommended_min_total_area": 5000.0,
     },
+}
+
+INDUSTRY_BENCHMARKS: Dict[str, Tuple[float, float]] = {
+    "floor_area_ratio": (0.4, 3.2),   # 容积率经验区间
+    "building_density": (15.0, 55.0), # 建筑密度 %
+    "green_ratio": (10.0, 76.0),      # 绿地率 %
 }
 
 
@@ -216,32 +219,36 @@ def get_size_class(area_sqm: float) -> Dict[str, Any]:
             "area_range": "无效面积",
         }
     
-    thresholds = GB_SCIENCE_MUSEUM_STANDARD["classification_thresholds"]
+    classification = DIGITAL_STANDARD["classification"]
 
-    if area_sqm > thresholds["extra_large"]["min_area"]:
+    if area_sqm > classification["extra_large"]["min_area"]:
+        info = classification["extra_large"]
         return {
-            "class_name": thresholds["extra_large"]["name"],
-            "design_life": 100,
-            "area_range": "> 30,000 m²",
+            "class_name": info["name"],
+            "design_life": info["design_life"],
+            "area_range": f"> {int(info['min_area']):,} m²",
         }
 
-    if thresholds["large"]["min_area"] < area_sqm <= thresholds["large"]["max_area"]:
+    if classification["large"]["min_area"] < area_sqm <= classification["large"]["max_area"]:
+        info = classification["large"]
         return {
-            "class_name": thresholds["large"]["name"],
-            "design_life": 100,
+            "class_name": info["name"],
+            "design_life": info["design_life"],
             "area_range": "15,000 ~ 30,000 m²",
         }
 
-    if thresholds["medium"]["min_area"] < area_sqm <= thresholds["medium"]["max_area"]:
+    if classification["medium"]["min_area"] < area_sqm <= classification["medium"]["max_area"]:
+        info = classification["medium"]
         return {
-            "class_name": thresholds["medium"]["name"],
-            "design_life": 50,
+            "class_name": info["name"],
+            "design_life": info["design_life"],
             "area_range": "8,000 ~ 15,000 m²",
         }
 
+    info = classification["small"]
     return {
-        "class_name": thresholds["small"]["name"],
-        "design_life": 50,
+        "class_name": info["name"],
+        "design_life": info["design_life"],
         "area_range": "≤ 8,000 m²",
     }
 
@@ -386,36 +393,39 @@ def _clamp_percentage_range(rng: Tuple[float, float]) -> Tuple[float, float]:
     return low, high
 
 
-def calculate_compliance(target_area: float, size_class_name: str) -> Dict[str, Any]:
-    """根据《科学技术馆建设标准》对目标面积进行合规性推演。
+def _get_classification_entry(name: str) -> Optional[Dict[str, Any]]:
+    for entry in DIGITAL_STANDARD["classification"].values():
+        if entry["name"] == name:
+            return entry
+    return None
 
-    输出内容包括：
-    - 各功能用房面积区间（m²）及对应百分比
-    - 估算展厅面积
-    - 理论展品数量区间
-    - 瞬时最大观众容量区间
-    - 关键提醒（如建筑面积过小等）
-    """
 
-    tech = GB_SCIENCE_MUSEUM_STANDARD["technical_indicators"]
-    ratios_all = GB_SCIENCE_MUSEUM_STANDARD["function_ratios"]
+def calculate_compliance_specs(target_area: float, size_class_name: str) -> Dict[str, Any]:
+    """依据《科学技术馆建设标准》推演功能配比与承载力。"""
 
+    total_area = max(0.0, float(target_area or 0))
+    ratios_all = DIGITAL_STANDARD["function_ratios"]
+    tech = DIGITAL_STANDARD["technical_parameters"]
     func_ratios = ratios_all.get(size_class_name)
+
+    size_info = _get_classification_entry(size_class_name)
+
     if func_ratios is None:
         return {
+            "standard_source": DIGITAL_STANDARD["source"],
             "size_class_name": size_class_name,
+            "design_life": size_info.get("design_life") if size_info else None,
+            "total_area_sqm": round(total_area, 1),
             "function_area_ranges": {},
             "exhibition_area_estimate": None,
-            "exhibit_count_range": None,
-            "instantaneous_occupancy_range": None,
+            "exhibit_count_estimate": None,
+            "instantaneous_capacity": None,
             "warnings": [f"未找到等级 '{size_class_name}' 的功能占比配置"],
         }
 
-    total_area = max(0.0, float(target_area))
-
     function_area_ranges: Dict[str, Dict[str, float]] = {}
-    for key, (pct_min, pct_max) in func_ratios.items():
-        pct_min, pct_max = _clamp_percentage_range((pct_min, pct_max))
+    for key, pct_range in func_ratios.items():
+        pct_min, pct_max = _clamp_percentage_range(pct_range)
         area_min = total_area * pct_min / 100.0
         area_max = total_area * pct_max / 100.0
         function_area_ranges[key] = {
@@ -425,43 +435,43 @@ def calculate_compliance(target_area: float, size_class_name: str) -> Dict[str, 
             "area_max_sqm": round(area_max, 1),
         }
 
-    # 展览教育用房面积区间
-    exhibit_ratio = func_ratios["exhibition_education"]
-    ex_pct_min, ex_pct_max = _clamp_percentage_range(exhibit_ratio)
-    ex_area_min = total_area * ex_pct_min / 100.0
-    ex_area_max = total_area * ex_pct_max / 100.0
-    # 采用平均值作为展厅面积的估算值
-    exhibition_area_estimate = (ex_area_min + ex_area_max) / 2.0 if total_area > 0 else 0.0
+    exhibition_area_estimate: Optional[float] = None
+    if "exhibition_education" in function_area_ranges:
+        fr = function_area_ranges["exhibition_education"]
+        exhibition_area_estimate = (fr["area_min_sqm"] + fr["area_max_sqm"]) / 2.0
 
-    # 展品密度：m²/件 → 件数 = 面积 / 单位面积
-    density_min, density_max = tech["exhibit_density_sqm_per_piece"]
-    exhibit_count_min = exhibition_area_estimate / density_max if density_max > 0 else 0.0
-    exhibit_count_max = exhibition_area_estimate / density_min if density_min > 0 else 0.0
+    exhibit_counts: Optional[Dict[str, int]] = None
+    if exhibition_area_estimate and exhibition_area_estimate > 0:
+        density_min, density_max = tech["exhibit_density_sqm_per_piece"]
+        if density_min > 0 and density_max > 0:
+            exhibit_counts = {
+                "min": int(exhibition_area_estimate / density_max),
+                "max": int(exhibition_area_estimate / density_min),
+            }
 
-    # 瞬时最大承载量：人/m² × 展厅面积
-    occ_min, occ_max = tech["instantaneous_occupancy_person_per_sqm"]
-    instantaneous_min = exhibition_area_estimate * occ_min
-    instantaneous_max = exhibition_area_estimate * occ_max
+    instantaneous_capacity: Optional[Dict[str, int]] = None
+    if exhibition_area_estimate and exhibition_area_estimate > 0:
+        occ_min, occ_max = tech["instantaneous_people_per_sqm"]
+        instantaneous_capacity = {
+            "min": int(exhibition_area_estimate * occ_min),
+            "max": int(exhibition_area_estimate * occ_max),
+        }
 
     warnings: List[str] = []
-    if total_area < tech["recommended_min_building_area"]:
-        warnings.append("建筑面积不宜小于 5000 m² (小型科技馆合理下限)")
-    if exhibition_area_estimate < tech["permanent_exhibition_min_area"]:
-        warnings.append("估算展厅面积小于 3000 m²，可能难以满足常设展厅最小面积要求")
+    if total_area < tech["recommended_min_total_area"]:
+        warnings.append("建筑面积低于推荐下限 5,000 m²，需谨慎论证功能配置")
+    if exhibition_area_estimate is not None and exhibition_area_estimate < tech["permanent_exhibition_min_sqm"]:
+        warnings.append("估算展厅面积低于常设展厅 3,000 m² 的规范要求")
 
     return {
+        "standard_source": DIGITAL_STANDARD["source"],
         "size_class_name": size_class_name,
+        "design_life": size_info.get("design_life") if size_info else None,
         "total_area_sqm": round(total_area, 1),
         "function_area_ranges": function_area_ranges,
-        "exhibition_area_estimate": round(exhibition_area_estimate, 1),
-        "exhibit_count_range": (
-            int(exhibit_count_min),
-            int(exhibit_count_max),
-        ),
-        "instantaneous_occupancy_range": (
-            int(instantaneous_min),
-            int(instantaneous_max),
-        ),
+        "exhibition_area_estimate": round(exhibition_area_estimate, 1) if exhibition_area_estimate is not None else None,
+        "exhibit_count_estimate": exhibit_counts,
+        "instantaneous_capacity": instantaneous_capacity,
         "warnings": warnings,
     }
 
@@ -568,7 +578,7 @@ def analyze_indicators(
                 "recent_count": int,
                 "recent_mean_area": float | None,
             },
-            "compliance_analysis": {...},
+            "compliance": {...},
             "similar_cases": [
                 {
                     "name": str,
@@ -592,7 +602,7 @@ def analyze_indicators(
     target_class = classification["class_name"]
 
     # B2: 规范合规性推演
-    compliance = calculate_compliance(target_area, target_class)
+    compliance = calculate_compliance_specs(target_area, target_class)
 
     # B3: 同级统计
     same_class_cases = [c for c in all_cases if c.size_class == target_class]
@@ -648,7 +658,8 @@ def analyze_indicators(
         "target_area": target_area,
         "target_classification": classification,
         "statistics": stats,
-        "compliance_analysis": compliance,
+        "compliance": compliance,
+        "industry_reference": INDUSTRY_BENCHMARKS,
         "similar_cases": similar_cases,
         "all_cases_count": len(all_cases),
     }
@@ -659,109 +670,115 @@ def analyze_indicators(
 # =============================================================================
 
 def format_analysis_report(result: Dict[str, Any]) -> str:
-    """将分析结果格式化为可读的文本报告"""
-    lines = []
-    
-    # 标题
-    lines.append("=" * 60)
-    lines.append("📊 经济技术指标分析报告")
-    lines.append("=" * 60)
-    
-    # 目标信息
-    lines.append(f"\n📐 目标建筑面积: {result['target_area']:,.0f} m²")
-    
-    # 分级结果
-    cls = result["target_classification"]
-    lines.append(f"\n🏛️ 等级判定 (依据《科学技术馆建设标准》):")
-    lines.append(f"   • 等级: {cls['class_name']}")
-    lines.append(f"   • 面积范围: {cls['area_range']}")
-    lines.append(f"   • 建议设计使用年限: {cls['design_life']} 年")
-    
-    # 合规性推演
-    comp = result.get("compliance_analysis") or {}
-    lines.append(f"\n📋 国家标准合规性推演 (依据：建标 101-2007):")
-    lines.append(
-        f"   • 判定等级: {cls['class_name']} | 面积范围: {cls['area_range']}"
-    )
+    """以 Markdown 文本输出“规范 + 实证”双轨结论。"""
 
-    func_ranges = comp.get("function_area_ranges") or {}
+    lines: List[str] = []
+    target_area = result.get("target_area", 0)
+    classification = result.get("target_classification", {})
+    compliance = result.get("compliance") or {}
+    stats = result.get("statistics") or {}
+    similar_cases = result.get("similar_cases") or []
+    industry = result.get("industry_reference") or INDUSTRY_BENCHMARKS
+
+    lines.append("=" * 70)
+    lines.append("🔬 科技馆策划指标推演 (Evidence-Based)")
+    lines.append("=" * 70)
+    lines.append(f"目标建筑面积：{target_area:,.0f} m²")
+
+    # Section 1
+    lines.append("\n## 1. 定级与规范依据 (Track A · Normative)")
+    standard_source = compliance.get("standard_source", DIGITAL_STANDARD["source"])
+    lines.append(f"- 参考标准：{standard_source}")
+    lines.append(f"- 判定等级：{classification.get('class_name', '未知')} (设计寿命 {classification.get('design_life', 'N/A')} 年)")
+    lines.append(f"- 面积判定区间：{classification.get('area_range', '-')}")
+
+    # Section 2
+    lines.append("\n## 2. 功能配比推演")
+    func_ranges = compliance.get("function_area_ranges") or {}
     if func_ranges:
-        lines.append("   • 功能用房面积分配建议：")
+        lines.append("| 功能区 | 占比范围 | 建议面积 (m²) |")
+        lines.append("| --- | --- | --- |")
         name_map = {
             "exhibition_education": "展览教育用房",
-            "public_service": "公共服务用房",
+            "science_education": "科研教学",
+            "public_service": "公众服务用房",
             "business_research": "业务研究用房",
             "management": "管理保障用房",
         }
-        for key in ("exhibition_education", "public_service", "business_research", "management"):
-            if key not in func_ranges:
+        order = [
+            "exhibition_education",
+            "science_education",
+            "public_service",
+            "business_research",
+            "management",
+        ]
+        for key in order:
+            fr = func_ranges.get(key)
+            if not fr:
                 continue
-            fr = func_ranges[key]
-            label = name_map.get(key, key)
-            pct_min = fr.get("percent_min")
-            pct_max = fr.get("percent_max")
-            a_min = fr.get("area_min_sqm")
-            a_max = fr.get("area_max_sqm")
-            lines.append(
-                f"      - {label}: {pct_min:.1f}–{pct_max:.1f}% 约 {a_min:,.0f}–{a_max:,.0f} m²"
-            )
+            pct = f"{fr['percent_min']:.1f}%–{fr['percent_max']:.1f}%"
+            area = f"{fr['area_min_sqm']:,.0f}–{fr['area_max_sqm']:,.0f}"
+            lines.append(f"| {name_map.get(key, key)} | {pct} | {area} |")
+    else:
+        lines.append("> 暂无功能配比数据，请检查目标等级配置。")
 
-    ex_area = comp.get("exhibition_area_estimate")
-    exhibit_range = comp.get("exhibit_count_range") or (None, None)
-    occ_range = comp.get("instantaneous_occupancy_range") or (None, None)
+    # Section 3
+    lines.append("\n## 3. 关键技术指标")
+    ex_area = compliance.get("exhibition_area_estimate")
     if ex_area is not None:
-        lines.append(
-            f"   • 展厅面积估算: {ex_area:,.0f} m² (用于下述指标推演)"
-        )
-    if all(v is not None for v in exhibit_range):
-        lines.append(
-            f"   • 理论展品数量: 约 {exhibit_range[0]:,d}–{exhibit_range[1]:,d} 件"
-        )
-    if all(v is not None for v in occ_range):
-        lines.append(
-            f"   • 瞬时最大观众容量: 约 {occ_range[0]:,d}–{occ_range[1]:,d} 人"
-        )
+        lines.append(f"- 展厅面积估算：{ex_area:,.0f} m²")
+    exhibit_counts = compliance.get("exhibit_count_estimate")
+    if exhibit_counts:
+        lines.append(f"- 参考展品规模：{exhibit_counts['min']:,d} – {exhibit_counts['max']:,d} 件 (按 15–30 m²/件)")
+    capacity = compliance.get("instantaneous_capacity")
+    if capacity:
+        lines.append(f"- 瞬时最大观众容量：{capacity['min']:,d} – {capacity['max']:,d} 人 (按 0.2–0.25 人/m²)")
+    warnings = compliance.get("warnings") or []
+    for warn in warnings:
+        lines.append(f"  ⚠️ {warn}")
 
-    warnings = comp.get("warnings") or []
-    for w in warnings:
-        lines.append(f"   ⚠️ {w}")
+    # Section 4
+    lines.append("\n## 4. 相似案例与参考 (Track B · Empirical)")
+    lines.append("**同级案例统计**")
+    lines.append(f"- 案例数量：{stats.get('same_class_count', 0)} 个")
+    if stats.get("mean_area"):
+        lines.append(f"- 平均面积：{stats['mean_area']:,.0f} m² (最大 {stats['max_area']:,.0f} / 最小 {stats['min_area']:,.0f})")
+    if stats.get("recent_count"):
+        lines.append(f"- 近年 (≥2018) 案例：{stats['recent_count']} 个，平均 {stats.get('recent_mean_area') or 0:,.0f} m²")
 
-    # 同级统计
-    stats = result["statistics"]
-    lines.append(f"\n📈 同级案例统计 ({cls['class_name']}):")
-    lines.append(f"   • 案例数量: {stats['same_class_count']} 个")
-    if stats["mean_area"]:
-        lines.append(f"   • 平均面积: {stats['mean_area']:,.0f} m²")
-        lines.append(f"   • 最大面积: {stats['max_area']:,.0f} m²")
-        lines.append(f"   • 最小面积: {stats['min_area']:,.0f} m²")
-    if stats["recent_count"] > 0:
-        lines.append(f"   • 近年 (2018+) 案例: {stats['recent_count']} 个")
-        if stats["recent_mean_area"]:
-            lines.append(f"   • 近年平均面积: {stats['recent_mean_area']:,.0f} m²")
-    
-    # 相似案例
-    lines.append(f"\n🔍 最相似案例 (面积接近):")
-    for i, case in enumerate(result["similar_cases"], 1):
-        year_str = f", {case['year']}" if case["year"] else ""
-        lines.append(
-            f"   {i}. {case['name']} ({case['source']})"
-        )
-        lines.append(
-            f"      面积: {case['area']:,.0f} m² | "
-            f"差异: {'+' if case['area'] > result['target_area'] else ''}"
-            f"{case['area'] - result['target_area']:,.0f} m² | "
-            f"等级: {case['size_class']}"
-            f"{year_str}"
-        )
-        if case.get("height") is not None:
-            lines.append(
-                f"      📐 建筑高度: {case['height']:.1f} m"
-            )
-    
-    lines.append("\n" + "=" * 60)
-    lines.append(f"数据来源: {result['all_cases_count']} 个建筑案例")
-    lines.append("=" * 60)
-    
+    if similar_cases:
+        lines.append("\n**面积最接近的参考案例**")
+        for idx, case in enumerate(similar_cases, 1):
+            year_str = f"，{case['year']}" if case.get("year") else ""
+            diff = case.get("area", 0) - target_area
+            diff_str = f"{diff:+,.0f}"
+            lines.append(f"{idx}. {case['name']} ({case['source']}{year_str})")
+            detail = [
+                f"面积 {case.get('area', 0):,.0f} m²",
+                f"差异 {diff_str} m²",
+                f"等级 {case.get('size_class') or '-'}",
+            ]
+            if case.get("height"):
+                detail.append(f"高度 {case['height']:.1f} m")
+            lines.append("   - " + " | ".join(detail))
+    else:
+        lines.append("\n> 案例库中暂无足够的相似项目。")
+
+    lines.append("\n**行业经验值参考（建筑设计资料集）**")
+    lines.append(
+        f"- 容积率 (FAR)：{industry['floor_area_ratio'][0]} – {industry['floor_area_ratio'][1]}"
+    )
+    lines.append(
+        f"- 建筑密度：{industry['building_density'][0]}% – {industry['building_density'][1]}%"
+    )
+    lines.append(
+        f"- 绿地率：{industry['green_ratio'][0]}% – {industry['green_ratio'][1]}%"
+    )
+
+    lines.append("\n数据源：内部案例库 {} 项；标准来源：{}".format(
+        result.get("all_cases_count", 0), standard_source
+    ))
+    lines.append("=" * 70)
     return "\n".join(lines)
 
 

@@ -27,6 +27,8 @@ class BriefGenerationInput(TypedDict, total=False):
     rebuild_index: bool
     dry_run: bool
     filters: Optional[Dict[str, Any]]
+    llm_provider: Optional[str]
+    llm_model: Optional[str]
 
 
 class ModuleOutput(TypedDict, total=False):
@@ -86,6 +88,8 @@ def create_initial_state(
     rebuild_index: bool = False,
     dry_run: bool = False,
     filters: Optional[Dict[str, Any]] = None,
+    llm_provider: Optional[str] = None,
+    llm_model: Optional[str] = None,
 ) -> BriefGenerationState:
     """
     工厂函数：创建初始状态对象。
@@ -111,6 +115,8 @@ def create_initial_state(
             rebuild_index=rebuild_index,
             dry_run=dry_run,
             filters=filters,
+            llm_provider=llm_provider,
+            llm_model=llm_model,
         ),
         design={},
         indicators={},

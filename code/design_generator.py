@@ -13,8 +13,11 @@ import json
 import logging
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+import yaml
 
 from config import (
     DEFAULT_BUSINESS_RESEARCH_CONFIG,
@@ -70,10 +73,10 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Task brief generator (设计理念 / 展览空间)"
     )
-    parser.add_argument("--project-name", required=True, help="项目名称或类型")
+    parser.add_argument("--config", help="从 YAML 文件加载项目与LLM配置，例如 design_config.yaml")
+    parser.add_argument("--project-name", help="项目名称或类型")
     parser.add_argument(
         "--project-features",
-        required=True,
         help="项目关键特征或背景描述（例如选址、规模、体验重点等）",
     )
     parser.add_argument("--query", help="自定义检索查询语句（默认使用项目特征）")
@@ -116,7 +119,106 @@ def _parse_args() -> argparse.Namespace:
         choices=["sequential", "parallel"],
         help="执行模式：sequential (顺序) 或 parallel (并行，使用 LangGraph)",
     )
+    parser.add_argument(
+        "--llm-provider",
+        dest="llm_provider",
+        help="覆盖默认的 LLM provider，例如 minimax 或 moonshot",
+    )
+    parser.add_argument(
+        "--llm-model",
+        dest="llm_model",
+        help="覆盖默认的模型名称，例如 Minimax-M2、kimi-k2 等",
+    )
     return parser.parse_args()
+
+
+def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
+    """从 YAML 配置文件加载入口参数，命令行优先级最高。"""
+    base: Dict[str, Any] = {
+        "project_name": None,
+        "project_features": None,
+        "target_area": None,
+        "query": None,
+        "llm_provider": None,
+        "llm_model": None,
+        "step": None,
+        "mode": None,
+        "top_k": None,
+        "min_area": None,
+        "max_area": None,
+        "category": None,
+        "rebuild_index": False,
+        "dry_run": False,
+        "show_contexts": False,
+    }
+
+    if getattr(args, "config", None):
+        config_path = Path(args.config)
+        if not config_path.is_file():
+            raise FileNotFoundError(f"找不到配置文件: {config_path}")
+        with config_path.open("r", encoding="utf-8") as f:
+            raw = yaml.safe_load(f) or {}
+
+        project = raw.get("project", {}) or {}
+        llm = raw.get("llm", {}) or {}
+        pipeline = raw.get("pipeline", {}) or {}
+
+        base.update(
+            {
+                "project_name": project.get("name"),
+                "project_features": project.get("features"),
+                "target_area": project.get("target_area"),
+                "query": project.get("query"),
+                "llm_provider": llm.get("provider"),
+                "llm_model": llm.get("model"),
+                "step": pipeline.get("step"),
+                "mode": pipeline.get("mode"),
+                "top_k": pipeline.get("top_k"),
+                "min_area": pipeline.get("min_area"),
+                "max_area": pipeline.get("max_area"),
+                "category": pipeline.get("category"),
+                "rebuild_index": bool(pipeline.get("rebuild_index", False)),
+                "dry_run": bool(pipeline.get("dry_run", False)),
+                "show_contexts": bool(pipeline.get("show_contexts", False)),
+            }
+        )
+
+    # 命令行覆盖 YAML
+    if getattr(args, "project_name", None):
+        base["project_name"] = args.project_name
+    if getattr(args, "project_features", None):
+        base["project_features"] = args.project_features
+    if getattr(args, "target_area", None) is not None:
+        base["target_area"] = args.target_area
+    if getattr(args, "query", None):
+        base["query"] = args.query
+    if getattr(args, "llm_provider", None):
+        base["llm_provider"] = args.llm_provider
+    if getattr(args, "llm_model", None):
+        base["llm_model"] = args.llm_model
+    if getattr(args, "step", None):
+        base["step"] = args.step
+    if getattr(args, "mode", None):
+        base["mode"] = args.mode
+    if getattr(args, "top_k", None) is not None:
+        base["top_k"] = args.top_k
+    if getattr(args, "min_area", None) is not None:
+        base["min_area"] = args.min_area
+    if getattr(args, "max_area", None) is not None:
+        base["max_area"] = args.max_area
+    if getattr(args, "category", None):
+        base["category"] = args.category
+    if getattr(args, "rebuild_index", False):
+        base["rebuild_index"] = True
+    if getattr(args, "dry_run", False):
+        base["dry_run"] = True
+    if getattr(args, "show_contexts", False):
+        base["show_contexts"] = True
+
+    if not base["project_name"] or not base["project_features"]:
+        raise ValueError("项目名称 --project-name 和项目特征 --project-features 必须在命令行或 YAML 中至少提供一处")
+
+    return base
 
 
 def _build_filters(args: argparse.Namespace) -> Dict[str, object]:
@@ -128,6 +230,17 @@ def _build_filters(args: argparse.Namespace) -> Dict[str, object]:
     if args.category:
         filters["category"] = args.category
     return filters
+
+
+def _override_llm_config(config, args: argparse.Namespace):
+    overrides = {}
+    if getattr(args, "llm_provider", None):
+        overrides["llm_provider"] = args.llm_provider
+    if getattr(args, "llm_model", None):
+        overrides["llm_model"] = args.llm_model
+    if not overrides:
+        return config
+    return replace(config, **overrides)
 
 
 def _resolve_steps(step_arg: str) -> List[str]:
@@ -265,23 +378,34 @@ def _print_contexts(contexts: List[Document]):
 
 
 def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, object]) -> Dict[str, object]:
+    # 从 args 中抽取已合并的配置（在 main 中注入）
+    cfg: Dict[str, Any] = getattr(args, "_merged_config", {}) or {}
+    project_name = cfg.get("project_name", getattr(args, "project_name", None))
+    project_features = cfg.get("project_features", getattr(args, "project_features", None))
+    query = cfg.get("query", getattr(args, "query", None))
+    top_k = cfg.get("top_k", getattr(args, "top_k", None))
+    target_area = cfg.get("target_area", getattr(args, "target_area", None))
+
     if step_name == "design":
-        design_config: DesignConceptConfig = DEFAULT_DESIGN_CONCEPT_CONFIG
+        design_config: DesignConceptConfig = _override_llm_config(
+            DEFAULT_DESIGN_CONCEPT_CONFIG,
+            args,
+        )
         design_generator = DesignConceptGenerator(design_config)
         design_generator.ensure_index(rebuild=args.rebuild_index)
-        _log_request("design", args.project_name, args.project_features, args.query)
+        _log_request("design", project_name, project_features, query)
         return design_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             filters=filters if filters else None,
             dry_run=args.dry_run,
         )
 
     if step_name == "indicators":
         # 推导目标面积：优先使用显式传入的 target_area，其次尝试从最小/最大面积取中值
-        target_area: Optional[float] = args.target_area
+        target_area: Optional[float] = target_area
         if target_area is None:
             if args.min_area is not None and args.max_area is not None and args.max_area >= args.min_area:
                 target_area = (args.min_area + args.max_area) / 2.0
@@ -292,84 +416,102 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             else:
                 target_area = 0.0
 
-        _log_request("indicators", args.project_name, args.project_features, args.query)
+        _log_request("indicators", project_name, project_features, query)
         result = analyze_indicators(float(target_area)) if target_area is not None else {}
         return {"response": json.dumps(result, ensure_ascii=False)}
 
     if step_name == "central_hub":
-        hub_config: CentralHubConfig = DEFAULT_CENTRAL_HUB_CONFIG
+        hub_config: CentralHubConfig = _override_llm_config(
+            DEFAULT_CENTRAL_HUB_CONFIG,
+            args,
+        )
         hub_generator = CentralHubGenerator(hub_config)
-        _log_request("central_hub", args.project_name, args.project_features, args.query)
+        _log_request("central_hub", project_name, project_features, query)
         return hub_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
 
     if step_name == "exhibition":
-        exhibition_config: ExhibitionConfig = DEFAULT_EXHIBITION_CONFIG
+        exhibition_config: ExhibitionConfig = _override_llm_config(
+            DEFAULT_EXHIBITION_CONFIG,
+            args,
+        )
         exhibition_generator = ExhibitionGenerator(exhibition_config)
-        _log_request("exhibition", args.project_name, args.project_features, args.query)
+        _log_request("exhibition", project_name, project_features, query)
         return exhibition_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
 
     if step_name == "special_theater":
-        theater_config: SpecialTheaterConfig = DEFAULT_SPECIAL_THEATER_CONFIG
+        theater_config: SpecialTheaterConfig = _override_llm_config(
+            DEFAULT_SPECIAL_THEATER_CONFIG,
+            args,
+        )
         theater_generator = SpecialTheaterGenerator(theater_config)
-        _log_request("special_theater", args.project_name, args.project_features, args.query)
+        _log_request("special_theater", project_name, project_features, query)
         return theater_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
 
     if step_name == "science_education":
-        science_config: ScienceEducationConfig = DEFAULT_SCIENCE_EDUCATION_CONFIG
+        science_config: ScienceEducationConfig = _override_llm_config(
+            DEFAULT_SCIENCE_EDUCATION_CONFIG,
+            args,
+        )
         science_generator = ScienceEducationGenerator(science_config)
-        _log_request("science_education", args.project_name, args.project_features, args.query)
+        _log_request("science_education", project_name, project_features, query)
         return science_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
 
     if step_name == "public_service":
-        service_config: PublicServiceConfig = DEFAULT_PUBLIC_SERVICE_CONFIG
+        service_config: PublicServiceConfig = _override_llm_config(
+            DEFAULT_PUBLIC_SERVICE_CONFIG,
+            args,
+        )
         service_generator = PublicServiceGenerator(service_config)
-        _log_request("public_service", args.project_name, args.project_features, args.query)
+        _log_request("public_service", project_name, project_features, query)
         return service_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
 
     if step_name == "business_research":
-        business_config: BusinessResearchConfig = DEFAULT_BUSINESS_RESEARCH_CONFIG
+        business_config: BusinessResearchConfig = _override_llm_config(
+            DEFAULT_BUSINESS_RESEARCH_CONFIG,
+            args,
+        )
         business_generator = BusinessResearchGenerator(business_config)
-        _log_request("business_research", args.project_name, args.project_features, args.query)
+        _log_request("business_research", project_name, project_features, query)
         return business_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
@@ -400,6 +542,10 @@ def _resolve_output_path(project_name: str) -> Path:
 
 def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) -> None:
     """顺序模式生成完整任务书。"""
+    cfg: Dict[str, Any] = getattr(args, "_merged_config", {}) or {}
+    project_name = cfg.get("project_name", getattr(args, "project_name", None))
+    project_features = cfg.get("project_features", getattr(args, "project_features", None))
+
     if args.dry_run:
         print("⚠️ 全案整合（full）暂不支持 --dry-run，请移除该参数后重试。")
         return
@@ -427,15 +573,15 @@ def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) ->
         return
 
     assembler = BriefAssemblyPipeline()
-    assembly = assembler.generate_brief(args.project_name, args.project_features, context_data)
+    assembly = assembler.generate_brief(project_name, project_features, context_data)
     markdown = assembly.get("response")
     if not markdown:
         print("⚠️ 整合器未返回内容，请稍后重试。")
         return
 
-    output_path = _resolve_output_path(args.project_name)
+    output_path = _resolve_output_path(project_name)
     output_path.write_text(markdown, encoding="utf-8")
-    print(f"✅ 《{args.project_name} 建筑设计任务书》已生成 -> {output_path}")
+    print(f"✅ 《{project_name} 建筑设计任务书》已生成 -> {output_path}")
     _log_response("full", markdown[:2000])
 
     if step_errors:
@@ -444,7 +590,7 @@ def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) ->
             print(f"   - {title}: {err}")
 
 
-async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
+async def generate_full_brief_parallel(args: argparse.Namespace, filters: Dict[str, object]) -> None:
     """
     并行模式生成完整任务书（使用 LangGraph 图引擎）。
 
@@ -459,13 +605,21 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
     start_time = time.time()
 
     # 创建初始状态（保持签名兼容，Graph 内部从 state.input 中读取 target_area）
+    cfg: Dict[str, Any] = getattr(args, "_merged_config", {}) or {}
+    project_name = cfg.get("project_name", getattr(args, "project_name", None))
+    project_features = cfg.get("project_features", getattr(args, "project_features", None))
+    query = cfg.get("query", getattr(args, "query", None))
+
     initial_state = create_initial_state(
-        project_name=args.project_name,
-        project_features=args.project_features,
-        query=args.query,
+        project_name=project_name,
+        project_features=project_features,
+        query=query,
         top_k=args.top_k,
         rebuild_index=args.rebuild_index,
         dry_run=args.dry_run,
+        filters=filters if filters else None,
+        llm_provider=getattr(args, "llm_provider", None),
+        llm_model=getattr(args, "llm_model", None),
     )
 
     # 注入 target_area 到初始状态的 input 字段，供 indicators 节点使用
@@ -474,11 +628,15 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
             input_payload = initial_state.get("input") or {}
             if not isinstance(input_payload, dict):
                 input_payload = {}
-            input_payload.setdefault("project_name", args.project_name)
-            input_payload.setdefault("project_features", args.project_features)
-            if args.query is not None:
-                input_payload.setdefault("query", args.query)
-            input_payload["target_area"] = args.target_area
+            input_payload.setdefault("project_name", project_name)
+            input_payload.setdefault("project_features", project_features)
+            if query is not None:
+                input_payload.setdefault("query", query)
+            input_payload["target_area"] = cfg.get("target_area", getattr(args, "target_area", None))
+            if getattr(args, "llm_provider", None):
+                input_payload["llm_provider"] = args.llm_provider
+            if getattr(args, "llm_model", None):
+                input_payload["llm_model"] = args.llm_model
             initial_state["input"] = input_payload
     except Exception:  # noqa: BLE001
         logger.exception("无法在初始状态中注入 target_area，将继续使用默认图配置")
@@ -503,9 +661,9 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
         return
 
     # 1) 输出 Markdown
-    output_path = _resolve_output_path(args.project_name)
+    output_path = _resolve_output_path(project_name)
     output_path.write_text(markdown, encoding="utf-8")
-    print(f"✅ 《{args.project_name} 建筑设计任务书》已生成 -> {output_path}")
+    print(f"✅ 《{project_name} 建筑设计任务书》已生成 -> {output_path}")
     print(f"⏱️ 并行执行总耗时: {elapsed:.1f} 秒")
     _log_response("full", markdown[:2000])
 
@@ -543,20 +701,33 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     args = _parse_args()
+    merged = _load_yaml_config(args)
+    # 将合并后的配置挂到 args 上，供后续函数统一访问
+    setattr(args, "_merged_config", merged)
+
+    # 也将 YAML 中的 llm_provider / llm_model 回填到 args，
+    # 这样 _override_llm_config 能覆盖默认 minimax 配置
+    if merged.get("llm_provider"):
+        args.llm_provider = merged["llm_provider"]
+    if merged.get("llm_model"):
+        args.llm_model = merged["llm_model"]
+
     filters = _build_filters(args)
 
-    requested_steps: List[str] = _resolve_steps(args.step)
+    requested_steps: List[str] = _resolve_steps(merged.get("step", getattr(args, "step", "design")))
 
     if "full" in requested_steps:
         # 全案整合模式：根据 --mode 选择执行方式
-        if args.mode == "parallel":
-            asyncio.run(generate_full_brief_parallel(args))
+        mode = merged.get("mode", args.mode)
+        if mode == "parallel":
+            asyncio.run(generate_full_brief_parallel(args, filters))
         else:
             generate_full_brief(args, filters)
         return
 
     # 单步/多步模式：暂不支持并行，使用顺序执行
-    if args.mode == "parallel":
+    mode = merged.get("mode", args.mode)
+    if mode == "parallel":
         print("ℹ️ 并行模式仅支持 --step full，当前自动降级为顺序模式")
 
     steps: List[str] = [step for step in EXECUTION_ORDER if step in requested_steps]
@@ -576,11 +747,14 @@ def main():
         contexts = result.get("contexts", [])
         prompt = result.get("prompt")
         response = result.get("response")
+        cfg: Dict[str, Any] = merged
+        project_name = cfg.get("project_name", args.project_name)
+        project_features = cfg.get("project_features", args.project_features)
         title = STEP_TITLES.get(step_name, step_name)
 
         print("=" * 80)
-        print(f"🎯 项目: {args.project_name} | 步骤: {title}")
-        print(f"🧭 特征: {args.project_features}")
+        print(f"🎯 项目: {project_name} | 步骤: {title}")
+        print(f"🧭 特征: {project_features}")
         print("=" * 80)
 
         if args.show_contexts and contexts:
