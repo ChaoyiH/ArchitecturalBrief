@@ -1,3 +1,0 @@
-[
-{"role": "system", "content": "session started", "timestamp": "2025-11-30T23:12:15.913892", "meta": {"cwd": "D:\\016_RAG\\project", "python": "3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]", "argv": ["code\\utils\\indicator_analyzer.py", "35000"], "start": "2025-11-30T23:12:15.913892"}}
-]

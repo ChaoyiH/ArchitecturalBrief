@@ -18,15 +18,18 @@ class BriefAssemblyPipeline:
     """确定性模板拼接器，将模块输出组装为 Markdown 设计任务书。"""
 
     # 章节顺序与 key 映射
+    # 注意：这里仅控制 Markdown 中的章节顺序与标题文案
     SECTION_ORDER = [
-        ("concept", "设计理念 (Design Concept)"),
         ("indicators", "经济技术指标 (Technical Indicators)"),
-        ("central_hub", "核心枢纽 (Central Hub)"),
-        ("exhibition", "展陈体系 (Exhibition)"),
-        ("special_theater", "特效影院 (Special Theater)"),
-        ("science_education", "科教研学 (Science Education)"),
-        ("public_service", "公共服务 (Public Service)"),
-        ("business_research", "业务科研与后勤 (Business & Research)"),
+        ("concept", "设计理念 (Design Concept)"),
+        # 主要功能设计要求
+        ("exhibition", "主要功能设计要求 / 展陈体系 (Exhibition)"),
+        ("science_education", "主要功能设计要求 / 科研教学 (Science Education)"),
+        ("public_service", "主要功能设计要求 / 公共服务 (Public Service)"),
+        ("business_research", "主要功能设计要求 / 业务科研与后勤 (Business & Research)"),
+        # 重点空间
+        ("special_theater", "重点空间 / 特效影院 (Special Theater)"),
+        ("central_hub", "重点空间 / 综合大厅与中庭 (Central Hub & Atrium)"),
     ]
 
     def __init__(self) -> None:

@@ -1,0 +1,71 @@
+==== RUN START 2025-12-04T18:42:50.013891 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: .\design_generator.py --project-name 济南科技馆 --project-feature 在黄河边，以黄河为概念 --target-area 40000 --step full --mode parallel
+=================================
+
+🚀 启动并行模式（LangGraph 图引擎）
+⏳ 并行生成所有模块内容...
+2025-12-04 18:42:50,181 - pipelines.graph_engine.nodes - INFO - 预加载共享 embedding 模型...
+2025-12-04 18:42:50,182 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2025-12-04 18:42:50,183 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-12-04 18:42:56,284 - core.embedding_manager - INFO - 共享 embedding 模型初始化完成: BAAI/bge-small-zh-v1.5
+2025-12-04 18:42:56,284 - pipelines.graph_engine.nodes - INFO - embedding 模型预加载完成
+2025-12-04 18:42:56,290 - pipelines.graph_engine.graph - INFO - LangGraph 应用编译完成
+2025-12-04 18:42:56,292 - pipelines.graph_engine.nodes - INFO - 📊 开始执行: 业务科研模块
+2025-12-04 18:42:56,293 - pipelines.graph_engine.nodes - INFO - 🏛️ 开始执行: 综合大厅模块
+2025-12-04 18:42:56,294 - pipelines.graph_engine.nodes - INFO - 🎨 开始执行: 设计理念模块
+2025-12-04 18:42:56,294 - pipelines.graph_engine.nodes - INFO - 🖼️ 开始执行: 展览空间模块
+2025-12-04 18:42:56,295 - pipelines.graph_engine.nodes - INFO - 📐 开始执行: 经济技术指标模块
+2025-12-04 18:42:56,295 - pipelines.graph_engine.nodes - INFO - 🚻 开始执行: 公共服务模块
+2025-12-04 18:42:56,296 - pipelines.graph_engine.nodes - INFO - 🔬 开始执行: 科教活动模块
+2025-12-04 18:42:56,297 - pipelines.graph_engine.nodes - INFO - 🎬 开始执行: 特效影院模块
+2025-12-04 18:42:56,299 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-12-04 18:42:56,319 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-12-04 18:42:56,335 - pipelines.domains.business_research_pipeline - INFO - 已加载业务科研区索引: D:\016_RAG\project\code\vector_index\business_research
+2025-12-04 18:42:56,336 - pipelines.domains.central_hub_pipeline - INFO - 已加载综合大厅索引: D:\016_RAG\project\code\vector_index\central_hub
+2025-12-04 18:42:56,343 - pipelines.domains.exhibition_pipeline - INFO - 已加载展览空间索引: D:\016_RAG\project\code\vector_index\exhibition_space
+2025-12-04 18:42:56,346 - pipelines.domains.public_service_pipeline - INFO - 已加载公共服务区索引: D:\016_RAG\project\code\vector_index\public_service
+2025-12-04 18:42:56,348 - pipelines.domains.science_education_pipeline - INFO - 已加载科教活动索引: D:\016_RAG\project\code\vector_index\science_education
+2025-12-04 18:42:56,348 - pipelines.domains.design_concept_pipeline - INFO - 已加载设计理念向量索引: D:\016_RAG\project\code\vector_index\design_concepts
+2025-12-04 18:42:56,349 - pipelines.domains.special_theater_pipeline - INFO - 已加载特效影院索引: D:\016_RAG\project\code\vector_index\special_theater
+2025-12-04 18:42:56,398 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 18:42:56,399 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 18:42:56,399 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 18:42:56,400 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 18:42:56,401 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 18:42:56,401 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 18:42:56,403 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 18:42:56,406 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 18:42:56,410 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 18:42:56,411 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 18:42:56,414 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 18:42:56,414 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 18:42:56,427 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 18:42:56,427 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 18:42:56,585 - utils.indicator_analyzer - INFO - 已加载 138 个有效案例
+2025-12-04 18:42:56,586 - pipelines.graph_engine.nodes - INFO - 📐 完成: 经济技术指标模块
+2025-12-04 18:43:11,888 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 18:43:11,889 - pipelines.graph_engine.nodes - INFO - 🏛️ 完成: 综合大厅模块
+2025-12-04 18:43:17,274 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 18:43:17,275 - pipelines.graph_engine.nodes - INFO - 🚻 完成: 公共服务模块
+2025-12-04 18:43:17,603 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 18:43:17,605 - pipelines.graph_engine.nodes - INFO - 🎨 完成: 设计理念模块
+2025-12-04 18:43:17,744 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 18:43:17,747 - pipelines.graph_engine.nodes - INFO - 🎬 完成: 特效影院模块
+2025-12-04 18:43:17,979 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 18:43:17,980 - pipelines.graph_engine.nodes - INFO - 📊 完成: 业务科研模块
+2025-12-04 18:43:23,333 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 18:43:23,334 - pipelines.graph_engine.nodes - INFO - 🖼️ 完成: 展览空间模块
+2025-12-04 18:43:24,082 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 18:43:24,084 - pipelines.graph_engine.nodes - INFO - 🔬 完成: 科教活动模块
+2025-12-04 18:43:24,085 - pipelines.graph_engine.nodes - INFO - 📝 开始执行: 任务书组装
+2025-12-04 18:43:24,085 - pipelines.orchestration.brief_assembly_pipeline - INFO - 开始组装任务书（确定性模板拼接）...
+2025-12-04 18:43:24,086 - pipelines.orchestration.brief_assembly_pipeline - INFO - 任务书组装完成，长度: 14646 字符
+2025-12-04 18:43:24,086 - pipelines.graph_engine.nodes - INFO - 📝 完成: 任务书组装
+✅ 《济南科技馆 建筑设计任务书》已生成 -> D:\016_RAG\project\code\济南科技馆_设计任务书.md
+⏱️ 并行执行总耗时: 33.9 秒
+🧩 模块级 JSON 输出已生成 -> D:\016_RAG\project\code\济南科技馆_设计任务书.json
+
+=================================
+==== RUN END   2025-12-04T18:43:24.091731 ====

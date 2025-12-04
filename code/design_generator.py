@@ -502,11 +502,37 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
         print("⚠️ 整合器未返回内容，请稍后重试。")
         return
 
+    # 1) 输出 Markdown
     output_path = _resolve_output_path(args.project_name)
     output_path.write_text(markdown, encoding="utf-8")
     print(f"✅ 《{args.project_name} 建筑设计任务书》已生成 -> {output_path}")
     print(f"⏱️ 并行执行总耗时: {elapsed:.1f} 秒")
     _log_response("full", markdown[:2000])
+
+    # 2) 输出与 MD 同名的大 JSON，记录各模块解析后的结果
+    try:
+        import json
+        from pipelines.graph_engine.state import MODULE_STATE_KEYS, SECTION_KEY_MAP
+        from pipelines.graph_engine.nodes import _parse_json_response  # type: ignore
+
+        modules_payload: Dict[str, Any] = {}
+        for module_key in MODULE_STATE_KEYS:
+            output = final_state.get(module_key, {}) or {}
+            section_key = SECTION_KEY_MAP.get(module_key, module_key)
+
+            if output.get("error"):
+                modules_payload[section_key] = {"error": output.get("error")}
+            elif output.get("response"):
+                parsed = _parse_json_response(output.get("response"))
+                modules_payload[section_key] = parsed
+            else:
+                modules_payload[section_key] = None
+
+        json_path = output_path.with_suffix(".json")
+        json_path.write_text(json.dumps(modules_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"🧩 模块级 JSON 输出已生成 -> {json_path}")
+    except Exception as exc:  # 只记录错误，不影响主流程
+        logger.exception("写入模块级 JSON 输出时出错: %s", exc)
 
     if step_errors:
         print("⚠️ 以下模块生成失败，已在任务书中标注：")

@@ -64,6 +64,31 @@ def ensure_embedding_loaded() -> None:
     logger.info("embedding 模型预加载完成")
 
 
+def _should_skip_module(state: BriefGenerationState, module_key: str) -> bool:
+    """检查指定模块是否已成功完成，可在补跑时跳过。
+
+    判定规则：
+    - 若状态中不存在该模块 key，则不能跳过；
+    - 若存在 error 且非空，则不能跳过；
+    - 若 response 存在且为非空字符串，则认为是一次干净成功，可跳过；
+    - 其它情况一律视为需要重新执行。
+    """
+
+    output = state.get(module_key)  # type: ignore[assignment]
+    if not isinstance(output, dict):
+        return False
+
+    error = output.get("error")
+    if isinstance(error, str) and error.strip():
+        return False
+
+    response = output.get("response")
+    if isinstance(response, str) and response.strip():
+        return True
+
+    return False
+
+
 def _parse_json_response(response_text: str | None) -> Any:
     """尝试将模块输出解析为 JSON，失败则返回原始文本。"""
     if not response_text:
@@ -85,6 +110,10 @@ def _parse_json_response(response_text: str | None) -> Any:
 
 def _run_design_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行设计理念生成。"""
+    if _should_skip_module(state, "design"):
+        logger.info("🎨 设计理念模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
         generator = DesignConceptGenerator(DEFAULT_DESIGN_CONCEPT_CONFIG)
@@ -122,6 +151,10 @@ async def design_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_central_hub_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行综合大厅生成。"""
+    if _should_skip_module(state, "central_hub"):
+        logger.info("🏛️ 综合大厅模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
         generator = CentralHubGenerator(DEFAULT_CENTRAL_HUB_CONFIG)
@@ -158,6 +191,10 @@ async def central_hub_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_exhibition_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行展览空间生成。"""
+    if _should_skip_module(state, "exhibition"):
+        logger.info("🖼️ 展览空间模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
         generator = ExhibitionGenerator(DEFAULT_EXHIBITION_CONFIG)
@@ -194,6 +231,10 @@ async def exhibition_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_special_theater_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行特效影院生成。"""
+    if _should_skip_module(state, "special_theater"):
+        logger.info("🎬 特效影院模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
         generator = SpecialTheaterGenerator(DEFAULT_SPECIAL_THEATER_CONFIG)
@@ -230,6 +271,10 @@ async def special_theater_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_science_education_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行科教活动生成。"""
+    if _should_skip_module(state, "science_education"):
+        logger.info("🔬 科教活动模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
         generator = ScienceEducationGenerator(DEFAULT_SCIENCE_EDUCATION_CONFIG)
@@ -266,6 +311,10 @@ async def science_education_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_public_service_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行公共服务生成。"""
+    if _should_skip_module(state, "public_service"):
+        logger.info("🚻 公共服务模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
         generator = PublicServiceGenerator(DEFAULT_PUBLIC_SERVICE_CONFIG)
@@ -302,6 +351,10 @@ async def public_service_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_business_research_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行业务科研生成。"""
+    if _should_skip_module(state, "business_research"):
+        logger.info("📊 业务科研模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
         generator = BusinessResearchGenerator(DEFAULT_BUSINESS_RESEARCH_CONFIG)

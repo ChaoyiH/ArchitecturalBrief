@@ -1,3 +1,0 @@
-[
-{"role": "system", "content": "session started", "timestamp": "2025-11-27T15:11:31.674681", "meta": {"cwd": "D:\\016_RAG\\project\\code", "python": "3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]", "argv": ["design_generator.py", "--project-name", "测试科技馆", "--project-features", "占地面积 10000 平方米，位于城市核心区", "--step", "full", "--mode", "parallel"], "start": "2025-11-27T15:11:31.674681"}}
-]

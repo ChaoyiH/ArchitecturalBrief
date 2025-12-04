@@ -402,5 +402,8 @@ class DesignConceptGenerator:
             ("human", prompt["user_prompt"]),
         ])
         chain = chat_prompt | self._llm_module.llm | StrOutputParser()
-        response = chain.invoke({})
+        # LangChain 保证这里返回 str，但为安全起见做一次显式转换，
+        # 避免上游节点在判断 truthy 值时受到类型或 None 的影响。
+        raw = chain.invoke({})
+        response = "" if raw is None else str(raw)
         return {"prompt": prompt, "contexts": contexts, "response": response}
