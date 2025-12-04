@@ -126,8 +126,17 @@ def get_app():
 
 
 async def run_graph(initial_state: BriefGenerationState) -> BriefGenerationState:
-    """
-    便捷函数：运行图并返回最终状态。
+    """运行图并返回最终状态，并带有一次自动补跑失败模块的机制。
+
+    当前策略：
+    1. 先完整执行一次图，得到初始结果；
+    2. 检查各模块输出中的 ``error`` 字段；
+    3. 如果存在失败模块，则以第一次的结果作为新初始状态，再运行一次完整图，
+       作为"补跑"（仅一次）；
+    4. 始终返回最后一次执行的状态。
+
+    这样可以在不修改现有节点实现的前提下，对偶发性超时等错误做一次
+    自动重试，同时保持架构改动最小。
 
     Args:
         initial_state: 初始状态字典
@@ -135,10 +144,30 @@ async def run_graph(initial_state: BriefGenerationState) -> BriefGenerationState
     Returns:
         执行完成后的最终状态
     """
+
     # 在并行任务启动前预加载 embedding 模型
     from .nodes import ensure_embedding_loaded
     ensure_embedding_loaded()
-    
+
     app = get_app()
-    result = await app.ainvoke(initial_state)
-    return result
+
+    # 第一次执行
+    state = await app.ainvoke(initial_state)
+
+    # 检查是否存在需要补跑的模块：
+    # 约定模块输出结构为 {"response": ..., "error": ...}
+    failed_modules = []
+    for key, value in state.items():
+        if isinstance(value, dict):
+            err = value.get("error")
+            if isinstance(err, str) and err.strip():
+                failed_modules.append(key)
+
+    if not failed_modules:
+        return state
+
+    logger.info("检测到需要补跑的模块: %s", ", ".join(sorted(failed_modules)))
+
+    # 以第一次执行结果作为新初始状态，执行一次补跑
+    retry_state = await app.ainvoke(state)
+    return retry_state

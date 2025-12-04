@@ -18,7 +18,14 @@ logger = logging.getLogger(__name__)
 class GenerationIntegrationModule:
     """生成集成模块 - 负责LLM集成和回答生成"""
     
-    def __init__(self, provider: str, model_name: str, temperature: float = 0.1, max_tokens: int = 2048, timeout: int = 180):
+    def __init__(
+        self,
+        provider: str,
+        model_name: str,
+        temperature: float = 0.1,
+        max_tokens: int = 2048,
+        timeout: int = 300,
+    ) -> None:
         """
         初始化生成集成模块
         
@@ -27,7 +34,7 @@ class GenerationIntegrationModule:
             model_name: 模型名称
             temperature: 生成温度
             max_tokens: 最大token数
-            timeout: 请求超时时间（秒），默认 180 秒
+            timeout: 请求超时时间（秒），默认 300 秒
         """
         self.provider = provider
         self.model_name = model_name

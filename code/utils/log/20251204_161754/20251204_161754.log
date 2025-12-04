@@ -1,0 +1,462 @@
+==== RUN START 2025-12-04T16:17:54.767972 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: .\design_generator.py --project-name 济南科技馆 --project-feature 在黄河边，以黄河为概念 --target-area 40000 --step full --mode parallel
+=================================
+
+🚀 启动并行模式（LangGraph 图引擎）
+⏳ 并行生成所有模块内容...
+2025-12-04 16:17:55,020 - pipelines.graph_engine.nodes - INFO - 预加载共享 embedding 模型...
+2025-12-04 16:17:55,021 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2025-12-04 16:17:55,023 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-12-04 16:18:03,613 - core.embedding_manager - INFO - 共享 embedding 模型初始化完成: BAAI/bge-small-zh-v1.5
+2025-12-04 16:18:03,614 - pipelines.graph_engine.nodes - INFO - embedding 模型预加载完成
+2025-12-04 16:18:03,620 - pipelines.graph_engine.graph - INFO - LangGraph 应用编译完成
+2025-12-04 16:18:03,622 - pipelines.graph_engine.nodes - INFO - 📊 开始执行: 业务科研模块
+2025-12-04 16:18:03,623 - pipelines.graph_engine.nodes - INFO - 🏛️ 开始执行: 综合大厅模块
+2025-12-04 16:18:03,624 - pipelines.graph_engine.nodes - INFO - 🎨 开始执行: 设计理念模块
+2025-12-04 16:18:03,625 - pipelines.graph_engine.nodes - INFO - 🖼️ 开始执行: 展览空间模块
+2025-12-04 16:18:03,626 - pipelines.graph_engine.nodes - INFO - 📐 开始执行: 经济技术指标模块
+2025-12-04 16:18:03,636 - pipelines.graph_engine.nodes - INFO - 🚻 开始执行: 公共服务模块
+2025-12-04 16:18:03,637 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-12-04 16:18:03,640 - pipelines.graph_engine.nodes - INFO - 🔬 开始执行: 科教活动模块
+2025-12-04 16:18:03,642 - pipelines.graph_engine.nodes - INFO - 🎬 开始执行: 特效影院模块
+2025-12-04 16:18:03,670 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-12-04 16:18:03,699 - pipelines.domains.public_service_pipeline - INFO - 已加载公共服务区索引: D:\016_RAG\project\code\vector_index\public_service
+2025-12-04 16:18:03,701 - pipelines.domains.central_hub_pipeline - INFO - 已加载综合大厅索引: D:\016_RAG\project\code\vector_index\central_hub
+2025-12-04 16:18:03,705 - pipelines.domains.special_theater_pipeline - INFO - 已加载特效影院索引: D:\016_RAG\project\code\vector_index\special_theater
+2025-12-04 16:18:03,705 - pipelines.domains.design_concept_pipeline - INFO - 已加载设计理念向量索引: D:\016_RAG\project\code\vector_index\design_concepts
+2025-12-04 16:18:03,705 - pipelines.domains.business_research_pipeline - INFO - 已加载业务科研区索引: D:\016_RAG\project\code\vector_index\business_research
+2025-12-04 16:18:03,718 - pipelines.domains.science_education_pipeline - INFO - 已加载科教活动索引: D:\016_RAG\project\code\vector_index\science_education
+2025-12-04 16:18:03,719 - pipelines.domains.exhibition_pipeline - INFO - 已加载展览空间索引: D:\016_RAG\project\code\vector_index\exhibition_space
+2025-12-04 16:18:03,787 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:18:03,787 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:18:03,789 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:18:03,789 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:18:03,790 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:18:03,791 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:18:03,792 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:18:03,795 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:18:03,798 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:18:03,800 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:18:03,815 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:18:03,816 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:18:03,833 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:18:03,833 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:18:04,053 - utils.indicator_analyzer - INFO - 已加载 138 个有效案例
+2025-12-04 16:18:04,054 - pipelines.graph_engine.nodes - INFO - 📐 完成: 经济技术指标模块
+2025-12-04 16:18:26,644 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 16:18:26,646 - pipelines.graph_engine.nodes - INFO - 🎨 完成: 设计理念模块
+2025-12-04 16:18:33,770 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 16:18:33,772 - pipelines.graph_engine.nodes - INFO - 🏛️ 完成: 综合大厅模块
+2025-12-04 16:18:38,768 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 16:18:38,770 - pipelines.graph_engine.nodes - INFO - 🔬 完成: 科教活动模块
+2025-12-04 16:18:52,487 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 16:18:52,543 - pipelines.graph_engine.nodes - INFO - 🎬 完成: 特效影院模块
+2025-12-04 16:19:06,014 - pipelines.graph_engine.nodes - ERROR - 业务科研模块执行失败
+Traceback (most recent call last):
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection.py", line 103, in handle_request
+    return self._connection.handle_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 136, in handle_request
+    raise exc
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 106, in handle_request
+    ) = self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 177, in _receive_response_headers
+    event = self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 217, in _receive_event
+    data = self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_backends\sync.py", line 126, in read
+    with map_exceptions(exc_map):
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\pipelines\graph_engine\nodes.py", line 308, in _run_business_research_sync
+    result = generator.generate(
+             ^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\pipelines\domains\business_research_pipeline.py", line 213, in generate
+    response = chain.invoke({})
+               ^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 3129, in invoke
+    input_ = context.run(step.invoke, input_, config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 398, in invoke
+    self.generate_prompt(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1117, in generate_prompt
+    return self.generate(prompt_messages, stop=stop, callbacks=callbacks, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 927, in generate
+    self._generate_with_cache(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1221, in _generate_with_cache
+    result = self._generate(
+             ^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_community\chat_models\minimax.py", line 512, in _generate
+    response = client.post(self.minimax_api_host, json=payload)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 1144, in post
+    return self.request(
+           ^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 914, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 249, in handle_request
+    with map_httpcore_exceptions():
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout: The read operation timed out
+2025-12-04 16:19:06,037 - pipelines.graph_engine.nodes - INFO - 📊 完成: 业务科研模块
+2025-12-04 16:19:06,061 - pipelines.graph_engine.nodes - ERROR - 展览空间模块执行失败
+Traceback (most recent call last):
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection.py", line 103, in handle_request
+    return self._connection.handle_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 136, in handle_request
+    raise exc
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 106, in handle_request
+    ) = self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 177, in _receive_response_headers
+    event = self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 217, in _receive_event
+    data = self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_backends\sync.py", line 126, in read
+    with map_exceptions(exc_map):
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\pipelines\graph_engine\nodes.py", line 164, in _run_exhibition_sync
+    result = generator.generate(
+             ^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\pipelines\domains\exhibition_pipeline.py", line 201, in generate
+    response = chain.invoke({})
+               ^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 3129, in invoke
+    input_ = context.run(step.invoke, input_, config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 398, in invoke
+    self.generate_prompt(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1117, in generate_prompt
+    return self.generate(prompt_messages, stop=stop, callbacks=callbacks, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 927, in generate
+    self._generate_with_cache(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1221, in _generate_with_cache
+    result = self._generate(
+             ^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_community\chat_models\minimax.py", line 512, in _generate
+    response = client.post(self.minimax_api_host, json=payload)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 1144, in post
+    return self.request(
+           ^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 914, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 249, in handle_request
+    with map_httpcore_exceptions():
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout: The read operation timed out
+2025-12-04 16:19:06,064 - pipelines.graph_engine.nodes - INFO - 🖼️ 完成: 展览空间模块
+2025-12-04 16:19:06,122 - pipelines.graph_engine.nodes - ERROR - 公共服务模块执行失败
+Traceback (most recent call last):
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection.py", line 103, in handle_request
+    return self._connection.handle_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 136, in handle_request
+    raise exc
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 106, in handle_request
+    ) = self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 177, in _receive_response_headers
+    event = self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 217, in _receive_event
+    data = self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_backends\sync.py", line 126, in read
+    with map_exceptions(exc_map):
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\pipelines\graph_engine\nodes.py", line 272, in _run_public_service_sync
+    result = generator.generate(
+             ^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\pipelines\domains\public_service_pipeline.py", line 221, in generate
+    response = chain.invoke({})
+               ^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 3129, in invoke
+    input_ = context.run(step.invoke, input_, config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 398, in invoke
+    self.generate_prompt(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1117, in generate_prompt
+    return self.generate(prompt_messages, stop=stop, callbacks=callbacks, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 927, in generate
+    self._generate_with_cache(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1221, in _generate_with_cache
+    result = self._generate(
+             ^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_community\chat_models\minimax.py", line 512, in _generate
+    response = client.post(self.minimax_api_host, json=payload)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 1144, in post
+    return self.request(
+           ^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 914, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 249, in handle_request
+    with map_httpcore_exceptions():
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout: The read operation timed out
+2025-12-04 16:19:06,125 - pipelines.graph_engine.nodes - INFO - 🚻 完成: 公共服务模块
+2025-12-04 16:19:06,126 - pipelines.graph_engine.nodes - INFO - 📝 开始执行: 任务书组装
+2025-12-04 16:19:06,126 - pipelines.orchestration.brief_assembly_pipeline - INFO - 开始组装任务书（确定性模板拼接）...
+2025-12-04 16:19:06,127 - pipelines.orchestration.brief_assembly_pipeline - INFO - 任务书组装完成，长度: 7698 字符
+2025-12-04 16:19:06,127 - pipelines.graph_engine.nodes - INFO - 📝 完成: 任务书组装
+2025-12-04 16:19:06,128 - pipelines.graph_engine.graph - INFO - 检测到需要补跑的模块: business_research, exhibition, public_service
+2025-12-04 16:19:06,129 - pipelines.graph_engine.nodes - INFO - 📊 开始执行: 业务科研模块
+2025-12-04 16:19:06,130 - pipelines.graph_engine.nodes - INFO - 🏛️ 开始执行: 综合大厅模块
+2025-12-04 16:19:06,130 - pipelines.graph_engine.nodes - INFO - 🎨 开始执行: 设计理念模块
+2025-12-04 16:19:06,130 - pipelines.graph_engine.nodes - INFO - 🖼️ 开始执行: 展览空间模块
+2025-12-04 16:19:06,131 - pipelines.graph_engine.nodes - INFO - 📐 开始执行: 经济技术指标模块
+2025-12-04 16:19:06,139 - pipelines.graph_engine.nodes - INFO - 🚻 开始执行: 公共服务模块
+2025-12-04 16:19:06,142 - pipelines.graph_engine.nodes - INFO - 🔬 开始执行: 科教活动模块
+2025-12-04 16:19:06,144 - pipelines.domains.business_research_pipeline - INFO - 已加载业务科研区索引: D:\016_RAG\project\code\vector_index\business_research
+2025-12-04 16:19:06,145 - pipelines.graph_engine.nodes - INFO - 🎬 开始执行: 特效影院模块
+2025-12-04 16:19:06,145 - pipelines.domains.central_hub_pipeline - INFO - 已加载综合大厅索引: D:\016_RAG\project\code\vector_index\central_hub
+2025-12-04 16:19:06,146 - pipelines.domains.design_concept_pipeline - INFO - 已加载设计理念向量索引: D:\016_RAG\project\code\vector_index\design_concepts
+2025-12-04 16:19:06,152 - pipelines.domains.public_service_pipeline - INFO - 已加载公共服务区索引: D:\016_RAG\project\code\vector_index\public_service
+2025-12-04 16:19:06,157 - pipelines.domains.special_theater_pipeline - INFO - 已加载特效影院索引: D:\016_RAG\project\code\vector_index\special_theater
+2025-12-04 16:19:06,158 - pipelines.domains.science_education_pipeline - INFO - 已加载科教活动索引: D:\016_RAG\project\code\vector_index\science_education
+2025-12-04 16:19:06,159 - pipelines.domains.exhibition_pipeline - INFO - 已加载展览空间索引: D:\016_RAG\project\code\vector_index\exhibition_space
+2025-12-04 16:19:06,203 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:19:06,205 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:19:06,211 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:19:06,212 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:19:06,214 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:19:06,214 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:19:06,215 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:19:06,218 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:19:06,223 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:19:06,223 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:19:06,227 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:19:06,227 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:19:06,247 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-04 16:19:06,247 - core.generation_integration - INFO - LLM (minimax) 初始化完成
+2025-12-04 16:19:06,500 - utils.indicator_analyzer - INFO - 已加载 138 个有效案例
+2025-12-04 16:19:06,501 - pipelines.graph_engine.nodes - INFO - 📐 完成: 经济技术指标模块
+2025-12-04 16:19:38,878 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 16:19:38,880 - pipelines.graph_engine.nodes - INFO - 🎬 完成: 特效影院模块
+2025-12-04 16:19:47,610 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 16:19:47,613 - pipelines.graph_engine.nodes - INFO - 📊 完成: 业务科研模块
+2025-12-04 16:19:56,000 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 16:19:56,017 - pipelines.graph_engine.nodes - INFO - 🏛️ 完成: 综合大厅模块
+2025-12-04 16:19:59,387 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 16:19:59,388 - pipelines.graph_engine.nodes - INFO - 🚻 完成: 公共服务模块
+2025-12-04 16:20:00,937 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 16:20:00,938 - pipelines.graph_engine.nodes - INFO - 🎨 完成: 设计理念模块
+2025-12-04 16:20:03,926 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-04 16:20:03,928 - pipelines.graph_engine.nodes - INFO - 🔬 完成: 科教活动模块
+2025-12-04 16:20:06,970 - pipelines.graph_engine.nodes - ERROR - 展览空间模块执行失败
+Traceback (most recent call last):
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\connection.py", line 103, in handle_request
+    return self._connection.handle_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 136, in handle_request
+    raise exc
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 106, in handle_request
+    ) = self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 177, in _receive_response_headers
+    event = self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_sync\http11.py", line 217, in _receive_event
+    data = self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_backends\sync.py", line 126, in read
+    with map_exceptions(exc_map):
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\pipelines\graph_engine\nodes.py", line 164, in _run_exhibition_sync
+    result = generator.generate(
+             ^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\pipelines\domains\exhibition_pipeline.py", line 201, in generate
+    response = chain.invoke({})
+               ^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\runnables\base.py", line 3129, in invoke
+    input_ = context.run(step.invoke, input_, config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 398, in invoke
+    self.generate_prompt(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1117, in generate_prompt
+    return self.generate(prompt_messages, stop=stop, callbacks=callbacks, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 927, in generate
+    self._generate_with_cache(
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1221, in _generate_with_cache
+    result = self._generate(
+             ^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\langchain_community\chat_models\minimax.py", line 512, in _generate
+    response = client.post(self.minimax_api_host, json=payload)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 1144, in post
+    return self.request(
+           ^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 914, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 249, in handle_request
+    with map_httpcore_exceptions():
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Anaconda\envs\cook-rag-1\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "D:\Anaconda\envs\cook-rag-1\Lib\site-packages\httpx\_transports\default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout: The read operation timed out
+2025-12-04 16:20:06,973 - pipelines.graph_engine.nodes - INFO - 🖼️ 完成: 展览空间模块
+2025-12-04 16:20:06,974 - pipelines.graph_engine.nodes - INFO - 📝 开始执行: 任务书组装
+2025-12-04 16:20:06,974 - pipelines.orchestration.brief_assembly_pipeline - INFO - 开始组装任务书（确定性模板拼接）...
+2025-12-04 16:20:06,974 - pipelines.orchestration.brief_assembly_pipeline - INFO - 任务书组装完成，长度: 9737 字符
+2025-12-04 16:20:06,975 - pipelines.graph_engine.nodes - INFO - 📝 完成: 任务书组装
+✅ 《济南科技馆 建筑设计任务书》已生成 -> D:\016_RAG\project\code\济南科技馆_设计任务书.md
+⏱️ 并行执行总耗时: 132.0 秒
+⚠️ 以下模块生成失败，已在任务书中标注：
+   - 展览空间设计要求: The read operation timed out
+
+=================================
+==== RUN END   2025-12-04T16:20:06.980649 ====
