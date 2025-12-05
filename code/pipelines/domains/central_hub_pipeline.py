@@ -575,40 +575,29 @@ class CentralHubGenerator:
         }
 
     def _node_assembly(self, state: CentralHubState) -> Dict[str, Any]:
-        """最终整合节点：将三个分支结果整合为 JSON。"""
-        logger.info("开始执行: 最终整合")
+        """最终整合节点：纯 Python 拼接，无 LLM 调用 (Zero-Loss Aggregation)。"""
+        from datetime import datetime
+        
+        logger.info("开始执行: 最终整合 (Python-only)")
 
-        project_name = state.get("project_name", "")
-        total_area = state.get("total_area", 0)
-        typology_struct = state.get("typology_struct", {})
+        typology_struct = state.get("typology_struct", {
+            "summary": "Not Specified",
+            "archetypes": [],
+        })
         benchmark_struct = state.get("benchmark_struct", [])
-        trend_struct = state.get("trend_struct", {})
+        trend_struct = state.get("trend_struct", {
+            "trend_list": [],
+            "spatial_strategy_proposal": "Not Specified",
+        })
+        
+        final_json = {
+            "morphology_panorama": typology_struct,
+            "benchmarking_cases": benchmark_struct,
+            "design_trends": trend_struct,
+            "generated_at": datetime.now().isoformat(),
+        }
 
-        # 转义前置节点结果中的花括号，防止被 ChatPromptTemplate 误解为变量
-        def escape_braces(s: str) -> str:
-            return s.replace("{", "{{").replace("}", "}}")
-
-        area_display = f"{total_area / 10000:.1f}万" if total_area > 10000 else f"{total_area:.0f}"
-        prompt = CentralHubPrompts.ASSEMBLY_USER.format(
-            project_name=project_name,
-            total_area=area_display,
-            typology_struct=escape_braces(json.dumps(typology_struct, ensure_ascii=False)),
-            benchmark_struct=escape_braces(json.dumps(benchmark_struct, ensure_ascii=False)),
-            trend_struct=escape_braces(json.dumps(trend_struct, ensure_ascii=False)),
-        )
-
-        chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", CentralHubPrompts.ASSEMBLY_SYSTEM),
-            ("human", prompt),
-        ])
-        chain = chat_prompt | self._llm_module.llm | StrOutputParser()
-        raw = chain.invoke({}) or "{}"
-        parsed = self._safe_json_loads(str(raw))
-        if not isinstance(parsed, dict):
-            logger.warning("综合大厅最终节点返回的 JSON 解析失败，将返回原始文本")
-            parsed = {"raw_response": str(raw)}
-
-        return {"final_json": parsed}
+        return {"final_json": final_json}
 
     # ========== Graph Construction ==========
     def _build_graph(self):

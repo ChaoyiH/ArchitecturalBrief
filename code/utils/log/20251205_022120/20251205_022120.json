@@ -1,4 +1,0 @@
-[
-{"role": "system", "content": "session started", "timestamp": "2025-12-05T02:21:20.714005", "meta": {"cwd": "D:\\016_RAG\\project\\code", "python": "3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]", "argv": [".\\design_generator.py", "--project-name", "济南科技馆", "--project-feature", "在黄河边，以黄河为概念", "--target-area", "40000", "--step", "design", "--mode", "parallel", "--llm-provider", "gemini", "--llm-model", "gemini-2.5-pro"], "start": "2025-12-05T02:21:20.714005"}},
-{"role": "user", "content": "Design brief: 济南科技馆", "timestamp": "2025-12-05T02:21:26.794404", "meta": {"features": "在黄河边，以黄河为概念", "query": null}}
-]

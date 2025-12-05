@@ -678,23 +678,26 @@ class DesignConceptGenerator:
         }
 
     def _node_final_json(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
-        """最终 JSON 整合节点：只返回 final_json 字段。"""
-        self._ensure_llm()
-        prompt = self.prompt_builder.build_final_json_prompt(
-            state["project_name"],
-            state.get("project_features", ""),
-            state.get("concept_struct", {}),
-            state.get("benchmark_struct", []),
-            state.get("trend_struct", {}),
-        )
-        chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", prompt["system_prompt"]),
-            ("human", prompt["user_prompt"]),
-        ])
-        chain = chat_prompt | self._llm_module.llm | StrOutputParser()
-        raw = chain.invoke({}) or "{}"
-        parsed = self._safe_json_loads(str(raw))
-        return {"final_json": parsed}
+        """最终 JSON 整合节点：纯 Python 拼接，无 LLM 调用。"""
+        from datetime import datetime
+        
+        concept_struct = state.get("concept_struct", {
+            "standard_mandates": [],
+            "theoretical_basis": "Not Specified",
+        })
+        benchmark_struct = state.get("benchmark_struct", [])
+        trend_struct = state.get("trend_struct", {
+            "trend_list": [],
+            "innovative_suggestions": [],
+        })
+        
+        final_json = {
+            "concept_sources": concept_struct,
+            "benchmarking_cases": benchmark_struct,
+            "design_trends": trend_struct,
+            "generated_at": datetime.now().isoformat(),
+        }
+        return {"final_json": final_json}
 
     def _node_init(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
         """入口节点，用于支持后续节点并行执行。"""
