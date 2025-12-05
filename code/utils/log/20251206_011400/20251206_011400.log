@@ -1,0 +1,193 @@
+==== RUN START 2025-12-06T01:14:00.205208 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: .\design_generator.py --config .\central_hub_config.yaml
+=================================
+
+2025-12-06 01:14:00,211 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2025-12-06 01:14:00,213 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-12-06 01:14:07,439 - core.embedding_manager - INFO - 共享 embedding 模型初始化完成: BAAI/bge-small-zh-v1.5
+2025-12-06 01:14:07,453 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-12-06 01:14:07,488 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-12-06 01:14:07,512 - pipelines.domains.central_hub_pipeline - INFO - 已加载综合大厅索引: D:\016_RAG\project\code\vector_index\central_hub
+2025-12-06 01:14:07,516 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2025-12-06 01:14:10,028 - core.generation_integration - INFO - 速率限制器初始化: provider=gemini, rpm=25, min_interval=2.28s
+2025-12-06 01:14:10,029 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2025-12-06 01:14:10,029 - pipelines.domains.central_hub_pipeline - INFO - 初始化节点完成，准备并行执行三个分析分支
+2025-12-06 01:14:10,031 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 规模对标分析
+2025-12-06 01:14:10,031 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 趋势分析
+2025-12-06 01:14:10,033 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 形态溯源分析
+2025-12-06 01:14:10,110 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-06 01:14:12,384 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-06 01:14:14,667 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-06 01:14:38,663 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-06 01:14:38,666 - pipelines.domains.central_hub_pipeline - INFO - 完成: 趋势分析
+2025-12-06 01:14:43,981 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-06 01:14:43,998 - pipelines.domains.central_hub_pipeline - INFO - 完成: 规模对标分析
+2025-12-06 01:14:44,330 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-06 01:14:44,332 - pipelines.domains.central_hub_pipeline - INFO - 完成: 形态溯源分析
+2025-12-06 01:14:44,333 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 最终整合
+2025-12-06 01:14:44,335 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-06 01:15:42,642 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+================================================================================
+🎯 项目: 济南科技馆 | 步骤: 综合大厅与核心空间策划书
+🧭 特征: 城市级科普教育基地，强调互动体验和科技创新展示
+================================================================================
+🧠 综合大厅与核心空间策划书 (JSON):
+
+{
+  "morphology_panorama": {
+    "summary": "综述了科技馆中庭的四种典型剖面原型。设计趋势从单纯的垂直拔高转向复杂的体量介入，主要包括以巨大实体占据中心的“核心雕塑型”、顶部悬挂球体或方盒的“悬浮体量型”、强调水平延展的“线性泛空间型”以及以螺旋坡道为主导的“交通漩涡型”，旨在通过剖面形态强化空间叙事与视觉张力。",
+    "archetypes": [
+      {
+        "name": "Sculptural Core Void (核心雕塑型)",
+        "spatial_diagram_desc": "在通高垂直中庭的中心置入巨大的落地或跨层实体造型（如漏斗、球体），形成“回”字形或环绕式剖面关系。",
+        "typical_features": [
+          "视觉焦点位于中庭腹部",
+          "实体造型往往承载影院或展示功能",
+          "强调宏观与微观的视觉转换"
+        ],
+        "representative_case": "湖北省科学技术馆"
+      },
+      {
+        "name": "Suspended Volume Void (悬浮体量型)",
+        "spatial_diagram_desc": "在中庭剖面上部悬挂巨大球体或嵌入扭转方盒，底部留空，形成上实下虚的倒置张力剖面。",
+        "typical_features": [
+          "顶部悬挂球幕影院或装置",
+          "空间呈现高低起伏的动感",
+          "打破单一线性流线"
+        ],
+        "representative_case": "河南省科学技术馆"
+      },
+      {
+        "name": "Circulation Vortex Void (交通漩涡型)",
+        "spatial_diagram_desc": "剖面由一条连续的螺旋坡道定义，从地面蜿蜒至顶层穹顶，交通动线即为空间界面的核心构成。",
+        "typical_features": [
+          "DNA双螺旋结构形态",
+          "交通与景观一体化",
+          "顶部采光强化垂直导向"
+        ],
+        "representative_case": "海南省科学技术馆"
+      },
+      {
+        "name": "Linear Pan-Space (线性泛空间型)",
+        "spatial_diagram_desc": "侧重水平方向的延展，形成宽敞的线性大厅或“泛空间”，并通过分布式的节点中庭连接各功能区块。",
+        "typical_features": [
+          "空间开阔，适合大型活动",
+          "多中庭有机穿插",
+          "作为功能区块的水平枢纽"
+        ],
+        "representative_case": "辽宁省科学技术馆"
+      }
+    ]
+  },
+  "benchmarking_cases": [
+    {
+      "case_name": "河南省科学技术馆",
+      "basic_data": {
+        "total_area": "129,365㎡",
+        "atrium_height": "42m"
+      },
+      "spatial_anatomy": {
+        "volume_strategy": [
+          "悬挂式球体体量(空间之眼)",
+          "生态中庭设计"
+        ],
+        "light_environment": [
+          "生态呼吸式采光(Inferred)",
+          "视觉焦点照明"
+        ],
+        "interface_materiality": [
+          "球体设备表面",
+          "大跨度通高界面"
+        ]
+      },
+      "circulation_integration": "围绕悬挂球体形成的视觉向心流线",
+      "evidence_quote": "中庭通高42米，面积近3000平方米...其顶部悬挂有巨大的球形设备，即球幕影院，被称为“空间之眼”"
+    },
+    {
+      "case_name": "安徽省科学技术馆",
+      "basic_data": {
+        "total_area": "60,000㎡",
+        "atrium_height": "34m"
+      },
+      "spatial_anatomy": {
+        "volume_strategy": [
+          "空间螺旋曲线",
+          "异形钻石形态"
+        ],
+        "light_environment": [
+          "LED球形屏自发光",
+          "通透幕墙自然采光"
+        ],
+        "interface_materiality": [
+          "异形钻石幕墙",
+          "LED显示屏介质"
+        ]
+      },
+      "circulation_integration": "垂直视觉轴线连接地面LED球体与屋顶天文台",
+      "evidence_quote": "中庭吊顶造型复杂，距离地面高度约34米...幕墙整体呈现“异形钻石”形态的设计风格...从馆外可同时观看到馆内中庭的巨大地球LED屏幕"
+    },
+    {
+      "case_name": "海南省科学技术馆",
+      "basic_data": {
+        "total_area": "46,528㎡",
+        "atrium_height": "通高(Inferred)"
+      },
+      "spatial_anatomy": {
+        "volume_strategy": [
+          "通高核心筒",
+          "DNA双螺旋结构"
+        ],
+        "light_environment": [
+          "顶部玻璃穹顶采光",
+          "直射自然光"
+        ],
+        "interface_materiality": [
+          "玻璃穹顶(Glass Dome)",
+          "实体坡道栏板(Inferred)"
+        ]
+      },
+      "circulation_integration": "螺旋坡道作为核心交通动线贯穿全层",
+      "evidence_quote": "顶部设有巨大的玻璃穹顶，自然光可直接倾洒而下。一条极具视觉冲击力的螺旋坡道（类似DNA双螺旋结构）从地面蜿蜒盘旋至顶层"
+    }
+  ],
+  "design_trends": {
+    "trend_list": [
+      {
+        "trend_name": "气候响应型生态中庭",
+        "description": "现代科技馆中庭演变为利用热压通风和光环境控制技术的“会呼吸”生态核心。通过被动式设计策略降低能耗，利用高大空间促进自然气流循环，改善室内微气候环境。",
+        "tech_keywords": [
+          "Thermal Chimney",
+          "Double-skin Breathing Curtain Wall",
+          "Passive Solar Design",
+          "Natural Ventilation"
+        ]
+      },
+      {
+        "trend_name": "景观渗透与边界消隐",
+        "description": "强调建筑与周边自然环境（如海洋、公园）的视觉连接。利用高通透性玻璃幕墙和定向视线通廊，模糊室内外物理边界，将外部景观引入内部，实现光环境与景观的深度融合。",
+        "tech_keywords": [
+          "Visual Corridor",
+          "Glazed Façade Shading",
+          "Indoor-Outdoor Integration",
+          "Panoramic Views"
+        ]
+      },
+      {
+        "trend_name": "结构表现与功能复合化",
+        "description": "中庭空间通过大跨度结构或异形体量（如漏斗、球体）植入核心功能（如影院），形成视觉焦点。这种设计实现了结构支撑与沉浸式体验空间的复合，增强了空间的叙事性与动态感。",
+        "tech_keywords": [
+          "Long-span Steel Truss",
+          "Funnel Structure",
+          "Orbital Circulation System",
+          "Immersive Aerial Cinema"
+        ]
+      }
+    ],
+    "spatial_strategy_proposal": "建议本项目采用‘生态核+景观轴’的空间策略：设计具有热烟囱效应的中央通高大厅以优化通风与采光；结合大跨度钢结构悬吊核心展项（如球幕），释放地面层以形成流动的公共平台；同时通过遮阳一体化的玻璃幕墙系统，最大化引入周边自然景观。"
+  }
+}
+
+=================================
+==== RUN END   2025-12-06T01:15:42.757656 ====

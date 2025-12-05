@@ -112,46 +112,59 @@ Context:
 1. 输出内容只能是一个 JSON 对象字符串，不要包含任何解释性文字、注释或 Markdown 代码块标记；
 2. 字符串必须可以被 Python 的 json.loads 成功解析；
 3. 键名和层级必须严格符合下述 Schema；
-4. 所有字符串值必须使用双引号。
+4. 所有字符串值必须使用双引号；
+5. 缺失信息用 "Not Specified"；证据字段必须来自原文。
 
-JSON Schema:
+JSON Schema (Contract):
 {{
-  "morphology_panorama": {{
-    "summary": "关于科技馆中庭空间形态的综述...",
-    "common_archetypes": [
-      {{"name": "空间原型名称", "description": "简述...", "example_case": "典型案例名"}}
-    ]
-  }},
-  "benchmarking_analysis": {{
-    "logic": "基于项目面积(X万平米)的对标分析...",
-    "cases": [
-      {{
-        "case_name": "案例A",
-        "similarity": "面积接近，均为城市中心型",
-        "morphology_feature": "采用了垂直峡谷式设计，旨在..."
-      }}
-    ]
-  }},
-  "design_trends": {{
-    "trend_summary": "近五年设计趋势分析...",
-    "key_directions": ["趋势1: 生态化", "趋势2: 复合化"]
-  }},
-  "final_strategy": "基于上述分析，建议本项目中庭采用[某种形态]，理由是..."
+    "morphology_panorama": {{
+        "summary": "综述文本...",
+        "archetypes": [
+            {{
+                "name": "原型名称",
+                "spatial_diagram_desc": "剖面逻辑描述",
+                "typical_features": ["特征1", "特征2"],
+                "representative_case": "案例名"
+            }}
+        ]
+    }},
+    "benchmarking_cases": [
+        {{
+            "case_name": "案例名称",
+            "basic_data": {{
+                "total_area": "建筑总面积",
+                "atrium_height": "中庭通高"
+            }},
+            "spatial_anatomy": {{
+                "volume_strategy": ["体量关系", "剖面特征"],
+                "light_environment": ["采光方式", "光影效果"],
+                "interface_materiality": ["界面材质", "通透性描述"]
+            }},
+            "circulation_integration": "垂直交通与中庭结合",
+            "evidence_quote": "原文摘录"
+        }}
+    ],
+    "design_trends": {{
+        "trend_list": [
+            {{"trend_name": "趋势名称", "description": "...", "tech_keywords": ["..."]}}
+        ],
+        "spatial_strategy_proposal": "针对项目的空间建议"
+    }}
 }}"""
 
     ASSEMBLY_USER = """当前项目：{project_name}
 项目规模：约 {total_area} 平方米
 
-下面是三个分支的分析结果，请整合为一个 JSON 对象：
+下面是三个分支的结构化结果，请整合为一个 JSON 对象：
 
-[形态溯源分析]
-{typology_result}
+[形态溯源-结构化]
+{typology_struct}
 
-[规模对标分析]
-{benchmark_result}
+[对标-结构化]
+{benchmark_struct}
 
-[趋势洞察]
-{trend_result}
+[趋势-结构化]
+{trend_struct}
 
 请直接输出最终 JSON 字符串（不需要任何额外说明或 Markdown 标记）。"""
 
@@ -168,10 +181,10 @@ class CentralHubState(TypedDict, total=False):
     project_location: str
     total_area: float  # 从用户输入解析出的总面积 (平方米)
 
-    # Branch Outputs (Independent storage - no conflict)
-    typology_result: str     # node_typology 的中间生成结果
-    benchmark_result: str    # node_benchmarking 的中间生成结果
-    trend_result: str        # node_trends 的中间生成结果
+    # Branch Outputs (structured)
+    typology_struct: Dict[str, Any]
+    benchmark_struct: List[Dict[str, Any]]
+    trend_struct: Dict[str, Any]
 
     # Retrieved contexts (for debugging/dry_run)
     typology_contexts: List[Document]
@@ -330,6 +343,25 @@ class CentralHubGenerator:
                 max_tokens=self.config.max_tokens,
             )
 
+    @staticmethod
+    def _strip_json_markers(text: str) -> str:
+        cleaned = text.strip()
+        for pattern in [r"^```json\s*(.*)```$", r"^```\s*(.*)```$"]:
+            m = re.match(pattern, cleaned, flags=re.DOTALL | re.IGNORECASE)
+            if m:
+                cleaned = m.group(1).strip()
+                break
+        return cleaned
+
+    @classmethod
+    def _safe_json_loads(cls, text: str) -> Optional[object]:
+        cleaned = cls._strip_json_markers(text)
+        try:
+            return json.loads(cleaned)
+        except Exception:
+            logger.warning("JSON 解析失败，返回 None")
+            return None
+
     # ========== Context Formatting ==========
     @staticmethod
     def _format_context(docs: Sequence[Document]) -> str:
@@ -361,29 +393,60 @@ class CentralHubGenerator:
         # LLM 已在 _node_init 中初始化
         logger.info("开始执行: 形态溯源分析")
 
-        query = "科技馆 博物馆 中庭 综合大厅 空间形态 类型 原型"
-        contexts = self.vector_store.search(query, top_k=self.config.top_k or 8)
+        query = "科技馆 博物馆 中庭 综合大厅 剖面 原型 形态"
+        contexts = self.vector_store.search(query, top_k=self.config.top_k or 10)
 
         if not contexts:
             return {
                 "typology_contexts": [],
-                "typology_result": "No specific data found for typology analysis.",
+                "typology_struct": {
+                    "summary": "Not Specified",
+                    "archetypes": [],
+                },
             }
 
         context_text = self._format_context(contexts)
-        prompt = CentralHubPrompts.TYPOLOGY_USER.format(context=context_text)
+        system_prompt = (
+            "You are a Senior Architectural Technician specialized in atrium spatial prototypes."
+            " Categorize cases by sectional profile (剖面形态) and output JSON only."
+        )
+        user_prompt = (
+            "基于下方 Context，输出可被 json.loads 解析的 JSON：\n"
+            "{{\n"
+            "  \"summary\": \"50-80字综述\",\n"
+            "  \"archetypes\": [\n"
+            "    {{\"name\": \"原型名称\", \"spatial_diagram_desc\": \"剖面逻辑\", \"typical_features\": [\"特征1\", \"特征2\"], \"representative_case\": \"案例名\"}}\n"
+            "  ]\n"
+            "}}\n\n"
+            "要求：\n"
+            "- 以剖面/体量逻辑划分原型（如 Central Void, Linear Canyon, Dispersed Pockets）；\n"
+            "- typical_features 用简短要点；缺失填 Not Specified；\n"
+            "- 必须是有效 JSON。\n\n"
+            f"Context:\n{context_text}"
+        )
 
         chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", CentralHubPrompts.TYPOLOGY_SYSTEM),
-            ("human", prompt),
+            ("system", system_prompt),
+            ("human", user_prompt),
         ])
         chain = chat_prompt | self._llm_module.llm | StrOutputParser()
         raw = chain.invoke({}) or ""
-        
+
+        parsed = self._safe_json_loads(str(raw))
+        typology_struct: Dict[str, Any] = {
+            "summary": "Not Specified",
+            "archetypes": [],
+        }
+        if isinstance(parsed, dict):
+            if isinstance(parsed.get("summary"), str):
+                typology_struct["summary"] = parsed.get("summary")
+            if isinstance(parsed.get("archetypes"), list):
+                typology_struct["archetypes"] = parsed.get("archetypes")
+
         logger.info("完成: 形态溯源分析")
         return {
             "typology_contexts": contexts,
-            "typology_result": str(raw),
+            "typology_struct": typology_struct,
         }
 
     def _node_benchmarking(self, state: CentralHubState) -> Dict[str, Any]:
@@ -401,32 +464,47 @@ class CentralHubGenerator:
             filters["min_area"] = max(total_area - delta, 0)
             filters["max_area"] = total_area + delta
 
-        query = f"{project_name} 中庭 综合大厅 规模 尺度"
-        contexts = self.vector_store.search(query, top_k=self.config.top_k or 8, filters=filters)
+        # 1st pass: 针对中庭关键词
+        base_query = "中庭 中央大厅 atrium lobby void skylight entrance" if project_name == "" else f"{project_name} 中庭 atrium"
+        contexts = self.vector_store.search(base_query, top_k=self.config.top_k or 12, filters=filters)
+
+        # 2nd pass fallback：扩大关键词
+        if len(contexts) < 3:
+            fallback_query = "科技馆 博物馆 中庭 综合大厅 void skylight circulation"
+            contexts = self.vector_store.search(fallback_query, top_k=self.config.top_k or 12, filters=filters)
 
         # Fallback: 如果过滤后结果太少，放宽条件
         if len(contexts) < 3 and filters:
             logger.info("对标检索结果不足，放宽面积过滤条件")
-            contexts = self.vector_store.search(query, top_k=self.config.top_k or 8)
+            contexts = self.vector_store.search(base_query, top_k=self.config.top_k or 12)
 
         if not contexts:
             return {
                 "benchmark_contexts": [],
-                "benchmark_result": "No specific data found for benchmarking analysis.",
+                "benchmark_struct": [],
             }
 
         context_text = self._format_context(contexts)
         area_display = f"{total_area / 10000:.1f}万" if total_area > 10000 else f"{total_area:.0f}"
-        prompt = CentralHubPrompts.BENCHMARKING_USER.format(
-            project_name=project_name,
-            total_area=area_display,
-            project_features=project_features or "(未提供)",
-            context=context_text,
+        system_prompt = (
+            "You are a Senior Architectural Technician specialized in public space analysis."
+            " Do NOT write poetic summaries. Extract dimensions, structure, materials, interface, and circulation."
         )
+        user_prompt = (
+            "项目：{project_name} | 规模：{area_display}㎡ | 特征：{project_features}\n"
+            "从 Context 提取 3 个案例，输出 JSON array：\n"
+            "[\n  {{{{\n    \"case_name\": \"...\",\n    \"basic_data\": {{{{\"total_area\": \"...\", \"atrium_height\": \"...\"}}}},\n    \"spatial_anatomy\": {{{{\n      \"volume_strategy\": [\"体量关系\", \"剖面特征\"],\n      \"light_environment\": [\"采光方式\", \"光影效果\"],\n      \"interface_materiality\": [\"界面材质\", \"通透性描述\"]\n    }}}},\n    \"circulation_integration\": \"电梯/楼梯与中庭的关系\",\n    \"evidence_quote\": \"必须引用 Context 原文\"\n  }}}}\n]\n\n"
+            "约束：\n"
+            "- 寻找具体数字(高度/跨度/面积)；屋盖结构(网壳/桁架/天窗)；材料(石材/玻璃/金属/GRG)。\n"
+            "- 如无明确数据，可基于描述推断但标注 Inferred。\n"
+            "- evidence_quote 必须是原文摘录。\n"
+            "- 返回有效 JSON。\n\n"
+            f"Context:\n{context_text}"
+        ).format(project_name=project_name or "未命名", area_display=area_display, project_features=project_features or "(未提供)")
 
         chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", CentralHubPrompts.BENCHMARKING_SYSTEM),
-            ("human", prompt),
+            ("system", system_prompt),
+            ("human", user_prompt),
         ])
         chain = chat_prompt | self._llm_module.llm | StrOutputParser()
         raw = chain.invoke({}) or ""
@@ -434,7 +512,7 @@ class CentralHubGenerator:
         logger.info("完成: 规模对标分析")
         return {
             "benchmark_contexts": contexts,
-            "benchmark_result": str(raw),
+            "benchmark_struct": self._safe_json_loads(str(raw)) or [],
         }
 
     def _node_trends(self, state: CentralHubState) -> Dict[str, Any]:
@@ -455,15 +533,34 @@ class CentralHubGenerator:
         if not contexts:
             return {
                 "trend_contexts": [],
-                "trend_result": "No specific data found for trend analysis.",
+                "trend_struct": {
+                    "trend_list": [],
+                    "spatial_strategy_proposal": "Not Specified",
+                },
             }
 
         context_text = self._format_context(contexts)
-        prompt = CentralHubPrompts.TRENDS_USER.format(context=context_text)
+        system_prompt = (
+            "You are a Senior Architectural Technician. Output JSON only, focus on spatial/technical trends."
+        )
+        user_prompt = (
+            "生成 JSON：\n"
+            "{{\n"
+            "  \"trend_list\": [\n"
+            "    {{\"trend_name\": \"...\", \"description\": \"50-80字\", \"tech_keywords\": [\"关键词1\", \"关键词2\"]}}\n"
+            "  ],\n"
+            "  \"spatial_strategy_proposal\": \"结合本项目的空间形态建议\"\n"
+            "}}\n\n"
+            "要求：\n"
+            "- 描述中指出光环境/气候响应/复合化等空间策略；\n"
+            "- tech_keywords 从案例中提取，如 烟囱效应/置换通风/遮阳一体化；\n"
+            "- 若缺失填 Not Specified；必须为有效 JSON。\n\n"
+            f"Context:\n{context_text}"
+        )
 
         chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", CentralHubPrompts.TRENDS_SYSTEM),
-            ("human", prompt),
+            ("system", system_prompt),
+            ("human", user_prompt),
         ])
         chain = chat_prompt | self._llm_module.llm | StrOutputParser()
         raw = chain.invoke({}) or ""
@@ -471,7 +568,10 @@ class CentralHubGenerator:
         logger.info("完成: 趋势分析")
         return {
             "trend_contexts": contexts,
-            "trend_result": str(raw),
+            "trend_struct": self._safe_json_loads(str(raw)) or {
+                "trend_list": [],
+                "spatial_strategy_proposal": "Not Specified",
+            },
         }
 
     def _node_assembly(self, state: CentralHubState) -> Dict[str, Any]:
@@ -480,9 +580,9 @@ class CentralHubGenerator:
 
         project_name = state.get("project_name", "")
         total_area = state.get("total_area", 0)
-        typology_result = state.get("typology_result", "")
-        benchmark_result = state.get("benchmark_result", "")
-        trend_result = state.get("trend_result", "")
+        typology_struct = state.get("typology_struct", {})
+        benchmark_struct = state.get("benchmark_struct", [])
+        trend_struct = state.get("trend_struct", {})
 
         # 转义前置节点结果中的花括号，防止被 ChatPromptTemplate 误解为变量
         def escape_braces(s: str) -> str:
@@ -492,9 +592,9 @@ class CentralHubGenerator:
         prompt = CentralHubPrompts.ASSEMBLY_USER.format(
             project_name=project_name,
             total_area=area_display,
-            typology_result=escape_braces(typology_result) if typology_result else "(无数据)",
-            benchmark_result=escape_braces(benchmark_result) if benchmark_result else "(无数据)",
-            trend_result=escape_braces(trend_result) if trend_result else "(无数据)",
+            typology_struct=escape_braces(json.dumps(typology_struct, ensure_ascii=False)),
+            benchmark_struct=escape_braces(json.dumps(benchmark_struct, ensure_ascii=False)),
+            trend_struct=escape_braces(json.dumps(trend_struct, ensure_ascii=False)),
         )
 
         chat_prompt = ChatPromptTemplate.from_messages([
@@ -503,23 +603,10 @@ class CentralHubGenerator:
         ])
         chain = chat_prompt | self._llm_module.llm | StrOutputParser()
         raw = chain.invoke({}) or "{}"
-        text = str(raw).strip()
-
-        # 尝试解析 JSON，清理 Markdown 包裹
-        for pattern in [
-            r"^```json\s*(.*)```$",
-            r"^```\s*(.*)```$",
-        ]:
-            m = re.match(pattern, text, flags=re.DOTALL | re.IGNORECASE)
-            if m:
-                text = m.group(1).strip()
-                break
-
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
+        parsed = self._safe_json_loads(str(raw))
+        if not isinstance(parsed, dict):
             logger.warning("综合大厅最终节点返回的 JSON 解析失败，将返回原始文本")
-            parsed = {"raw_response": text}
+            parsed = {"raw_response": str(raw)}
 
         return {"final_json": parsed}
 
@@ -608,9 +695,9 @@ class CentralHubGenerator:
                     "typology_contexts": final_state.get("typology_contexts", []),
                     "benchmark_contexts": final_state.get("benchmark_contexts", []),
                     "trend_contexts": final_state.get("trend_contexts", []),
-                    "typology_result": final_state.get("typology_result", ""),
-                    "benchmark_result": final_state.get("benchmark_result", ""),
-                    "trend_result": final_state.get("trend_result", ""),
+                    "typology_struct": final_state.get("typology_struct", {}),
+                    "benchmark_struct": final_state.get("benchmark_struct", []),
+                    "trend_struct": final_state.get("trend_struct", {}),
                 }
 
             # 为了兼容旧接口，同时返回 response 字段
@@ -619,9 +706,9 @@ class CentralHubGenerator:
                 "json_result": json_result,
                 "response": response_str,
                 "raw_text": {
-                    "typology_result": final_state.get("typology_result", ""),
-                    "benchmark_result": final_state.get("benchmark_result", ""),
-                    "trend_result": final_state.get("trend_result", ""),
+                    "typology_struct": final_state.get("typology_struct", {}),
+                    "benchmark_struct": final_state.get("benchmark_struct", []),
+                    "trend_struct": final_state.get("trend_struct", {}),
                 },
             }
 
