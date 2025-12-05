@@ -7,11 +7,12 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, TypedDict
 
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langgraph.graph import StateGraph, END
 from langchain_community.vectorstores import FAISS
 
 from config import DesignConceptConfig
@@ -295,41 +296,125 @@ class DesignConceptVectorStore:
 
 
 class DesignConceptPromptBuilder:
-    """Builds structured prompts for the design concept report."""
+    """Builds structured prompts for the design concept JSON workflow."""
 
-    SYSTEM_PROMPT_TEMPLATE = (
-        "你是一个专业的建筑策划顾问。你的任务是为《{project_name} 设计理念策划专报》提供内容。"  # noqa: E501
-        "该项目的核心特征是：{project_features}。\n\n"
-        "请基于以下参考案例（Context）以及你掌握的建筑理论，从四个维度展开：\n"
-        "{context_block}\n\n"
-        "### 1. 理念溯源 (Origins & Archetypes)\n"
-        "- 归纳科技馆建筑常见理念来源，并结合本项目特征锁定最适切的理论源头。\n\n"
-        "### 2. 相似案例理念参照 (Case Benchmarking)\n"
-        "- 从 Context 中挑选 2-3 个最相关案例，逐一说明其理念生成逻辑与对本项目的启示，必须显式引用案例名称。\n\n"
-        "### 3. 设计趋势研判 (Future Trends)\n"
-        "- 分析 2015 年以来科技馆理念演变趋势，若 Context 偏旧，可结合行业共识补充最新洞察。\n\n"
-        "### 4. 本项目概念生成 (Concept Generation)\n"
-        "- 生成 2 个理念方案，并包含“核心隐喻 / 造型意向 / 空间氛围”。\n\n"
-        "输出格式：必须使用 Markdown，结构清晰，便于直接发送给甲方或设计团队。"
-    )
-
-    USER_PROMPT_TEMPLATE = (
-        "请按照系统指令，撰写《{project_name} 设计理念策划专报》。"
-    )
-
-    def build_prompt(
+    
+    def build_concept_sourcing_prompt(
         self,
         project_name: str,
         project_features: str,
         retrieved_docs: Sequence[Document],
     ) -> Dict[str, str]:
         context_block = self._format_context(retrieved_docs)
-        system_prompt = self.SYSTEM_PROMPT_TEMPLATE.format(
+        system_prompt = (
+            "你是一名熟悉科学技术馆与博物馆规范的建筑策划顾问。\n"
+            "当前项目名称：{project_name}。项目特征：{project_features}。\n\n"
+            "任务：回答“科技馆设计理念一般有哪些来源？”。\n"
+            "你可以参考 Context 中来自《科学技术馆建设标准》等规范文本，以及国内外科技馆案例的'设计理念'或'concept&appearance'片段。\n\n"
+            "请从以下角度总结科技馆设计的典型理念来源：地域文化、科学隐喻、城市与场地特征、科技发展与产业特征、生态与低碳理念、公众参与与科普教育方式等。"
+        ).format(
             project_name=project_name,
             project_features=project_features or "（未提供特征）",
-            context_block=context_block,
         )
-        user_prompt = self.USER_PROMPT_TEMPLATE.format(project_name=project_name)
+        user_prompt = (
+            "参考下方 Context，使用简洁的中文长段落，总结科技馆设计理念的常见来源，并给出2-4条关键原则。\n"
+            "Context:\n{context_block}".format(context_block=context_block)
+        )
+        return {"system_prompt": system_prompt, "user_prompt": user_prompt}
+
+    def build_benchmarking_prompt(
+        self,
+        project_name: str,
+        project_features: str,
+        benchmark_docs: Sequence[Document],
+    ) -> Dict[str, str]:
+        context_block = self._format_context(benchmark_docs)
+        system_prompt = (
+            "你是一名负责科技馆项目前期策划的建筑顾问。\n"
+            "当前项目：{project_name}，项目特征：{project_features}。\n\n"
+            "任务：从 Context 中选择3个最接近本项目的科技馆/博物馆案例，进行精准对标分析。\n"
+            "请重点关注建筑规模、城市/气候特征、是否滨水、是否位于严寒/寒冷地区等信息。"
+        ).format(
+            project_name=project_name,
+            project_features=project_features or "（未提供特征）",
+        )
+        user_prompt = (
+            "基于下方 Context 中提供的候选案例，选出3个与本项目最为相似的案例，并分别说明：\n"
+            "1）案例名称；2）与本项目相似的原因（规模区间、气候或区位特征等）；3）案例'设计理念/概念与外观'的核心要点。\n"
+            "请给出结构化的中文分析，供后续整理为 JSON 使用。\n\nContext:\n{context_block}".format(context_block=context_block)
+        )
+        return {"system_prompt": system_prompt, "user_prompt": user_prompt}
+
+    def build_trend_prompt(
+        self,
+        project_name: str,
+        project_features: str,
+        trend_docs: Sequence[Document],
+    ) -> Dict[str, str]:
+        context_block = self._format_context(trend_docs)
+        system_prompt = (
+            "你是一名关注科技馆与科普建筑前沿趋势的建筑策划专家。\n"
+            "当前项目：{project_name}，项目特征：{project_features}。\n\n"
+            "任务：基于近年（约2015年以后，重点关注2018-2025年）的案例，总结科技馆设计理念与空间组织的趋势。"
+        ).format(
+            project_name=project_name,
+            project_features=project_features or "（未提供特征）",
+        )
+        user_prompt = (
+            "参考下方 Context 中标注有年份的信息，重点关注近5-7年的新建或改扩建案例；若数量不足，可结合行业共识补充近10年的趋势。\n"
+            "请分析这些新锐案例在以下方面的共性：\n"
+            "- 总体布局（如去中心化、多核空间、开放共享中庭等）；\n"
+            "- 与绿色建筑、低碳技术的结合方式；\n"
+            "- 与城市公共空间、社区的开放互动；\n"
+            "- 数字化与沉浸式科普体验。\n\n"
+            "输出中文趋势综述，并为本项目提出2-4条创新建议。\n\nContext:\n{context_block}".format(context_block=context_block)
+        )
+        return {"system_prompt": system_prompt, "user_prompt": user_prompt}
+
+    def build_final_json_prompt(
+        self,
+        project_name: str,
+        project_features: str,
+        concept_sources_summary: str,
+        concept_key_principles: List[str],
+        benchmarking_analysis: str,
+        trend_analysis: str,
+    ) -> Dict[str, str]:
+        # 使用双花括号包裹，避免被 ChatPromptTemplate 误识别为变量占位符
+        schema_description = (
+            '{{"concept_sources": {{"summary": "...", "key_principles": ["..."]}}, '
+            '"benchmarking_cases": [{{"case_name": "...", "similarity_reason": "...", "core_concept": "..."}}], '
+            '"design_trends": {{"trend_summary": "...", "innovative_suggestions": ["..."]}}, '
+            '"final_concept_proposal": "..."}}'
+        )
+        system_prompt = (
+            "你是一名严谨的建筑策划顾问，擅长将复杂文本整理为结构化 JSON。\n"
+            "当前项目：{project_name}。项目特征：{project_features}。\n\n"
+            "你的任务是依据上游节点提供的分析结果，生成一个**严格符合 JSON 语法**的对象字符串。\n"
+            "必须满足以下要求：\n"
+            "1. 输出内容只能是一个 JSON 对象字符串，不要包含任何解释性文字、注释或 Markdown 代码块标记；\n"
+            "2. 字符串必须可以被 Python 的 json.loads 成功解析；\n"
+            "3. 键名和层级必须严格符合下述 Schema；\n"
+            "4. 所有字符串值必须使用双引号，不能使用单引号。\n\n"
+            "JSON Schema 示意：{schema}"
+        ).format(
+            project_name=project_name,
+            project_features=project_features or "（未提供特征）",
+            schema=schema_description,
+        )
+        user_prompt = (
+            "下面是前置节点生成的中间分析结果，请基于这些内容整合为一个 JSON 对象：\n\n"
+            "[理念溯源-综述]\n{concept_sources_summary}\n\n"
+            "[理念溯源-关键原则]\n{concept_key_principles}\n\n"
+            "[精准对标分析]\n{benchmarking_analysis}\n\n"
+            "[趋势洞察]\n{trend_analysis}\n\n"
+            "请直接输出最终 JSON 字符串（不需要任何额外说明或 Markdown 标记）。"
+        ).format(
+            concept_sources_summary=concept_sources_summary,
+            concept_key_principles="; ".join(concept_key_principles) if concept_key_principles else "",
+            benchmarking_analysis=benchmarking_analysis,
+            trend_analysis=trend_analysis,
+        )
         return {"system_prompt": system_prompt, "user_prompt": user_prompt}
 
     def _format_context(self, docs: Sequence[Document]) -> str:
@@ -385,7 +470,7 @@ class DesignConceptPromptBuilder:
 
 
 class DesignConceptGenerator:
-    """High-level facade that orchestrates ETL, vector search, and prompt-driven generation."""
+    """High-level facade that orchestrates ETL, graph-based workflow, and JSON generation."""
 
     def __init__(self, config: DesignConceptConfig):
         self.config = config
@@ -394,6 +479,10 @@ class DesignConceptGenerator:
         self.prompt_builder = DesignConceptPromptBuilder()
         self._llm_module: Optional[GenerationIntegrationModule] = None
 
+        # 在生成器内部维护一个简单的状态字典，供 LangGraph 使用
+        self._graph = self._build_graph()
+
+    # ========== LLM 与索引基础设施 ==========
     def ensure_index(self, rebuild: bool = False) -> None:
         self.vector_store.ensure_ready(self.etl.load_documents, rebuild=rebuild)
 
@@ -415,42 +504,297 @@ class DesignConceptGenerator:
         base_temp = self.config.temperature if self.config.temperature is not None else 0.4
         return max(0.3, min(0.5, base_temp))
 
-    def retrieve_contexts(
-        self,
-        query: str,
-        top_k: Optional[int] = None,
-        filters: Optional[Dict[str, object]] = None,
-    ) -> List[Document]:
-        if self.vector_store.vectorstore is None:
-            raise RuntimeError("请先构建或加载设计理念向量索引")
-        return self.vector_store.search(query, top_k or self.config.top_k, filters=filters)
+    # ========== LangGraph 状态定义 (TypedDict) ==========
+    class _GraphState(TypedDict, total=False):
+        """Graph state as TypedDict for LangGraph incremental updates."""
+        project_name: str
+        project_features: str
+        user_project_info: str
+        # 检索结果
+        retrieved_sources: List[Document]
+        retrieved_benchmarks: List[Document]
+        retrieved_trends: List[Document]
+        # 中间 LLM 文本
+        concept_sources_summary: str
+        concept_key_principles: List[str]
+        benchmarking_analysis: str
+        trend_analysis: str
+        # 最终 JSON
+        final_json: Optional[Dict[str, Any]]
 
-    def generate(
-        self,
-        project_name: str,
-        project_features: str,
-        query: Optional[str] = None,
-        top_k: Optional[int] = None,
-        filters: Optional[Dict[str, object]] = None,
-        dry_run: bool = False,
-    ) -> Dict[str, object]:
-        if not project_name:
-            raise ValueError("project_name 不能为空")
-        search_query = query or project_features or project_name
-        contexts = self.retrieve_contexts(search_query, top_k=top_k, filters=filters)
-        prompt = self.prompt_builder.build_prompt(project_name, project_features, contexts)
-
-        if dry_run:
-            return {"prompt": prompt, "contexts": contexts}
-
+    # ========== LangGraph 节点实现 ==========
+    def _node_concept_sourcing(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
+        """溯源节点：只返回需要更新的字段。"""
         self._ensure_llm()
+        query = "科学技术馆 设计理念 来源 标准 规范"
+        contexts = self.vector_store.search(query, top_k=self.config.top_k or 6, filters=None)
+        prompt = self.prompt_builder.build_concept_sourcing_prompt(
+            state["project_name"],
+            state.get("project_features", ""),
+            contexts,
+        )
         chat_prompt = ChatPromptTemplate.from_messages([
             ("system", prompt["system_prompt"]),
             ("human", prompt["user_prompt"]),
         ])
         chain = chat_prompt | self._llm_module.llm | StrOutputParser()
-        # LangChain 保证这里返回 str，但为安全起见做一次显式转换，
-        # 避免上游节点在判断 truthy 值时受到类型或 None 的影响。
-        raw = chain.invoke({})
-        response = "" if raw is None else str(raw)
-        return {"prompt": prompt, "contexts": contexts, "response": response}
+        raw = chain.invoke({}) or ""
+        text = str(raw)
+        # 粗略从文本中抽取关键原则（按行或分号拆分前 4 条）
+        principles: List[str] = []
+        for line in re.split(r"[\n;\u3001]\s*", text):
+            line = line.strip("- ・• 　\t")
+            if line and len(principles) < 4:
+                principles.append(line)
+        return {
+            "retrieved_sources": contexts,
+            "concept_sources_summary": text,
+            "concept_key_principles": principles,
+        }
+
+    def _node_benchmarking(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
+        """对标节点：只返回需要更新的字段。"""
+        self._ensure_llm()
+        user_project_info = state.get("user_project_info", "")
+        project_features = state.get("project_features", "")
+        project_name = state["project_name"]
+
+        target_area = self._extract_numeric_area(user_project_info)
+        area_filters = self._build_area_filter(target_area)
+        # location_keywords = self._extract_location_keywords(user_project_info)  # reserved for future
+
+        filters: Dict[str, object] = {}
+        if area_filters:
+            filters.update(area_filters)
+
+        query = user_project_info or project_features or project_name
+        candidates = self.vector_store.search(query, top_k=self.config.top_k or 8, filters=filters)
+
+        if len(candidates) < 3 and area_filters:
+            logger.info("对标检索结果不足，降级为仅按规模过滤")
+            candidates = self.vector_store.search(query, top_k=self.config.top_k or 8, filters=area_filters)
+
+        prompt = self.prompt_builder.build_benchmarking_prompt(
+            project_name,
+            project_features,
+            candidates,
+        )
+        chat_prompt = ChatPromptTemplate.from_messages([
+            ("system", prompt["system_prompt"]),
+            ("human", prompt["user_prompt"]),
+        ])
+        chain = chat_prompt | self._llm_module.llm | StrOutputParser()
+        raw = chain.invoke({}) or ""
+        return {
+            "retrieved_benchmarks": candidates,
+            "benchmarking_analysis": str(raw),
+        }
+
+    def _node_trend(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
+        """趋势节点：只返回需要更新的字段。"""
+        self._ensure_llm()
+        all_query = "科技馆 科普 博物馆 设计 趋势 新馆"
+        all_docs = self.vector_store.search(all_query, top_k=32, filters=None)
+        recent_docs = self._filter_by_year(all_docs, recent_years=7)
+        if len(recent_docs) < 5:
+            logger.info("近7年案例不足，扩大到近10年")
+            recent_docs = self._filter_by_year(all_docs, recent_years=10)
+
+        prompt = self.prompt_builder.build_trend_prompt(
+            state["project_name"],
+            state.get("project_features", ""),
+            recent_docs,
+        )
+        chat_prompt = ChatPromptTemplate.from_messages([
+            ("system", prompt["system_prompt"]),
+            ("human", prompt["user_prompt"]),
+        ])
+        chain = chat_prompt | self._llm_module.llm | StrOutputParser()
+        raw = chain.invoke({}) or ""
+        return {
+            "retrieved_trends": recent_docs,
+            "trend_analysis": str(raw),
+        }
+
+    def _node_final_json(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
+        """最终 JSON 整合节点：只返回 final_json 字段。"""
+        self._ensure_llm()
+        prompt = self.prompt_builder.build_final_json_prompt(
+            state["project_name"],
+            state.get("project_features", ""),
+            state.get("concept_sources_summary", ""),
+            state.get("concept_key_principles", []),
+            state.get("benchmarking_analysis", ""),
+            state.get("trend_analysis", ""),
+        )
+        chat_prompt = ChatPromptTemplate.from_messages([
+            ("system", prompt["system_prompt"]),
+            ("human", prompt["user_prompt"]),
+        ])
+        chain = chat_prompt | self._llm_module.llm | StrOutputParser()
+        raw = chain.invoke({}) or "{}"
+        text = str(raw).strip()
+
+        # 尝试解析 JSON，若失败则简单修剪常见 Markdown 包裹
+        for pattern in [
+            r"^```json\s*(.*)```$",
+            r"^```\s*(.*)```$",
+        ]:
+            m = re.match(pattern, text, flags=re.DOTALL | re.IGNORECASE)
+            if m:
+                text = m.group(1).strip()
+                break
+
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            logger.warning("设计理念最终节点返回的 JSON 解析失败，将返回原始文本")
+            parsed = None
+
+        return {"final_json": parsed}
+
+    # ========== Graph 构建与运行 ==========
+    def _build_graph(self):
+        graph = StateGraph(self._GraphState)
+        graph.add_node("concept_sourcing", self._node_concept_sourcing)
+        graph.add_node("benchmarking", self._node_benchmarking)
+        graph.add_node("trend", self._node_trend)
+        graph.add_node("final_json", self._node_final_json)
+
+        # 溯源完成后，并行执行对标与趋势两个节点，最后汇总到 JSON
+        graph.set_entry_point("concept_sourcing")
+        graph.add_edge("concept_sourcing", "benchmarking")
+        graph.add_edge("concept_sourcing", "trend")
+        graph.add_edge("benchmarking", "final_json")
+        graph.add_edge("trend", "final_json")
+        graph.add_edge("final_json", END)
+
+        return graph.compile()
+
+    # ========== 外部调用接口 ==========
+    def generate(
+        self,
+        project_name: str,
+        project_features: str,
+        user_project_info: Optional[str] = None,
+        dry_run: bool = False,
+    ) -> Dict[str, object]:
+        """运行“溯源-对标-趋势-整合”四段式图，并返回 JSON 结果。"""
+
+        if not project_name:
+            raise ValueError("project_name 不能为空")
+
+        self.ensure_index(rebuild=False)
+
+        # 初始状态为普通 dict，符合 TypedDict schema
+        init_state: DesignConceptGenerator._GraphState = {
+            "project_name": project_name,
+            "project_features": project_features or "",
+            "user_project_info": user_project_info or project_features or project_name,
+        }
+
+        final_state = self._graph.invoke(init_state)
+
+        # LangGraph compiled graph 返回的是 dict 状态，而不是 dataclass 实例
+        if isinstance(final_state, dict):
+            json_result = final_state.get("final_json")
+            if dry_run:
+                return {
+                    "retrieved_sources": final_state.get("retrieved_sources"),
+                    "retrieved_benchmarks": final_state.get("retrieved_benchmarks"),
+                    "retrieved_trends": final_state.get("retrieved_trends"),
+                    "concept_sources_summary": final_state.get("concept_sources_summary", ""),
+                    "concept_key_principles": final_state.get("concept_key_principles", []),
+                    "benchmarking_analysis": final_state.get("benchmarking_analysis", ""),
+                    "trend_analysis": final_state.get("trend_analysis", ""),
+                }
+
+            return {
+                "json_result": json_result,
+                "raw_text": {
+                    "concept_sources_summary": final_state.get("concept_sources_summary", ""),
+                    "benchmarking_analysis": final_state.get("benchmarking_analysis", ""),
+                    "trend_analysis": final_state.get("trend_analysis", ""),
+                },
+            }
+
+        # 回退：若未来返回的是 dataclass 实例
+        if dry_run:
+            return {
+                "retrieved_sources": final_state.retrieved_sources,
+                "retrieved_benchmarks": final_state.retrieved_benchmarks,
+                "retrieved_trends": final_state.retrieved_trends,
+                "concept_sources_summary": final_state.concept_sources_summary,
+                "concept_key_principles": final_state.concept_key_principles,
+                "benchmarking_analysis": final_state.benchmarking_analysis,
+                "trend_analysis": final_state.trend_analysis,
+            }
+
+        return {
+            "json_result": final_state.final_json,
+            "raw_text": {
+                "concept_sources_summary": final_state.concept_sources_summary,
+                "benchmarking_analysis": final_state.benchmarking_analysis,
+                "trend_analysis": final_state.trend_analysis,
+            },
+        }
+
+    # ========== 辅助函数：面积、区位与年份解析 ==========
+    @staticmethod
+    def _extract_numeric_area(text: str) -> Optional[float]:
+        if not text:
+            return None
+        match = re.search(r"(\d+[\d,]*\.?\d*)\s*(平方米|m2|m²|sqm|平米|㎡)?", text)
+        if not match:
+            return None
+        num_str = match.group(1).replace(",", "")
+        try:
+            return float(num_str)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _build_area_filter(target_area: Optional[float]) -> Optional[Dict[str, float]]:
+        if not target_area or target_area <= 0:
+            return None
+        delta = target_area * 0.3
+        return {
+            "min_area": max(target_area - delta, 0),
+            "max_area": target_area + delta,
+        }
+
+    @staticmethod
+    def _extract_location_keywords(text: str) -> List[str]:
+        if not text:
+            return []
+        keywords = []
+        for kw in ["滨水", "沿江", "河畔", "湖畔", "海边", "严寒", "寒冷", "南方", "北方", "山地", "丘陵"]:
+            if kw in text:
+                keywords.append(kw)
+        return keywords
+
+    @staticmethod
+    def _filter_by_year(docs: Sequence[Document], recent_years: int = 7) -> List[Document]:
+        if not docs:
+            return []
+        current_year = 2025
+        min_year = current_year - recent_years
+        filtered: List[Document] = []
+        for doc in docs:
+            meta = doc.metadata or {}
+            year = None
+            for key in ["Year", "year", "opening_date", "开馆时间", "建成时间", "completion_year"]:
+                value = meta.get(key)
+                if not value:
+                    continue
+                if isinstance(value, (int, float)):
+                    year = int(value)
+                    break
+                if isinstance(value, str):
+                    m = re.search(r"(19|20)\d{2}", value)
+                    if m:
+                        year = int(m.group(0))
+                        break
+            if year and min_year <= year <= current_year:
+                filtered.append(doc)
+        return filtered

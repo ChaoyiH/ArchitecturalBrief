@@ -37,6 +37,8 @@ class ModuleOutput(TypedDict, total=False):
     prompt: Optional[Dict[str, str]]
     contexts: Optional[List[Any]]
     response: Optional[str]
+    # 可选的结构化 JSON 输出（例如设计理念模块的最终结果）
+    json_result: Optional[Dict[str, Any]]
     error: Optional[str]
 
 

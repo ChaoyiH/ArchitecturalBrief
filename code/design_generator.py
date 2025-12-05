@@ -138,6 +138,7 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
         "project_name": None,
         "project_features": None,
         "target_area": None,
+        "user_project_info": None,
         "query": None,
         "llm_provider": None,
         "llm_model": None,
@@ -168,6 +169,7 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
                 "project_name": project.get("name"),
                 "project_features": project.get("features"),
                 "target_area": project.get("target_area"),
+                "user_project_info": project.get("user_project_info"),
                 "query": project.get("query"),
                 "llm_provider": llm.get("provider"),
                 "llm_model": llm.get("model"),
@@ -190,6 +192,7 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
         base["project_features"] = args.project_features
     if getattr(args, "target_area", None) is not None:
         base["target_area"] = args.target_area
+    # 目前不从命令行覆盖 user_project_info，保持由 YAML 提供
     if getattr(args, "query", None):
         base["query"] = args.query
     if getattr(args, "llm_provider", None):
@@ -385,6 +388,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
     query = cfg.get("query", getattr(args, "query", None))
     top_k = cfg.get("top_k", getattr(args, "top_k", None))
     target_area = cfg.get("target_area", getattr(args, "target_area", None))
+    user_project_info = cfg.get("user_project_info", None)
 
     if step_name == "design":
         design_config: DesignConceptConfig = _override_llm_config(
@@ -392,16 +396,22 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             args,
         )
         design_generator = DesignConceptGenerator(design_config)
-        design_generator.ensure_index(rebuild=args.rebuild_index)
         _log_request("design", project_name, project_features, query)
-        return design_generator.generate(
+        # 新实现：使用 LangGraph 图执行“溯源-对标-趋势-整合”并返回 JSON
+        result = design_generator.generate(
             project_name=project_name,
             project_features=project_features,
-            query=query,
-            top_k=top_k,
-            filters=filters if filters else None,
+            user_project_info=user_project_info or query or project_features or project_name,
             dry_run=args.dry_run,
         )
+        # 为了兼容后续打印逻辑，这里将 json_result 再序列化为字符串形式的 response
+        json_result = result.get("json_result")
+        response_str = json.dumps(json_result, ensure_ascii=False, indent=2) if json_result is not None else ""
+        return {
+            "prompt": None,
+            "contexts": result.get("retrieved_sources"),  # dry_run 时才会有
+            "response": response_str,
+        }
 
     if step_name == "indicators":
         # 推导目标面积：优先使用显式传入的 target_area，其次尝试从最小/最大面积取中值

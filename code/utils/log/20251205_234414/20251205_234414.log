@@ -1,0 +1,41 @@
+==== RUN START 2025-12-05T23:44:14.710147 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: design_generator.py --config design_config.yaml --step design
+=================================
+
+2025-12-05 23:44:14,718 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2025-12-05 23:44:14,719 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-12-05 23:44:22,257 - core.embedding_manager - INFO - 共享 embedding 模型初始化完成: BAAI/bge-small-zh-v1.5
+2025-12-05 23:44:22,269 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-12-05 23:44:22,296 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-12-05 23:44:22,322 - pipelines.domains.design_concept_pipeline - INFO - 已加载设计理念向量索引: D:\016_RAG\project\code\vector_index\design_concepts
+2025-12-05 23:44:22,324 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2025-12-05 23:44:24,372 - core.generation_integration - INFO - LLM (gemini) 初始化完成
+2025-12-05 23:44:24,424 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-05 23:44:52,900 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-05 23:44:52,999 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-05 23:45:40,715 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-05 23:45:41,265 - pipelines.domains.design_concept_pipeline - INFO - 近7年案例不足，扩大到近10年
+2025-12-05 23:45:41,266 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-05 23:46:24,591 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-05 23:46:24,595 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-05 23:47:20,452 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-05 23:47:20,471 - __main__ - ERROR - 设计理念生成模块运行失败: 'dict' object has no attribute 'final_json'
+Traceback (most recent call last):
+  File "D:\016_RAG\project\code\design_generator.py", line 791, in <module>
+    main()
+  File "D:\016_RAG\project\code\design_generator.py", line 750, in main
+    results[step_name] = _execute_step(step_name, args, filters)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\design_generator.py", line 401, in _execute_step
+    result = design_generator.generate(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\016_RAG\project\code\pipelines\domains\design_concept_pipeline.py", line 704, in generate
+    "json_result": final_state.final_json,
+                   ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute 'final_json'
+系统错误: 'dict' object has no attribute 'final_json'
+
+=================================
+==== RUN END   2025-12-05T23:47:20.473026 ====
