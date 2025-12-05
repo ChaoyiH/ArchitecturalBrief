@@ -1,0 +1,26 @@
+==== RUN START 2025-12-06T01:59:51.628967 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: .\design_generator.py --config .\special_theater_config.yaml
+=================================
+
+2025-12-06 01:59:51,639 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2025-12-06 01:59:51,641 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-12-06 01:59:57,848 - core.embedding_manager - INFO - 共享 embedding 模型初始化完成: BAAI/bge-small-zh-v1.5
+2025-12-06 01:59:57,869 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-12-06 01:59:57,899 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-12-06 01:59:57,922 - pipelines.domains.special_theater_pipeline - INFO - 已加载特效影院索引: D:\016_RAG\project\code\vector_index\special_theater
+2025-12-06 01:59:57,924 - core.generation_integration - INFO - 正在初始化LLM: provider=minimax, model=Minimax-M2
+2025-12-06 01:59:57,925 - core.generation_integration - INFO - 速率限制器初始化: provider=minimax, rpm=20, min_interval=2.85s
+2025-12-06 01:59:57,926 - core.generation_integration - INFO - LLM (minimax) 初始化完成，已启用速率限制 (RPM=20)
+2025-12-06 02:00:13,474 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-06 02:00:15,061 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+2025-12-06 02:00:21,666 - httpx - INFO - HTTP Request: POST https://api.minimax.chat/v1/text/chatcompletion_v2 "HTTP/1.1 200 OK"
+================================================================================
+🎯 项目: 济南科技馆 | 步骤: 特效影院区空间设计策划书
+🧭 特征: 科普导向，城市地标，需平衡家庭与青少年观众
+================================================================================
+⚠️ 未获得模型输出
+
+=================================
+==== RUN END   2025-12-06T02:00:21.673674 ====

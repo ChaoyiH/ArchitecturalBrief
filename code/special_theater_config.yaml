@@ -1,0 +1,14 @@
+project:
+  name: 济南科技馆
+  features: "科普导向，城市地标，需平衡家庭与青少年观众"
+  query: "济南科技馆 特效影厅 规划"
+
+llm:
+  provider: minimax
+  model: Minimax-M2
+
+pipeline:
+  step: special_theater
+  top_k: 12
+  rebuild_index: false
+  show_contexts: false
