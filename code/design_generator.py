@@ -97,10 +97,10 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--step",
-        default="design",
+        default=None,  # 改为 None，让 YAML 配置优先
         help=(
             "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / business_research / both / all / full（全案整合），"
-            "或以逗号分隔组合"
+            "或以逗号分隔组合。如未指定，默认为 design"
         ),
     )
     parser.add_argument(
@@ -138,6 +138,8 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
         "project_name": None,
         "project_features": None,
         "target_area": None,
+        "total_area": None,  # 综合大厅模块使用
+        "project_location": None,  # 综合大厅模块使用
         "user_project_info": None,
         "query": None,
         "llm_provider": None,
@@ -163,27 +165,41 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
         project = raw.get("project", {}) or {}
         llm = raw.get("llm", {}) or {}
         pipeline = raw.get("pipeline", {}) or {}
+        execution = raw.get("execution", {}) or {}  # 支持 central_hub_config.yaml 中的 execution 块
+
+        # 解析 step: 可能在 pipeline.step 或 execution.steps
+        step_value = pipeline.get("step")
+        if step_value is None:
+            steps_list = execution.get("steps")
+            if isinstance(steps_list, list) and steps_list:
+                step_value = ",".join(steps_list)
 
         base.update(
             {
                 "project_name": project.get("name"),
                 "project_features": project.get("features"),
                 "target_area": project.get("target_area"),
+                "total_area": project.get("total_area"),  # 用于综合大厅
+                "project_location": project.get("location"),  # 用于综合大厅
                 "user_project_info": project.get("user_project_info"),
                 "query": project.get("query"),
                 "llm_provider": llm.get("provider"),
                 "llm_model": llm.get("model"),
-                "step": pipeline.get("step"),
+                "step": step_value,
                 "mode": pipeline.get("mode"),
                 "top_k": pipeline.get("top_k"),
                 "min_area": pipeline.get("min_area"),
                 "max_area": pipeline.get("max_area"),
                 "category": pipeline.get("category"),
-                "rebuild_index": bool(pipeline.get("rebuild_index", False)),
-                "dry_run": bool(pipeline.get("dry_run", False)),
-                "show_contexts": bool(pipeline.get("show_contexts", False)),
+                "rebuild_index": bool(pipeline.get("rebuild_index", False) or execution.get("rebuild_index", False)),
+                "dry_run": bool(pipeline.get("dry_run", False) or execution.get("dry_run", False)),
+                "show_contexts": bool(pipeline.get("show_contexts", False) or execution.get("verbose", False)),
             }
         )
+
+        # 如果 target_area 未设置但 total_area 有值，自动使用 total_area
+        if base["target_area"] is None and base["total_area"] is not None:
+            base["target_area"] = base["total_area"]
 
     # 命令行覆盖 YAML
     if getattr(args, "project_name", None):
@@ -437,14 +453,23 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
         )
         hub_generator = CentralHubGenerator(hub_config)
         _log_request("central_hub", project_name, project_features, query)
-        return hub_generator.generate(
+        # 新实现：使用 LangGraph 图执行"形态溯源-规模对标-趋势分析-整合"并返回 JSON
+        result = hub_generator.generate(
             project_name=project_name,
             project_features=project_features,
-            query=query,
-            top_k=top_k,
+            total_area=target_area,  # 从用户输入或 YAML 获取的规模
+            project_location=cfg.get("project_location"),
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
+        # 为了兼容后续打印逻辑，返回标准格式
+        json_result = result.get("json_result")
+        response_str = json.dumps(json_result, ensure_ascii=False, indent=2) if json_result is not None else ""
+        return {
+            "prompt": None,
+            "contexts": None,  # 中间结果可通过 result["raw_text"] 访问
+            "response": response_str,
+        }
 
     if step_name == "exhibition":
         exhibition_config: ExhibitionConfig = _override_llm_config(

@@ -1,0 +1,97 @@
+==== RUN START 2025-12-06T00:31:40.405189 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: design_generator.py --config central_hub_config.yaml
+=================================
+
+2025-12-06 00:31:40,417 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2025-12-06 00:31:40,425 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-12-06 00:31:48,538 - core.embedding_manager - INFO - 共享 embedding 模型初始化完成: BAAI/bge-small-zh-v1.5
+2025-12-06 00:31:48,553 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-12-06 00:31:48,573 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-12-06 00:31:48,594 - pipelines.domains.central_hub_pipeline - INFO - 已加载综合大厅索引: D:\016_RAG\project\code\vector_index\central_hub
+2025-12-06 00:31:48,597 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2025-12-06 00:31:50,801 - core.generation_integration - INFO - 速率限制器初始化: provider=gemini, rpm=25, min_interval=2.28s
+2025-12-06 00:31:50,801 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2025-12-06 00:31:50,801 - pipelines.domains.central_hub_pipeline - INFO - 初始化节点完成，准备并行执行三个分析分支
+2025-12-06 00:31:50,802 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 规模对标分析
+2025-12-06 00:31:50,803 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 趋势分析
+2025-12-06 00:31:50,805 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 形态溯源分析
+2025-12-06 00:31:50,867 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-06 00:31:53,140 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-06 00:31:55,428 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-06 00:32:35,836 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-06 00:32:35,865 - pipelines.domains.central_hub_pipeline - INFO - 完成: 规模对标分析
+2025-12-06 00:32:36,823 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-06 00:32:36,833 - pipelines.domains.central_hub_pipeline - INFO - 完成: 趋势分析
+2025-12-06 00:32:44,698 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-06 00:32:44,724 - pipelines.domains.central_hub_pipeline - INFO - 完成: 形态溯源分析
+2025-12-06 00:32:44,724 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 最终整合
+2025-12-06 00:32:44,726 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-06 00:33:39,110 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+================================================================================
+🎯 项目: 济南科技馆 | 步骤: 综合大厅与核心空间策划书
+🧭 特征: 城市级科普教育基地，强调互动体验和科技创新展示
+================================================================================
+🧠 综合大厅与核心空间策划书 (JSON):
+
+{
+  "morphology_panorama": {
+    "summary": "基于空间形态学维度（体量、光环境、界面、流线），归纳出四种典型的中庭空间原型，体现了从单一空腔向复合功能与动态体验的转变。",
+    "common_archetypes": [
+      {
+        "name": "核心悬浮/锚固型",
+        "description": "在中庭巨大的通高虚空中心置入极具视觉张力的巨型几何体量（如球体、漏斗体），承载核心功能并作为视觉锚点，流线围绕其盘旋。",
+        "example_case": "河南省科学技术馆"
+      },
+      {
+        "name": "螺旋流线导向型",
+        "description": "空间形态由垂直交通核主导，通过螺旋坡道或连续坡道系统将流线转化为景观，强调垂直方向的连续漫步体验。",
+        "example_case": "海南省科学技术馆"
+      },
+      {
+        "name": "轴向景观渗透型",
+        "description": "空间呈水平向或轴向延伸，利用高通透度的玻璃幕墙引入外部自然光和环境景色，实现建筑与自然的视觉对话。",
+        "example_case": "青岛科技馆"
+      },
+      {
+        "name": "异形体块交织型",
+        "description": "通过悬浮方盒、扭转体块的嵌入与穿插，形成高低起伏、虚实相生的复杂空间层次，打破单一路径。",
+        "example_case": "山东省科学技术馆"
+      }
+    ]
+  },
+  "benchmarking_analysis": {
+    "logic": "针对济南科技馆约6.0万平米的规模，选取了三个5-6万平米区间的案例（安徽、云南、青岛），重点分析在中大型量级下如何平衡空间的震撼感与功能性，以及垂直高度与水平延展的处理策略。",
+    "cases": [
+      {
+        "case_name": "安徽省科学技术馆",
+        "similarity": "规模完全匹配(6万平米)，同为省级科普基地",
+        "morphology_feature": "采用34米净高的核心筒式垂直挑空，配合异形钻石切割幕墙实现内景外透，流线围绕巨大的室内LED球体螺旋上升，营造宇宙深空氛围。"
+      },
+      {
+        "case_name": "云南省科学技术馆",
+        "similarity": "规模极度接近(5.9万平米)，空间策略范本",
+        "morphology_feature": "采用侧向切削的30米高耸空间，利用斜装玻璃幕墙引入大量自然光，将中庭打造为生态感强烈的‘光庭’，界面单向极致开放。"
+      },
+      {
+        "case_name": "青岛科技馆",
+        "similarity": "规模相近(5.1万平米)，处理建筑与环境关系的典范",
+        "morphology_feature": "强调水平延展的视线通廊与穿透式轴线，利用双层呼吸幕墙实现视觉上的透绿露水，将中庭作为连接入口与景观的容器。"
+      }
+    ]
+  },
+  "design_trends": {
+    "trend_summary": "近五年科技馆中庭设计正从单纯的‘仪式性空腔’向‘功能性生态核心’演变，强调中庭作为建筑心脏（功能复合）与肺叶（气候调节）的双重属性。",
+    "key_directions": [
+      "空间复合化：在中庭虚空中置入巨型实体功能块（如球幕影院），实现‘中庭即展厅’的立体叙事。",
+      "气候响应性：利用高耸空间形成‘热烟囱’效应，结合可开启界面，将中庭转化为被动式节能的热力学引擎。",
+      "界面渗透性：打破封闭边界，通过大面积通透幕墙或灰空间，使中庭成为城市景观与自然环境向室内的延伸。",
+      "流线立体化：从平面走廊进化为三维轨道系统，通过跨层桁架与交织平台创造动态的交通景观。"
+    ]
+  },
+  "final_strategy": "基于6.0万平米规模及形态趋势分析，建议本项目中庭设计：1. 尺度上避免过度追求水平广场感，应利用30米以上的垂直高度制造视觉震撼并节约用地；2. 形态上可结合济南‘泉/城’特色，选择‘生态城市客厅’模式（参考云南/青岛），利用侧向采光和通透界面引入城市景观；或选择‘科技硬核’模式（参考安徽），以巨型核心装置统领螺旋流线，打造沉浸式地标空间。"
+}
+
+=================================
+==== RUN END   2025-12-06T00:33:39.137951 ====

@@ -1,3 +1,9 @@
+运行代码之前，请先激活环境：
+```bash
+conda activate cook-rag-1
+cd path/to/project/code
+```
+
 # 数据上下文说明（给 Coding Agent）
 
 本项目的 RAG / 生成流水线主要使用 `data/` 目录下的多个子数据源。下面按子目录，说明典型文件结构与语义，便于 Agent 正确理解和解析。

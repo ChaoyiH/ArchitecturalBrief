@@ -6,7 +6,9 @@ import asyncio
 import importlib
 import os
 import logging
-from typing import Any, List, Sequence
+import threading
+import time
+from typing import Any, List, Optional, Sequence
 
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_community.chat_models.moonshot import MoonshotChat
@@ -23,6 +25,179 @@ except ImportError:  # pragma: no cover - fallback for其他版本
     from pydantic import PrivateAttr  # type: ignore
 
 logger = logging.getLogger(__name__)
+
+
+# ==============================================================================
+# Rate Limiter - 令牌桶算法实现
+# ==============================================================================
+
+class RateLimiter:
+    """
+    线程安全的令牌桶速率限制器。
+    
+    用于控制 API 请求频率，确保不超过 RPM (requests per minute) 限制。
+    采用激进策略：允许突发请求以最大化吞吐量。
+    """
+    
+    # 全局单例缓存：provider -> RateLimiter
+    _instances: dict = {}
+    _lock = threading.Lock()
+    
+    # 各 provider 的 RPM 限制
+    PROVIDER_RPM = {
+        "moonshot": 20,   # Kimi
+        "minimax": 20,
+        "gemini": 25,
+    }
+    
+    def __init__(self, provider: str, rpm: Optional[int] = None):
+        """
+        初始化速率限制器。
+        
+        Args:
+            provider: LLM 提供商名称
+            rpm: 每分钟请求数限制，若不指定则使用默认值
+        """
+        self.provider = provider
+        self.rpm = rpm or self.PROVIDER_RPM.get(provider, 20)
+        
+        # 令牌桶参数 - 使用激进策略
+        self.tokens = float(self.rpm)  # 初始满桶，允许突发
+        self.max_tokens = float(self.rpm)  # 桶容量 = RPM
+        self.refill_rate = self.rpm / 60.0  # 每秒补充令牌数
+        self.last_refill = time.monotonic()
+        
+        # 最小请求间隔（秒）= 60 / RPM，略微放宽 5% 以避免边界问题
+        self.min_interval = 60.0 / self.rpm * 0.95
+        self.last_request_time = 0.0
+        
+        self._token_lock = threading.Lock()
+        
+        logger.info(f"速率限制器初始化: provider={provider}, rpm={self.rpm}, min_interval={self.min_interval:.2f}s")
+    
+    @classmethod
+    def get_instance(cls, provider: str, rpm: Optional[int] = None) -> "RateLimiter":
+        """获取或创建指定 provider 的单例速率限制器。"""
+        with cls._lock:
+            if provider not in cls._instances:
+                cls._instances[provider] = cls(provider, rpm)
+            return cls._instances[provider]
+    
+    def _refill(self) -> None:
+        """补充令牌桶。"""
+        now = time.monotonic()
+        elapsed = now - self.last_refill
+        tokens_to_add = elapsed * self.refill_rate
+        self.tokens = min(self.max_tokens, self.tokens + tokens_to_add)
+        self.last_refill = now
+    
+    def acquire(self, timeout: float = 120.0) -> bool:
+        """
+        获取一个令牌（阻塞直到可用或超时）。
+        
+        使用激进策略：
+        1. 如果桶中有令牌，立即获取
+        2. 确保请求间隔不小于 min_interval
+        
+        Args:
+            timeout: 最大等待时间（秒）
+            
+        Returns:
+            是否成功获取令牌
+        """
+        deadline = time.monotonic() + timeout
+        
+        while True:
+            with self._token_lock:
+                self._refill()
+                now = time.monotonic()
+                
+                # 检查是否需要等待最小间隔
+                time_since_last = now - self.last_request_time
+                if time_since_last < self.min_interval:
+                    wait_for_interval = self.min_interval - time_since_last
+                else:
+                    wait_for_interval = 0.0
+                
+                if self.tokens >= 1.0 and wait_for_interval <= 0:
+                    self.tokens -= 1.0
+                    self.last_request_time = now
+                    remaining_tokens = self.tokens
+                    logger.debug(f"速率令牌获取成功: provider={self.provider}, 剩余令牌={remaining_tokens:.1f}")
+                    return True
+                
+                # 计算需要等待的时间
+                if self.tokens < 1.0:
+                    wait_for_token = (1.0 - self.tokens) / self.refill_rate
+                else:
+                    wait_for_token = 0.0
+                
+                wait_time = max(wait_for_interval, wait_for_token)
+            
+            # 检查是否超时
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                logger.warning(f"速率限制器超时: provider={self.provider}")
+                return False
+            
+            # 等待一段时间后重试
+            sleep_time = min(wait_time, remaining, 0.1)  # 更频繁检查以响应并发
+            time.sleep(sleep_time)
+    
+    async def acquire_async(self, timeout: float = 120.0) -> bool:
+        """异步版本的令牌获取。"""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: self.acquire(timeout))
+
+
+# ==============================================================================
+# Rate-Limited LLM Wrapper
+# ==============================================================================
+
+class RateLimitedChatModel(BaseChatModel):
+    """
+    带速率限制的 ChatModel 包装器。
+    
+    在每次调用前获取令牌，确保不超过 RPM 限制。
+    """
+    
+    _inner_llm: BaseChatModel = PrivateAttr()
+    _rate_limiter: RateLimiter = PrivateAttr()
+    
+    def __init__(self, inner_llm: BaseChatModel, rate_limiter: RateLimiter):
+        super().__init__()
+        self._inner_llm = inner_llm
+        self._rate_limiter = rate_limiter
+    
+    @property
+    def _llm_type(self) -> str:
+        return f"rate_limited_{self._inner_llm._llm_type}"
+    
+    def _generate(
+        self,
+        messages: Sequence[BaseMessage],
+        stop: Sequence[str] | None = None,
+        **kwargs
+    ) -> ChatResult:
+        # 获取令牌（会阻塞直到可用）
+        if not self._rate_limiter.acquire(timeout=120.0):
+            raise RuntimeError(f"速率限制器超时，无法获取调用令牌")
+        
+        logger.debug(f"已获取速率令牌: provider={self._rate_limiter.provider}")
+        return self._inner_llm._generate(messages, stop=stop, **kwargs)
+    
+    async def _agenerate(
+        self,
+        messages: Sequence[BaseMessage],
+        stop: Sequence[str] | None = None,
+        **kwargs
+    ) -> ChatResult:
+        # 异步获取令牌
+        if not await self._rate_limiter.acquire_async(timeout=120.0):
+            raise RuntimeError(f"速率限制器超时，无法获取调用令牌")
+        
+        logger.debug(f"已获取速率令牌 (async): provider={self._rate_limiter.provider}")
+        return await self._inner_llm._agenerate(messages, stop=stop, **kwargs)
 
 
 class GeminiChatModel(BaseChatModel):
@@ -138,6 +313,7 @@ class GenerationIntegrationModule:
         temperature: float = 0.1,
         max_tokens: int = 16384,
         timeout: int = 300,
+        enable_rate_limit: bool = True,
     ) -> None:
         """
         初始化生成集成模块
@@ -148,12 +324,14 @@ class GenerationIntegrationModule:
             temperature: 生成温度
             max_tokens: 最大token数
             timeout: 请求超时时间（秒），默认 300 秒
+            enable_rate_limit: 是否启用速率限制，默认启用
         """
         self.provider = provider
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout
+        self.enable_rate_limit = enable_rate_limit
         self.llm = None
         self.setup_llm()
     
@@ -161,12 +339,14 @@ class GenerationIntegrationModule:
         """根据provider配置初始化大语言模型 (工厂)"""
         logger.info(f"正在初始化LLM: provider={self.provider}, model={self.model_name}")
 
+        inner_llm: BaseChatModel
+
         if self.provider == "moonshot":
             api_key = os.getenv("MOONSHOT_API_KEY")
             if not api_key:
                 raise ValueError("请为 'moonshot' 设置 MOONSHOT_API_KEY 环境变量")
 
-            self.llm = MoonshotChat(
+            inner_llm = MoonshotChat(
                 model=self.model_name,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
@@ -180,7 +360,7 @@ class GenerationIntegrationModule:
                 raise ValueError("请为 'minimax' 设置 MINIMAX_GROUP_ID 和 MINIMAX_API_KEY 环境变量")
 
             import httpx
-            self.llm = MiniMaxChat(
+            inner_llm = MiniMaxChat(
                 model=self.model_name,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
@@ -191,7 +371,7 @@ class GenerationIntegrationModule:
             )
 
         elif self.provider == "gemini":
-            self.llm = GeminiChatModel(
+            inner_llm = GeminiChatModel(
                 model_name=self.model_name,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
@@ -201,7 +381,14 @@ class GenerationIntegrationModule:
         else:
             raise ValueError(f"不支持的LLM provider: {self.provider}")
         
-        logger.info(f"LLM ({self.provider}) 初始化完成")
+        # 包装速率限制器
+        if self.enable_rate_limit:
+            rate_limiter = RateLimiter.get_instance(self.provider)
+            self.llm = RateLimitedChatModel(inner_llm, rate_limiter)
+            logger.info(f"LLM ({self.provider}) 初始化完成，已启用速率限制 (RPM={rate_limiter.rpm})")
+        else:
+            self.llm = inner_llm
+            logger.info(f"LLM ({self.provider}) 初始化完成")
 
     
     def generate_basic_answer(self, query: str, context_docs: List[Document]):

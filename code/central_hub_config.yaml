@@ -1,0 +1,40 @@
+# Central Hub / Atrium Test Configuration
+# 综合大厅/中庭模块测试配置
+
+# 项目信息
+project:
+  name: "济南科技馆"
+  features: "城市级科普教育基地，强调互动体验和科技创新展示"
+  location: "山东省济南市"
+  
+  # 规模信息 (单位: 平方米)
+  total_area: 60000
+  
+  # 用户自定义信息 (可选, 用于精准对标)
+  user_project_info: |
+    项目总建筑面积约 6 万平方米，地上地下共 5 层。
+    要求中庭具备良好的空间导向性和视觉冲击力，
+    可容纳大型临展装置和社会活动。
+
+# 测试执行参数
+execution:
+  # 要执行的步骤 (可选值: design, central_hub, exhibition)
+  steps:
+    - central_hub
+  
+  # 是否仅预览检索结果，不调用 LLM
+  dry_run: false
+  
+  # 是否重建向量索引
+  rebuild_index: false
+  
+  # 输出详细日志
+  verbose: true
+llm:
+  # 可选值: minimax / moonshot / gemini
+  provider: "gemini"
+  # 对应 provider 的模型：
+  # minimax:   "Minimax-M2" (默认)，或其它 minimax 文本模型
+  # moonshot:  如 "kimi-k2-0711-preview"
+  # gemini:    如 "gemini-3-pro-preview" 或 "gemini-2.5-pro"
+  model: "gemini-3-pro-preview"
