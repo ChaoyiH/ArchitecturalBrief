@@ -37,6 +37,7 @@ from config import (
 )
 from pipelines.orchestration.brief_assembly_pipeline import BriefAssemblyPipeline
 from pipelines.domains.operation_pipeline import OperationGenerator
+from pipelines.domains.business_research_pipeline import BusinessResearchGenerator
 from pipelines.domains.central_hub_pipeline import CentralHubGenerator
 from pipelines.domains.design_concept_pipeline import DesignConceptGenerator
 from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
@@ -293,12 +294,15 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "science-education": ["science_education"],
         "education": ["science_education"],
         "science": ["science_education"],
-        "business_research": ["operation"],
-        "business-research": ["operation"],
-        "business": ["operation"],
-        "research": ["operation"],
+        "business_research": ["business_research"],
+        "business-research": ["business_research"],
+        "backoffice": ["business_research"],
+        "back_of_house": ["business_research"],
+        "business": ["business_research"],
+        "research": ["business_research"],
         "operation": ["operation"],
         "operations": ["operation"],
+        "commercial": ["operation"],
         "both": ["design", "exhibition"],
     }
 
@@ -315,6 +319,7 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "science_education",
         "public_service",
         "operation",
+        "business_research",
         "full",
     }
     for token in tokens:
@@ -335,6 +340,7 @@ EXECUTION_ORDER = [
     "special_theater",
     "science_education",
     "public_service",
+    "business_research",
     "operation",
 ]
 
@@ -346,6 +352,7 @@ SECTION_KEY_MAP = {
     "special_theater": "special_theater",
     "science_education": "science_education",
     "public_service": "public_service",
+    "business_research": "business_research",
     "operation": "operation",
 }
 
@@ -357,6 +364,7 @@ STEP_TITLES = {
     "special_theater": "特效影院区空间设计策划书",
     "science_education": "科教活动与空间融合策划书",
     "public_service": "公共服务区空间设计策划书",
+    "business_research": "业务科研与后勤策划书",
     "operation": "商业与运营体系策划书",
     "full": "建筑设计任务书",
 }
@@ -537,6 +545,22 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             dry_run=args.dry_run,
         )
 
+    if step_name == "business_research":
+        br_config: BusinessResearchConfig = _override_llm_config(
+            DEFAULT_BUSINESS_RESEARCH_CONFIG,
+            args,
+        )
+        br_generator = BusinessResearchGenerator(br_config)
+        _log_request("business_research", project_name, project_features, query)
+        return br_generator.generate(
+            project_name=project_name,
+            project_features=project_features,
+            target_area=target_area,
+            top_k=top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
+
     if step_name == "operation":
         business_config: BusinessResearchConfig = _override_llm_config(
             DEFAULT_BUSINESS_RESEARCH_CONFIG,
@@ -657,6 +681,7 @@ async def generate_full_brief_parallel(args: argparse.Namespace, filters: Dict[s
         filters=filters if filters else None,
         llm_provider=getattr(args, "llm_provider", None),
         llm_model=getattr(args, "llm_model", None),
+        target_area=cfg.get("target_area", getattr(args, "target_area", None)),
     )
 
     # 注入 target_area 到初始状态的 input 字段，供 indicators 节点使用

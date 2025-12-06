@@ -1,0 +1,95 @@
+==== RUN START 2025-12-06T11:46:37.231225 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: .\design_generator.py --config .\business_research_config.yaml
+=================================
+
+2025-12-06 11:46:37,542 - utils.data_preparation - INFO - 业务科研区数据抽取完成，共 195 条
+2025-12-06 11:46:37,550 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2025-12-06 11:46:38,091 - utils.indicator_analyzer - INFO - 已加载 138 个有效案例
+2025-12-06 11:46:38,092 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2025-12-06 11:46:40,211 - core.generation_integration - INFO - 速率限制器初始化: provider=gemini, rpm=25, min_interval=2.28s
+2025-12-06 11:46:40,211 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2025-12-06 11:46:40,220 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-06 11:46:40,227 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2025-12-06 11:46:42,500 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-06 11:47:02,632 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-06 11:47:04,446 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+================================================================================
+🎯 项目: 济南科技馆 | 步骤: 业务科研与后勤策划书
+🧭 特征: 后台办公、科研实验、藏品库房与修复体系
+================================================================================
+🧠 业务科研与后勤策划书 (JSON):
+
+{
+  "normative_analysis": {
+    "target_level": "Extra Large (特大型馆)",
+    "compliance_source": "《科学技术馆建设标准》(建标 101-2007)",
+    "suggested_area_range": "4,000–6,000 sqm",
+    "standard_ratio_text": "业务研究用房: 10.0-15.0% (4000.0-6000.0 m²); 管理保障用房: 10.0-15.0% (4000.0-6000.0 m²)",
+    "mandatory_sub_functions": [
+      "设计研究室",
+      "展品制作维修车间",
+      "图书资料室",
+      "技术档案室",
+      "声像制作室",
+      "展(藏)品和材料库",
+      "办公室",
+      "会议室",
+      "接待室",
+      "值班室",
+      "警卫室",
+      "食堂",
+      "水设备用房",
+      "电设备用房",
+      "暖设备用房",
+      "空调设备用房",
+      "通讯设备用房"
+    ]
+  },
+  "empirical_highlights": [
+    {
+      "feature_name": "Thematic Molecular Biology Laboratories & Archive",
+      "case_source": "National Pavilion of Biodiversity",
+      "description": "Establishment of specialized thematic laboratories, specifically including a molecular biology laboratory and curatorial offices, directly integrated with the storage of the largest collection of species. This supports on-site scientific study alongside preservation."
+    },
+    {
+      "feature_name": "Dual-Entrance Research & Collection Facility",
+      "case_source": "Hacettepe University- Museum and Center For Biodiversity",
+      "description": "A spatial organization that houses scientific collections, laboratories, and scientist offices with separate entrances for research and museum functions. These distinct zones face each other across a plaza, maintaining operational security while visually connecting the research backend with the public museum."
+    },
+    {
+      "feature_name": "Dedicated Scientific Research & Admin Wing",
+      "case_source": "MUSE",
+      "description": "Zoning strategy where specific structures are dedicated to non-public functions such as administrative offices, research offices, and scientific laboratories. This concentrates operational volumes to support on-site staff efficiently within a larger mixed-use cultural complex."
+    },
+    {
+      "feature_name": "Collaborative Innovation Centre & Labs",
+      "case_source": "Shenzhen Science and Technology Museum",
+      "description": "Allocation of significant floor area (5,400 sqm) dedicated to research laboratories and an innovation centre. The facility is designed to collaborate with external tech industries and universities, transforming the museum into an active hub for cultivating technological innovation rather than just display."
+    },
+    {
+      "feature_name": "Vertically Stacked Climate-Controlled Storage",
+      "case_source": "Moscow Polytechnic Museum and Educational Center Competition Entry",
+      "description": "Efficient vertical stacking of back-of-house functions, offices, and collection storage areas between gallery spaces. The design differentiates environmental systems: research spaces utilize high-level climatic control, while offices use passive systems, optimizing energy usage for sensitive collections."
+    },
+    {
+      "feature_name": "Exhibition-Integrated Research Observatory",
+      "case_source": "Museum of Tomorrow",
+      "description": "Creation of the 'Observatory of Tomorrow', a versatile space for technological and scientific research that is integrated directly into the museum exhibitions. This allows the functional versatility of the museum to act as an active research space visible to the public."
+    }
+  ],
+  "space_program_suggestion": {
+    "core_zones": [
+      "行政办公区",
+      "科研与实验区",
+      "藏品库房与库前区",
+      "展陈修复与制作工坊",
+      "设备与后勤支撑"
+    ],
+    "adjacency_requirements": "科研/修复与库房保持同层邻近；库房需靠近货梯与卸货口；安保/监控与库房同轴布局；对公众开放的可视化库房需设置导览与防火分隔。"
+  }
+}
+
+=================================
+==== RUN END   2025-12-06T11:47:04.497288 ====

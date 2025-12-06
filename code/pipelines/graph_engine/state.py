@@ -29,6 +29,7 @@ class BriefGenerationInput(TypedDict, total=False):
     filters: Optional[Dict[str, Any]]
     llm_provider: Optional[str]
     llm_model: Optional[str]
+    target_area: Optional[float]
 
 
 class ModuleOutput(TypedDict, total=False):
@@ -55,7 +56,8 @@ class BriefGenerationState(TypedDict, total=False):
         special_theater: 特效影院模块输出
         science_education: 科教活动模块输出
         public_service: 公共服务模块输出
-        operation: 业务科研模块输出
+        business_research: 业务科研模块输出（后勤/BOH）
+        operation: 商业运营模块输出（前场/FOH）
         assembled_brief: 最终组装的任务书 Markdown
         errors: 各模块运行错误记录
         execution_log: 执行日志（可选，用于调试）
@@ -72,6 +74,7 @@ class BriefGenerationState(TypedDict, total=False):
     special_theater: ModuleOutput
     science_education: ModuleOutput
     public_service: ModuleOutput
+    business_research: ModuleOutput
     operation: ModuleOutput
 
     # ========== 组装输出层（第二阶段） ==========
@@ -92,6 +95,7 @@ def create_initial_state(
     filters: Optional[Dict[str, Any]] = None,
     llm_provider: Optional[str] = None,
     llm_model: Optional[str] = None,
+    target_area: Optional[float] = None,
 ) -> BriefGenerationState:
     """
     工厂函数：创建初始状态对象。
@@ -119,6 +123,7 @@ def create_initial_state(
             filters=filters,
             llm_provider=llm_provider,
             llm_model=llm_model,
+            target_area=target_area,
         ),
         design={},
         indicators={},
@@ -127,6 +132,7 @@ def create_initial_state(
         special_theater={},
         science_education={},
         public_service={},
+        business_research={},
         operation={},
         assembled_brief=None,
         errors={},
@@ -143,6 +149,7 @@ MODULE_STATE_KEYS = [
     "special_theater",
     "science_education",
     "public_service",
+    "business_research",
     "operation",
 ]
 
@@ -155,5 +162,6 @@ SECTION_KEY_MAP = {
     "special_theater": "special_theater",
     "science_education": "science_education",
     "public_service": "public_service",
+    "business_research": "business_research",
     "operation": "operation",
 }

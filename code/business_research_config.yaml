@@ -1,14 +1,21 @@
 project:
-  name: 济南科技馆
-  features: "科普导向，城市地标，家庭与青少年为主"
-  query: "科技馆 商业运营 文创 研学 夜间经济"
+  name: "济南科技馆"
+  features: "后台办公、科研实验、藏品库房与修复体系"
+  target_area: 40000
+  user_project_info: "总建筑面积约 40000 ㎡，北方寒冷地区，需强化库房与科研条件"
+  query: null
 
 llm:
-  provider: minimax
-  model: Minimax-M2
+  provider: "gemini"
+  model: "gemini-3-pro-preview"
 
 pipeline:
-  step: business_research
-  top_k: 14
+  step: "business_research"
+  mode: "sequential"
+  top_k: 6
+  min_area: null
+  max_area: null
+  category: null
   rebuild_index: false
+  dry_run: false
   show_contexts: false

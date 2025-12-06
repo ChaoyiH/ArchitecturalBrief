@@ -7,6 +7,7 @@ from pipelines.domains.special_theater_pipeline import SpecialTheaterGenerator
 from pipelines.domains.science_education_pipeline import ScienceEducationGenerator
 from pipelines.domains.public_service_pipeline import PublicServiceGenerator
 from pipelines.domains.operation_pipeline import OperationGenerator
+from pipelines.domains.business_research_pipeline import BusinessResearchGenerator
 
 __all__ = [
     "DesignConceptGenerator",
@@ -16,4 +17,5 @@ __all__ = [
     "ScienceEducationGenerator",
     "PublicServiceGenerator",
     "OperationGenerator",
+    "BusinessResearchGenerator",
 ]
