@@ -1,0 +1,14 @@
+project:
+  name: 济南科技馆
+  features: "科普导向，城市地标，家庭与青少年为主"
+  query: "科技馆 商业运营 文创 研学 夜间经济"
+
+llm:
+  provider: minimax
+  model: Minimax-M2
+
+pipeline:
+  step: operation
+  top_k: 14
+  rebuild_index: false
+  show_contexts: false

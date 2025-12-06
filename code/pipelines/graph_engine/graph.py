@@ -11,8 +11,8 @@
       ├──> exhibition ─────────┤
       ├──> special_theater ────┼──> assembly ──> END
       ├──> science_education ──┤
-      ├──> public_service ─────┤
-      └──> business_research ──┘
+    ├──> public_service ─────┤
+    └──> operation ──────────┘
 
 设计说明：
 - 所有领域模块从 START 并行启动
@@ -33,7 +33,7 @@ from .nodes import (
     NODE_REGISTRY,
     PARALLEL_NODES,
     assembly_node,
-    business_research_node,
+    operation_node,
     central_hub_node,
     design_node,
     exhibition_node,
@@ -65,7 +65,7 @@ def build_brief_generation_graph() -> StateGraph:
     graph.add_node("special_theater", special_theater_node)
     graph.add_node("science_education", science_education_node)
     graph.add_node("public_service", public_service_node)
-    graph.add_node("business_research", business_research_node)
+    graph.add_node("operation", operation_node)
 
     # 添加组装节点
     graph.add_node("assembly", assembly_node)

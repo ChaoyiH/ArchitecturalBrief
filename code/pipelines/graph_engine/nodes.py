@@ -29,7 +29,7 @@ from config import (
     DEFAULT_SCIENCE_EDUCATION_CONFIG,
     DEFAULT_SPECIAL_THEATER_CONFIG,
 )
-from pipelines.domains.business_research_pipeline import BusinessResearchGenerator
+from pipelines.domains.operation_pipeline import OperationGenerator
 from pipelines.domains.central_hub_pipeline import CentralHubGenerator
 from pipelines.domains.design_concept_pipeline import DesignConceptGenerator
 from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
@@ -371,14 +371,14 @@ async def public_service_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_business_research_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行业务科研生成。"""
-    if _should_skip_module(state, "business_research"):
+    if _should_skip_module(state, "operation"):
         logger.info("📊 业务科研模块已成功完成，本次补跑将跳过执行")
         return ModuleOutput()
 
     inp = state.get("input", {})
     try:
         config = _override_llm_config(DEFAULT_BUSINESS_RESEARCH_CONFIG, inp)
-        generator = BusinessResearchGenerator(config)
+        generator = OperationGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -397,12 +397,12 @@ def _run_business_research_sync(state: BriefGenerationState) -> ModuleOutput:
         return ModuleOutput(error=str(exc))
 
 
-async def business_research_node(state: BriefGenerationState) -> Dict[str, Any]:
-    """异步业务科研节点。"""
-    logger.info("📊 开始执行: 业务科研模块")
+async def operation_node(state: BriefGenerationState) -> Dict[str, Any]:
+    """异步业务科研/运营节点。"""
+    logger.info("📊 开始执行: 业务科研/运营模块")
     output = await asyncio.to_thread(_run_business_research_sync, state)
-    logger.info("📊 完成: 业务科研模块")
-    return {"business_research": output}
+    logger.info("📊 完成: 业务科研/运营模块")
+    return {"operation": output}
 
 
 # =============================================================================
@@ -490,7 +490,7 @@ def _run_assembly_sync(state: BriefGenerationState) -> str:
         "special_theater",
         "science_education",
         "public_service",
-        "business_research",
+        "operation",
     ]:
         output: ModuleOutput = state.get(module_key, {})
         section_key = SECTION_KEY_MAP.get(module_key, module_key)
@@ -539,7 +539,7 @@ NODE_REGISTRY = {
     "special_theater": special_theater_node,
     "science_education": science_education_node,
     "public_service": public_service_node,
-    "business_research": business_research_node,
+    "operation": operation_node,
     "assembly": assembly_node,
 }
 
@@ -552,5 +552,5 @@ PARALLEL_NODES = [
     "special_theater",
     "science_education",
     "public_service",
-    "business_research",
+    "operation",
 ]

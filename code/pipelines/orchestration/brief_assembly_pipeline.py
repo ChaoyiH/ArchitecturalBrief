@@ -26,7 +26,7 @@ class BriefAssemblyPipeline:
         ("exhibition", "主要功能设计要求 / 展陈体系 (Exhibition)"),
         ("science_education", "主要功能设计要求 / 科研教学 (Science Education)"),
         ("public_service", "主要功能设计要求 / 公共服务 (Public Service)"),
-        ("business_research", "主要功能设计要求 / 业务科研与后勤 (Business & Research)"),
+        ("operation", "主要功能设计要求 / 业务科研与后勤 (Business & Research)"),
         # 重点空间
         ("special_theater", "重点空间 / 特效影院 (Special Theater)"),
         ("central_hub", "重点空间 / 综合大厅与中庭 (Central Hub & Atrium)"),

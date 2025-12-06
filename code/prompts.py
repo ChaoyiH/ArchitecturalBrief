@@ -453,10 +453,10 @@ def get_prompts(module_name: str) -> dict:
             "json_schema": PUBLIC_SERVICE_JSON_SCHEMA,
             "user_template": PUBLIC_SERVICE_USER_TEMPLATE,
         },
-        "business_research": {
-            "system_prompt": BUSINESS_RESEARCH_SYSTEM,
-            "json_schema": BUSINESS_RESEARCH_JSON_SCHEMA,
-            "user_template": BUSINESS_RESEARCH_USER_TEMPLATE,
+        "operation": {
+          "system_prompt": BUSINESS_RESEARCH_SYSTEM,
+          "json_schema": BUSINESS_RESEARCH_JSON_SCHEMA,
+          "user_template": BUSINESS_RESEARCH_USER_TEMPLATE,
         },
     }
     

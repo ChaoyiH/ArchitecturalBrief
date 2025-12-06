@@ -17,6 +17,7 @@ code/
 │   │   ├── central_hub_pipeline.py
 │   │   ├── design_concept_pipeline.py
 │   │   ├── exhibition_pipeline.py
+│   │   ├── operation_pipeline.py
 │   │   ├── public_service_pipeline.py
 │   │   ├── science_education_pipeline.py
 │   │   └── special_theater_pipeline.py
@@ -36,12 +37,20 @@ code/
 │   ├── indicator_analyzer.py
 │   └── log_setup.py
 ├── ARCHITECTURE.md
+├── ARCHITECTURE_REPORT.md
+├── business_research_config.yaml
+├── central_hub_config.yaml
 ├── config.py
+├── CONTEXT.md
+├── design_config.yaml
 ├── design_generator.py
 ├── main.py
 ├── prompts.py
 ├── requirements.txt
-└── 某科技馆项目_设计任务书.md
+├── special_theater_config.yaml
+├── 济南科技馆_设计任务书 copy.md
+├── 济南科技馆_设计任务书.json
+└── 济南科技馆_设计任务书.md
 ```
 
 ## Part 2: 核心架构层 (Orchestration Layer)
@@ -131,7 +140,7 @@ class ExhibitionConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -172,7 +181,7 @@ class PublicServiceConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -213,7 +222,7 @@ class CentralHubConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -254,7 +263,7 @@ class SpecialTheaterConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -295,7 +304,7 @@ class ScienceEducationConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -336,7 +345,7 @@ class BusinessResearchConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     top_k: int = 6
 
     def __post_init__(self):
@@ -375,7 +384,7 @@ class DesignConceptConfig:
     llm_provider: str = DEFAULT_CONFIG.llm_provider
     llm_model: str = DEFAULT_CONFIG.llm_model
     temperature: float = 0.1
-    max_tokens: int = 2048
+    max_tokens: int = 8192
     top_k: int = 4
 
     def __post_init__(self):
@@ -433,6 +442,8 @@ class BriefGenerationInput(TypedDict, total=False):
     rebuild_index: bool
     dry_run: bool
     filters: Optional[Dict[str, Any]]
+    llm_provider: Optional[str]
+    llm_model: Optional[str]
 
 
 class ModuleOutput(TypedDict, total=False):
@@ -441,6 +452,8 @@ class ModuleOutput(TypedDict, total=False):
     prompt: Optional[Dict[str, str]]
     contexts: Optional[List[Any]]
     response: Optional[str]
+    # 可选的结构化 JSON 输出（例如设计理念模块的最终结果）
+    json_result: Optional[Dict[str, Any]]
     error: Optional[str]
 
 
@@ -457,7 +470,7 @@ class BriefGenerationState(TypedDict, total=False):
         special_theater: 特效影院模块输出
         science_education: 科教活动模块输出
         public_service: 公共服务模块输出
-        business_research: 业务科研模块输出
+        operation: 业务科研模块输出
         assembled_brief: 最终组装的任务书 Markdown
         errors: 各模块运行错误记录
         execution_log: 执行日志（可选，用于调试）
@@ -474,7 +487,7 @@ class BriefGenerationState(TypedDict, total=False):
     special_theater: ModuleOutput
     science_education: ModuleOutput
     public_service: ModuleOutput
-    business_research: ModuleOutput
+    operation: ModuleOutput
 
     # ========== 组装输出层（第二阶段） ==========
     assembled_brief: Optional[str]
@@ -492,6 +505,8 @@ def create_initial_state(
     rebuild_index: bool = False,
     dry_run: bool = False,
     filters: Optional[Dict[str, Any]] = None,
+    llm_provider: Optional[str] = None,
+    llm_model: Optional[str] = None,
 ) -> BriefGenerationState:
     """
     工厂函数：创建初始状态对象。
@@ -517,6 +532,8 @@ def create_initial_state(
             rebuild_index=rebuild_index,
             dry_run=dry_run,
             filters=filters,
+            llm_provider=llm_provider,
+            llm_model=llm_model,
         ),
         design={},
         indicators={},
@@ -525,7 +542,7 @@ def create_initial_state(
         special_theater={},
         science_education={},
         public_service={},
-        business_research={},
+        operation={},
         assembled_brief=None,
         errors={},
         execution_log=[],
@@ -541,7 +558,7 @@ MODULE_STATE_KEYS = [
     "special_theater",
     "science_education",
     "public_service",
-    "business_research",
+    "operation",
 ]
 
 # 模块名到任务书章节键的映射
@@ -553,7 +570,7 @@ SECTION_KEY_MAP = {
     "special_theater": "special_theater",
     "science_education": "science_education",
     "public_service": "public_service",
-    "business_research": "business_research",
+    "operation": "operation",
 }
 
 ```
@@ -574,8 +591,8 @@ SECTION_KEY_MAP = {
       ├──> exhibition ─────────┤
       ├──> special_theater ────┼──> assembly ──> END
       ├──> science_education ──┤
-      ├──> public_service ─────┤
-      └──> business_research ──┘
+    ├──> public_service ─────┤
+    └──> operation ──────────┘
 
 设计说明：
 - 所有领域模块从 START 并行启动
@@ -596,7 +613,7 @@ from .nodes import (
     NODE_REGISTRY,
     PARALLEL_NODES,
     assembly_node,
-    business_research_node,
+    operation_node,
     central_hub_node,
     design_node,
     exhibition_node,
@@ -628,7 +645,7 @@ def build_brief_generation_graph() -> StateGraph:
     graph.add_node("special_theater", special_theater_node)
     graph.add_node("science_education", science_education_node)
     graph.add_node("public_service", public_service_node)
-    graph.add_node("business_research", business_research_node)
+    graph.add_node("operation", operation_node)
 
     # 添加组装节点
     graph.add_node("assembly", assembly_node)
@@ -689,8 +706,17 @@ def get_app():
 
 
 async def run_graph(initial_state: BriefGenerationState) -> BriefGenerationState:
-    """
-    便捷函数：运行图并返回最终状态。
+    """运行图并返回最终状态，并带有一次自动补跑失败模块的机制。
+
+    当前策略：
+    1. 先完整执行一次图，得到初始结果；
+    2. 检查各模块输出中的 ``error`` 字段；
+    3. 如果存在失败模块，则以第一次的结果作为新初始状态，再运行一次完整图，
+       作为"补跑"（仅一次）；
+    4. 始终返回最后一次执行的状态。
+
+    这样可以在不修改现有节点实现的前提下，对偶发性超时等错误做一次
+    自动重试，同时保持架构改动最小。
 
     Args:
         initial_state: 初始状态字典
@@ -698,13 +724,33 @@ async def run_graph(initial_state: BriefGenerationState) -> BriefGenerationState
     Returns:
         执行完成后的最终状态
     """
+
     # 在并行任务启动前预加载 embedding 模型
     from .nodes import ensure_embedding_loaded
     ensure_embedding_loaded()
-    
+
     app = get_app()
-    result = await app.ainvoke(initial_state)
-    return result
+
+    # 第一次执行
+    state = await app.ainvoke(initial_state)
+
+    # 检查是否存在需要补跑的模块：
+    # 约定模块输出结构为 {"response": ..., "error": ...}
+    failed_modules = []
+    for key, value in state.items():
+        if isinstance(value, dict):
+            err = value.get("error")
+            if isinstance(err, str) and err.strip():
+                failed_modules.append(key)
+
+    if not failed_modules:
+        return state
+
+    logger.info("检测到需要补跑的模块: %s", ", ".join(sorted(failed_modules)))
+
+    # 以第一次执行结果作为新初始状态，执行一次补跑
+    retry_state = await app.ainvoke(state)
+    return retry_state
 
 ```
 
@@ -730,6 +776,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from dataclasses import replace
 from typing import Any, Dict
 
 from config import (
@@ -741,7 +788,7 @@ from config import (
     DEFAULT_SCIENCE_EDUCATION_CONFIG,
     DEFAULT_SPECIAL_THEATER_CONFIG,
 )
-from pipelines.domains.business_research_pipeline import BusinessResearchGenerator
+from pipelines.domains.operation_pipeline import OperationGenerator
 from pipelines.domains.central_hub_pipeline import CentralHubGenerator
 from pipelines.domains.design_concept_pipeline import DesignConceptGenerator
 from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
@@ -777,6 +824,44 @@ def ensure_embedding_loaded() -> None:
     logger.info("embedding 模型预加载完成")
 
 
+def _override_llm_config(config, input_payload: Dict[str, Any]):
+    overrides = {}
+    provider = input_payload.get("llm_provider") if isinstance(input_payload, dict) else None
+    model = input_payload.get("llm_model") if isinstance(input_payload, dict) else None
+    if provider:
+        overrides["llm_provider"] = provider
+    if model:
+        overrides["llm_model"] = model
+    if not overrides:
+        return config
+    return replace(config, **overrides)
+
+
+def _should_skip_module(state: BriefGenerationState, module_key: str) -> bool:
+    """检查指定模块是否已成功完成，可在补跑时跳过。
+
+    判定规则：
+    - 若状态中不存在该模块 key，则不能跳过；
+    - 若存在 error 且非空，则不能跳过；
+    - 若 response 存在且为非空字符串，则认为是一次干净成功，可跳过；
+    - 其它情况一律视为需要重新执行。
+    """
+
+    output = state.get(module_key)  # type: ignore[assignment]
+    if not isinstance(output, dict):
+        return False
+
+    error = output.get("error")
+    if isinstance(error, str) and error.strip():
+        return False
+
+    response = output.get("response")
+    if isinstance(response, str) and response.strip():
+        return True
+
+    return False
+
+
 def _parse_json_response(response_text: str | None) -> Any:
     """尝试将模块输出解析为 JSON，失败则返回原始文本。"""
     if not response_text:
@@ -798,9 +883,14 @@ def _parse_json_response(response_text: str | None) -> Any:
 
 def _run_design_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行设计理念生成。"""
+    if _should_skip_module(state, "design"):
+        logger.info("🎨 设计理念模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
-        generator = DesignConceptGenerator(DEFAULT_DESIGN_CONCEPT_CONFIG)
+        config = _override_llm_config(DEFAULT_DESIGN_CONCEPT_CONFIG, inp)
+        generator = DesignConceptGenerator(config)
         generator.ensure_index(rebuild=inp.get("rebuild_index", False))
         result = generator.generate(
             project_name=inp.get("project_name", ""),
@@ -835,9 +925,14 @@ async def design_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_central_hub_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行综合大厅生成。"""
+    if _should_skip_module(state, "central_hub"):
+        logger.info("🏛️ 综合大厅模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
-        generator = CentralHubGenerator(DEFAULT_CENTRAL_HUB_CONFIG)
+        config = _override_llm_config(DEFAULT_CENTRAL_HUB_CONFIG, inp)
+        generator = CentralHubGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -871,9 +966,14 @@ async def central_hub_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_exhibition_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行展览空间生成。"""
+    if _should_skip_module(state, "exhibition"):
+        logger.info("🖼️ 展览空间模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
-        generator = ExhibitionGenerator(DEFAULT_EXHIBITION_CONFIG)
+        config = _override_llm_config(DEFAULT_EXHIBITION_CONFIG, inp)
+        generator = ExhibitionGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -907,9 +1007,14 @@ async def exhibition_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_special_theater_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行特效影院生成。"""
+    if _should_skip_module(state, "special_theater"):
+        logger.info("🎬 特效影院模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
-        generator = SpecialTheaterGenerator(DEFAULT_SPECIAL_THEATER_CONFIG)
+        config = _override_llm_config(DEFAULT_SPECIAL_THEATER_CONFIG, inp)
+        generator = SpecialTheaterGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -943,9 +1048,14 @@ async def special_theater_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_science_education_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行科教活动生成。"""
+    if _should_skip_module(state, "science_education"):
+        logger.info("🔬 科教活动模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
-        generator = ScienceEducationGenerator(DEFAULT_SCIENCE_EDUCATION_CONFIG)
+        config = _override_llm_config(DEFAULT_SCIENCE_EDUCATION_CONFIG, inp)
+        generator = ScienceEducationGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -979,9 +1089,14 @@ async def science_education_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_public_service_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行公共服务生成。"""
+    if _should_skip_module(state, "public_service"):
+        logger.info("🚻 公共服务模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
-        generator = PublicServiceGenerator(DEFAULT_PUBLIC_SERVICE_CONFIG)
+        config = _override_llm_config(DEFAULT_PUBLIC_SERVICE_CONFIG, inp)
+        generator = PublicServiceGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -1015,9 +1130,14 @@ async def public_service_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 def _run_business_research_sync(state: BriefGenerationState) -> ModuleOutput:
     """同步执行业务科研生成。"""
+    if _should_skip_module(state, "business_research"):
+        logger.info("📊 业务科研模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
     inp = state.get("input", {})
     try:
-        generator = BusinessResearchGenerator(DEFAULT_BUSINESS_RESEARCH_CONFIG)
+        config = _override_llm_config(DEFAULT_BUSINESS_RESEARCH_CONFIG, inp)
+        generator = OperationGenerator(config)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
@@ -1036,12 +1156,12 @@ def _run_business_research_sync(state: BriefGenerationState) -> ModuleOutput:
         return ModuleOutput(error=str(exc))
 
 
-async def business_research_node(state: BriefGenerationState) -> Dict[str, Any]:
-    """异步业务科研节点。"""
-    logger.info("📊 开始执行: 业务科研模块")
+async def operation_node(state: BriefGenerationState) -> Dict[str, Any]:
+    """异步业务科研/运营节点。"""
+    logger.info("📊 开始执行: 业务科研/运营模块")
     output = await asyncio.to_thread(_run_business_research_sync, state)
-    logger.info("📊 完成: 业务科研模块")
-    return {"business_research": output}
+    logger.info("📊 完成: 业务科研/运营模块")
+    return {"operation": output}
 
 
 # =============================================================================
@@ -1178,7 +1298,7 @@ NODE_REGISTRY = {
     "special_theater": special_theater_node,
     "science_education": science_education_node,
     "public_service": public_service_node,
-    "business_research": business_research_node,
+    "operation": operation_node,
     "assembly": assembly_node,
 }
 
@@ -1191,7 +1311,7 @@ PARALLEL_NODES = [
     "special_theater",
     "science_education",
     "public_service",
-    "business_research",
+    "operation",
 ]
 
 ```
@@ -1214,8 +1334,11 @@ import json
 import logging
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+import yaml
 
 from config import (
     DEFAULT_BUSINESS_RESEARCH_CONFIG,
@@ -1234,7 +1357,7 @@ from config import (
     PublicServiceConfig,
 )
 from pipelines.orchestration.brief_assembly_pipeline import BriefAssemblyPipeline
-from pipelines.domains.business_research_pipeline import BusinessResearchGenerator
+from pipelines.domains.operation_pipeline import OperationGenerator
 from pipelines.domains.central_hub_pipeline import CentralHubGenerator
 from pipelines.domains.design_concept_pipeline import DesignConceptGenerator
 from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
@@ -1271,10 +1394,10 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Task brief generator (设计理念 / 展览空间)"
     )
-    parser.add_argument("--project-name", required=True, help="项目名称或类型")
+    parser.add_argument("--config", help="从 YAML 文件加载项目与LLM配置，例如 design_config.yaml")
+    parser.add_argument("--project-name", help="项目名称或类型")
     parser.add_argument(
         "--project-features",
-        required=True,
         help="项目关键特征或背景描述（例如选址、规模、体验重点等）",
     )
     parser.add_argument("--query", help="自定义检索查询语句（默认使用项目特征）")
@@ -1295,10 +1418,10 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--step",
-        default="design",
+        default=None,  # 改为 None，让 YAML 配置优先
         help=(
-            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / business_research / both / all / full（全案整合），"
-            "或以逗号分隔组合"
+            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / operation / both / all / full（全案整合），"
+            "或以逗号分隔组合。如未指定，默认为 design"
         ),
     )
     parser.add_argument(
@@ -1317,7 +1440,125 @@ def _parse_args() -> argparse.Namespace:
         choices=["sequential", "parallel"],
         help="执行模式：sequential (顺序) 或 parallel (并行，使用 LangGraph)",
     )
+    parser.add_argument(
+        "--llm-provider",
+        dest="llm_provider",
+        help="覆盖默认的 LLM provider，例如 minimax 或 moonshot",
+    )
+    parser.add_argument(
+        "--llm-model",
+        dest="llm_model",
+        help="覆盖默认的模型名称，例如 Minimax-M2、kimi-k2 等",
+    )
     return parser.parse_args()
+
+
+def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
+    """从 YAML 配置文件加载入口参数，命令行优先级最高。"""
+    base: Dict[str, Any] = {
+        "project_name": None,
+        "project_features": None,
+        "target_area": None,
+        "total_area": None,  # 综合大厅模块使用
+        "project_location": None,  # 综合大厅模块使用
+        "user_project_info": None,
+        "query": None,
+        "llm_provider": None,
+        "llm_model": None,
+        "step": None,
+        "mode": None,
+        "top_k": None,
+        "min_area": None,
+        "max_area": None,
+        "category": None,
+        "rebuild_index": False,
+        "dry_run": False,
+        "show_contexts": False,
+    }
+
+    if getattr(args, "config", None):
+        config_path = Path(args.config)
+        if not config_path.is_file():
+            raise FileNotFoundError(f"找不到配置文件: {config_path}")
+        with config_path.open("r", encoding="utf-8") as f:
+            raw = yaml.safe_load(f) or {}
+
+        project = raw.get("project", {}) or {}
+        llm = raw.get("llm", {}) or {}
+        pipeline = raw.get("pipeline", {}) or {}
+        execution = raw.get("execution", {}) or {}  # 支持 central_hub_config.yaml 中的 execution 块
+
+        # 解析 step: 可能在 pipeline.step 或 execution.steps
+        step_value = pipeline.get("step")
+        if step_value is None:
+            steps_list = execution.get("steps")
+            if isinstance(steps_list, list) and steps_list:
+                step_value = ",".join(steps_list)
+
+        base.update(
+            {
+                "project_name": project.get("name"),
+                "project_features": project.get("features"),
+                "target_area": project.get("target_area"),
+                "total_area": project.get("total_area"),  # 用于综合大厅
+                "project_location": project.get("location"),  # 用于综合大厅
+                "user_project_info": project.get("user_project_info"),
+                "query": project.get("query"),
+                "llm_provider": llm.get("provider"),
+                "llm_model": llm.get("model"),
+                "step": step_value,
+                "mode": pipeline.get("mode"),
+                "top_k": pipeline.get("top_k"),
+                "min_area": pipeline.get("min_area"),
+                "max_area": pipeline.get("max_area"),
+                "category": pipeline.get("category"),
+                "rebuild_index": bool(pipeline.get("rebuild_index", False) or execution.get("rebuild_index", False)),
+                "dry_run": bool(pipeline.get("dry_run", False) or execution.get("dry_run", False)),
+                "show_contexts": bool(pipeline.get("show_contexts", False) or execution.get("verbose", False)),
+            }
+        )
+
+        # 如果 target_area 未设置但 total_area 有值，自动使用 total_area
+        if base["target_area"] is None and base["total_area"] is not None:
+            base["target_area"] = base["total_area"]
+
+    # 命令行覆盖 YAML
+    if getattr(args, "project_name", None):
+        base["project_name"] = args.project_name
+    if getattr(args, "project_features", None):
+        base["project_features"] = args.project_features
+    if getattr(args, "target_area", None) is not None:
+        base["target_area"] = args.target_area
+    # 目前不从命令行覆盖 user_project_info，保持由 YAML 提供
+    if getattr(args, "query", None):
+        base["query"] = args.query
+    if getattr(args, "llm_provider", None):
+        base["llm_provider"] = args.llm_provider
+    if getattr(args, "llm_model", None):
+        base["llm_model"] = args.llm_model
+    if getattr(args, "step", None):
+        base["step"] = args.step
+    if getattr(args, "mode", None):
+        base["mode"] = args.mode
+    if getattr(args, "top_k", None) is not None:
+        base["top_k"] = args.top_k
+    if getattr(args, "min_area", None) is not None:
+        base["min_area"] = args.min_area
+    if getattr(args, "max_area", None) is not None:
+        base["max_area"] = args.max_area
+    if getattr(args, "category", None):
+        base["category"] = args.category
+    if getattr(args, "rebuild_index", False):
+        base["rebuild_index"] = True
+    if getattr(args, "dry_run", False):
+        base["dry_run"] = True
+    if getattr(args, "show_contexts", False):
+        base["show_contexts"] = True
+
+    if not base["project_name"] or not base["project_features"]:
+        raise ValueError("项目名称 --project-name 和项目特征 --project-features 必须在命令行或 YAML 中至少提供一处")
+
+    return base
 
 
 def _build_filters(args: argparse.Namespace) -> Dict[str, object]:
@@ -1329,6 +1570,17 @@ def _build_filters(args: argparse.Namespace) -> Dict[str, object]:
     if args.category:
         filters["category"] = args.category
     return filters
+
+
+def _override_llm_config(config, args: argparse.Namespace):
+    overrides = {}
+    if getattr(args, "llm_provider", None):
+        overrides["llm_provider"] = args.llm_provider
+    if getattr(args, "llm_model", None):
+        overrides["llm_model"] = args.llm_model
+    if not overrides:
+        return config
+    return replace(config, **overrides)
 
 
 def _resolve_steps(step_arg: str) -> List[str]:
@@ -1362,10 +1614,12 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "science-education": ["science_education"],
         "education": ["science_education"],
         "science": ["science_education"],
-        "business_research": ["business_research"],
-        "business-research": ["business_research"],
-        "business": ["business_research"],
-        "research": ["business_research"],
+        "business_research": ["operation"],
+        "business-research": ["operation"],
+        "business": ["operation"],
+        "research": ["operation"],
+        "operation": ["operation"],
+        "operations": ["operation"],
         "both": ["design", "exhibition"],
     }
 
@@ -1381,7 +1635,7 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "special_theater",
         "science_education",
         "public_service",
-        "business_research",
+        "operation",
         "full",
     }
     for token in tokens:
@@ -1402,7 +1656,7 @@ EXECUTION_ORDER = [
     "special_theater",
     "science_education",
     "public_service",
-    "business_research",
+    "operation",
 ]
 
 SECTION_KEY_MAP = {
@@ -1413,7 +1667,7 @@ SECTION_KEY_MAP = {
     "special_theater": "special_theater",
     "science_education": "science_education",
     "public_service": "public_service",
-    "business_research": "business_research",
+    "operation": "operation",
 }
 
 STEP_TITLES = {
@@ -1424,7 +1678,7 @@ STEP_TITLES = {
     "special_theater": "特效影院区空间设计策划书",
     "science_education": "科教活动与空间融合策划书",
     "public_service": "公共服务区空间设计策划书",
-    "business_research": "业务科研区空间设计策划书",
+    "operation": "商业与运营体系策划书",
     "full": "建筑设计任务书",
 }
 
@@ -1466,23 +1720,41 @@ def _print_contexts(contexts: List[Document]):
 
 
 def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, object]) -> Dict[str, object]:
+    # 从 args 中抽取已合并的配置（在 main 中注入）
+    cfg: Dict[str, Any] = getattr(args, "_merged_config", {}) or {}
+    project_name = cfg.get("project_name", getattr(args, "project_name", None))
+    project_features = cfg.get("project_features", getattr(args, "project_features", None))
+    query = cfg.get("query", getattr(args, "query", None))
+    top_k = cfg.get("top_k", getattr(args, "top_k", None))
+    target_area = cfg.get("target_area", getattr(args, "target_area", None))
+    user_project_info = cfg.get("user_project_info", None)
+
     if step_name == "design":
-        design_config: DesignConceptConfig = DEFAULT_DESIGN_CONCEPT_CONFIG
+        design_config: DesignConceptConfig = _override_llm_config(
+            DEFAULT_DESIGN_CONCEPT_CONFIG,
+            args,
+        )
         design_generator = DesignConceptGenerator(design_config)
-        design_generator.ensure_index(rebuild=args.rebuild_index)
-        _log_request("design", args.project_name, args.project_features, args.query)
-        return design_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
-            filters=filters if filters else None,
+        _log_request("design", project_name, project_features, query)
+        # 新实现：使用 LangGraph 图执行“溯源-对标-趋势-整合”并返回 JSON
+        result = design_generator.generate(
+            project_name=project_name,
+            project_features=project_features,
+            user_project_info=user_project_info or query or project_features or project_name,
             dry_run=args.dry_run,
         )
+        # 为了兼容后续打印逻辑，这里将 json_result 再序列化为字符串形式的 response
+        json_result = result.get("json_result")
+        response_str = json.dumps(json_result, ensure_ascii=False, indent=2) if json_result is not None else ""
+        return {
+            "prompt": None,
+            "contexts": result.get("retrieved_sources"),  # dry_run 时才会有
+            "response": response_str,
+        }
 
     if step_name == "indicators":
         # 推导目标面积：优先使用显式传入的 target_area，其次尝试从最小/最大面积取中值
-        target_area: Optional[float] = args.target_area
+        target_area: Optional[float] = target_area
         if target_area is None:
             if args.min_area is not None and args.max_area is not None and args.max_area >= args.min_area:
                 target_area = (args.min_area + args.max_area) / 2.0
@@ -1493,84 +1765,111 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             else:
                 target_area = 0.0
 
-        _log_request("indicators", args.project_name, args.project_features, args.query)
+        _log_request("indicators", project_name, project_features, query)
         result = analyze_indicators(float(target_area)) if target_area is not None else {}
         return {"response": json.dumps(result, ensure_ascii=False)}
 
     if step_name == "central_hub":
-        hub_config: CentralHubConfig = DEFAULT_CENTRAL_HUB_CONFIG
+        hub_config: CentralHubConfig = _override_llm_config(
+            DEFAULT_CENTRAL_HUB_CONFIG,
+            args,
+        )
         hub_generator = CentralHubGenerator(hub_config)
-        _log_request("central_hub", args.project_name, args.project_features, args.query)
-        return hub_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+        _log_request("central_hub", project_name, project_features, query)
+        # 新实现：使用 LangGraph 图执行"形态溯源-规模对标-趋势分析-整合"并返回 JSON
+        result = hub_generator.generate(
+            project_name=project_name,
+            project_features=project_features,
+            total_area=target_area,  # 从用户输入或 YAML 获取的规模
+            project_location=cfg.get("project_location"),
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
+        # 为了兼容后续打印逻辑，返回标准格式
+        json_result = result.get("json_result")
+        response_str = json.dumps(json_result, ensure_ascii=False, indent=2) if json_result is not None else ""
+        return {
+            "prompt": None,
+            "contexts": None,  # 中间结果可通过 result["raw_text"] 访问
+            "response": response_str,
+        }
 
     if step_name == "exhibition":
-        exhibition_config: ExhibitionConfig = DEFAULT_EXHIBITION_CONFIG
+        exhibition_config: ExhibitionConfig = _override_llm_config(
+            DEFAULT_EXHIBITION_CONFIG,
+            args,
+        )
         exhibition_generator = ExhibitionGenerator(exhibition_config)
-        _log_request("exhibition", args.project_name, args.project_features, args.query)
+        _log_request("exhibition", project_name, project_features, query)
         return exhibition_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
 
     if step_name == "special_theater":
-        theater_config: SpecialTheaterConfig = DEFAULT_SPECIAL_THEATER_CONFIG
+        theater_config: SpecialTheaterConfig = _override_llm_config(
+            DEFAULT_SPECIAL_THEATER_CONFIG,
+            args,
+        )
         theater_generator = SpecialTheaterGenerator(theater_config)
-        _log_request("special_theater", args.project_name, args.project_features, args.query)
+        _log_request("special_theater", project_name, project_features, query)
         return theater_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
 
     if step_name == "science_education":
-        science_config: ScienceEducationConfig = DEFAULT_SCIENCE_EDUCATION_CONFIG
+        science_config: ScienceEducationConfig = _override_llm_config(
+            DEFAULT_SCIENCE_EDUCATION_CONFIG,
+            args,
+        )
         science_generator = ScienceEducationGenerator(science_config)
-        _log_request("science_education", args.project_name, args.project_features, args.query)
+        _log_request("science_education", project_name, project_features, query)
         return science_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
 
     if step_name == "public_service":
-        service_config: PublicServiceConfig = DEFAULT_PUBLIC_SERVICE_CONFIG
+        service_config: PublicServiceConfig = _override_llm_config(
+            DEFAULT_PUBLIC_SERVICE_CONFIG,
+            args,
+        )
         service_generator = PublicServiceGenerator(service_config)
-        _log_request("public_service", args.project_name, args.project_features, args.query)
+        _log_request("public_service", project_name, project_features, query)
         return service_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
 
-    if step_name == "business_research":
-        business_config: BusinessResearchConfig = DEFAULT_BUSINESS_RESEARCH_CONFIG
-        business_generator = BusinessResearchGenerator(business_config)
-        _log_request("business_research", args.project_name, args.project_features, args.query)
+    if step_name == "operation":
+        business_config: BusinessResearchConfig = _override_llm_config(
+            DEFAULT_BUSINESS_RESEARCH_CONFIG,
+            args,
+        )
+        business_generator = OperationGenerator(business_config)
+        _log_request("operation", project_name, project_features, query)
         return business_generator.generate(
-            project_name=args.project_name,
-            project_features=args.project_features,
-            query=args.query,
-            top_k=args.top_k,
+            project_name=project_name,
+            project_features=project_features,
+            query=query,
+            top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
@@ -1601,6 +1900,10 @@ def _resolve_output_path(project_name: str) -> Path:
 
 def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) -> None:
     """顺序模式生成完整任务书。"""
+    cfg: Dict[str, Any] = getattr(args, "_merged_config", {}) or {}
+    project_name = cfg.get("project_name", getattr(args, "project_name", None))
+    project_features = cfg.get("project_features", getattr(args, "project_features", None))
+
     if args.dry_run:
         print("⚠️ 全案整合（full）暂不支持 --dry-run，请移除该参数后重试。")
         return
@@ -1628,15 +1931,15 @@ def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) ->
         return
 
     assembler = BriefAssemblyPipeline()
-    assembly = assembler.generate_brief(args.project_name, args.project_features, context_data)
+    assembly = assembler.generate_brief(project_name, project_features, context_data)
     markdown = assembly.get("response")
     if not markdown:
         print("⚠️ 整合器未返回内容，请稍后重试。")
         return
 
-    output_path = _resolve_output_path(args.project_name)
+    output_path = _resolve_output_path(project_name)
     output_path.write_text(markdown, encoding="utf-8")
-    print(f"✅ 《{args.project_name} 建筑设计任务书》已生成 -> {output_path}")
+    print(f"✅ 《{project_name} 建筑设计任务书》已生成 -> {output_path}")
     _log_response("full", markdown[:2000])
 
     if step_errors:
@@ -1645,7 +1948,7 @@ def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) ->
             print(f"   - {title}: {err}")
 
 
-async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
+async def generate_full_brief_parallel(args: argparse.Namespace, filters: Dict[str, object]) -> None:
     """
     并行模式生成完整任务书（使用 LangGraph 图引擎）。
 
@@ -1660,13 +1963,21 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
     start_time = time.time()
 
     # 创建初始状态（保持签名兼容，Graph 内部从 state.input 中读取 target_area）
+    cfg: Dict[str, Any] = getattr(args, "_merged_config", {}) or {}
+    project_name = cfg.get("project_name", getattr(args, "project_name", None))
+    project_features = cfg.get("project_features", getattr(args, "project_features", None))
+    query = cfg.get("query", getattr(args, "query", None))
+
     initial_state = create_initial_state(
-        project_name=args.project_name,
-        project_features=args.project_features,
-        query=args.query,
+        project_name=project_name,
+        project_features=project_features,
+        query=query,
         top_k=args.top_k,
         rebuild_index=args.rebuild_index,
         dry_run=args.dry_run,
+        filters=filters if filters else None,
+        llm_provider=getattr(args, "llm_provider", None),
+        llm_model=getattr(args, "llm_model", None),
     )
 
     # 注入 target_area 到初始状态的 input 字段，供 indicators 节点使用
@@ -1675,11 +1986,15 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
             input_payload = initial_state.get("input") or {}
             if not isinstance(input_payload, dict):
                 input_payload = {}
-            input_payload.setdefault("project_name", args.project_name)
-            input_payload.setdefault("project_features", args.project_features)
-            if args.query is not None:
-                input_payload.setdefault("query", args.query)
-            input_payload["target_area"] = args.target_area
+            input_payload.setdefault("project_name", project_name)
+            input_payload.setdefault("project_features", project_features)
+            if query is not None:
+                input_payload.setdefault("query", query)
+            input_payload["target_area"] = cfg.get("target_area", getattr(args, "target_area", None))
+            if getattr(args, "llm_provider", None):
+                input_payload["llm_provider"] = args.llm_provider
+            if getattr(args, "llm_model", None):
+                input_payload["llm_model"] = args.llm_model
             initial_state["input"] = input_payload
     except Exception:  # noqa: BLE001
         logger.exception("无法在初始状态中注入 target_area，将继续使用默认图配置")
@@ -1703,11 +2018,37 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
         print("⚠️ 整合器未返回内容，请稍后重试。")
         return
 
-    output_path = _resolve_output_path(args.project_name)
+    # 1) 输出 Markdown
+    output_path = _resolve_output_path(project_name)
     output_path.write_text(markdown, encoding="utf-8")
-    print(f"✅ 《{args.project_name} 建筑设计任务书》已生成 -> {output_path}")
+    print(f"✅ 《{project_name} 建筑设计任务书》已生成 -> {output_path}")
     print(f"⏱️ 并行执行总耗时: {elapsed:.1f} 秒")
     _log_response("full", markdown[:2000])
+
+    # 2) 输出与 MD 同名的大 JSON，记录各模块解析后的结果
+    try:
+        import json
+        from pipelines.graph_engine.state import MODULE_STATE_KEYS, SECTION_KEY_MAP
+        from pipelines.graph_engine.nodes import _parse_json_response  # type: ignore
+
+        modules_payload: Dict[str, Any] = {}
+        for module_key in MODULE_STATE_KEYS:
+            output = final_state.get(module_key, {}) or {}
+            section_key = SECTION_KEY_MAP.get(module_key, module_key)
+
+            if output.get("error"):
+                modules_payload[section_key] = {"error": output.get("error")}
+            elif output.get("response"):
+                parsed = _parse_json_response(output.get("response"))
+                modules_payload[section_key] = parsed
+            else:
+                modules_payload[section_key] = None
+
+        json_path = output_path.with_suffix(".json")
+        json_path.write_text(json.dumps(modules_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"🧩 模块级 JSON 输出已生成 -> {json_path}")
+    except Exception as exc:  # 只记录错误，不影响主流程
+        logger.exception("写入模块级 JSON 输出时出错: %s", exc)
 
     if step_errors:
         print("⚠️ 以下模块生成失败，已在任务书中标注：")
@@ -1718,20 +2059,33 @@ async def generate_full_brief_parallel(args: argparse.Namespace) -> None:
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     args = _parse_args()
+    merged = _load_yaml_config(args)
+    # 将合并后的配置挂到 args 上，供后续函数统一访问
+    setattr(args, "_merged_config", merged)
+
+    # 也将 YAML 中的 llm_provider / llm_model 回填到 args，
+    # 这样 _override_llm_config 能覆盖默认 minimax 配置
+    if merged.get("llm_provider"):
+        args.llm_provider = merged["llm_provider"]
+    if merged.get("llm_model"):
+        args.llm_model = merged["llm_model"]
+
     filters = _build_filters(args)
 
-    requested_steps: List[str] = _resolve_steps(args.step)
+    requested_steps: List[str] = _resolve_steps(merged.get("step", getattr(args, "step", "design")))
 
     if "full" in requested_steps:
         # 全案整合模式：根据 --mode 选择执行方式
-        if args.mode == "parallel":
-            asyncio.run(generate_full_brief_parallel(args))
+        mode = merged.get("mode", args.mode)
+        if mode == "parallel":
+            asyncio.run(generate_full_brief_parallel(args, filters))
         else:
             generate_full_brief(args, filters)
         return
 
     # 单步/多步模式：暂不支持并行，使用顺序执行
-    if args.mode == "parallel":
+    mode = merged.get("mode", args.mode)
+    if mode == "parallel":
         print("ℹ️ 并行模式仅支持 --step full，当前自动降级为顺序模式")
 
     steps: List[str] = [step for step in EXECUTION_ORDER if step in requested_steps]
@@ -1751,11 +2105,14 @@ def main():
         contexts = result.get("contexts", [])
         prompt = result.get("prompt")
         response = result.get("response")
+        cfg: Dict[str, Any] = merged
+        project_name = cfg.get("project_name", args.project_name)
+        project_features = cfg.get("project_features", args.project_features)
         title = STEP_TITLES.get(step_name, step_name)
 
         print("=" * 80)
-        print(f"🎯 项目: {args.project_name} | 步骤: {title}")
-        print(f"🧭 特征: {args.project_features}")
+        print(f"🎯 项目: {project_name} | 步骤: {title}")
+        print(f"🧭 特征: {project_features}")
         print("=" * 80)
 
         if args.show_contexts and contexts:
@@ -1811,15 +2168,18 @@ class BriefAssemblyPipeline:
     """确定性模板拼接器，将模块输出组装为 Markdown 设计任务书。"""
 
     # 章节顺序与 key 映射
+    # 注意：这里仅控制 Markdown 中的章节顺序与标题文案
     SECTION_ORDER = [
-        ("concept", "设计理念 (Design Concept)"),
         ("indicators", "经济技术指标 (Technical Indicators)"),
-        ("central_hub", "核心枢纽 (Central Hub)"),
-        ("exhibition", "展陈体系 (Exhibition)"),
-        ("special_theater", "特效影院 (Special Theater)"),
-        ("science_education", "科教研学 (Science Education)"),
-        ("public_service", "公共服务 (Public Service)"),
-        ("business_research", "业务科研与后勤 (Business & Research)"),
+        ("concept", "设计理念 (Design Concept)"),
+        # 主要功能设计要求
+        ("exhibition", "主要功能设计要求 / 展陈体系 (Exhibition)"),
+        ("science_education", "主要功能设计要求 / 科研教学 (Science Education)"),
+        ("public_service", "主要功能设计要求 / 公共服务 (Public Service)"),
+        ("business_research", "主要功能设计要求 / 业务科研与后勤 (Business & Research)"),
+        # 重点空间
+        ("special_theater", "重点空间 / 特效影院 (Special Theater)"),
+        ("central_hub", "重点空间 / 综合大厅与中庭 (Central Hub & Atrium)"),
     ]
 
     def __init__(self) -> None:
@@ -2003,7 +2363,7 @@ class BriefAssemblyPipeline:
 
 ```python
 class BusinessResearchVectorStore:
-    # Vector store for business & research knowledge.
+    # Vector store for business & operations evidence.
 
   def __init__(...):
 
@@ -2016,13 +2376,16 @@ class BusinessResearchVectorStore:
   def search(...):
 
 class BusinessResearchPromptBuilder:
+    # Prompt enforcing evidence/opinion separation and required markdown layout.
 
-  def build_prompt(...):
+  def _escape_braces(...):
 
   def _format_context(...):
 
+  def build_prompt(...):
+
 class BusinessResearchGenerator:
-    # Facade for business & research task generation.
+    # Business & operations generator with parallel query expansion.
 
   def __init__(...):
 
@@ -2041,6 +2404,12 @@ class BusinessResearchGenerator:
 ### `code\pipelines\domains\central_hub_pipeline.py`
 
 ```python
+class CentralHubPrompts:
+    # Centralized prompt templates for Central Hub module.
+
+class CentralHubState:
+    # Graph state for Central Hub parallel pipeline.
+
 class CentralHubVectorStore:
     # Vector store handler for central hub knowledge.
 
@@ -2053,16 +2422,19 @@ class CentralHubVectorStore:
   def ensure_ready(...):
 
   def search(...):
+    # Search with optional metadata filters.
 
-class CentralHubPromptBuilder:
-    # Builds prompts for central hub design using centralized prompt registry.
+  def _match_filters(...):
+    # Apply metadata filters.
 
-  def build_prompt(...):
+  def _parse_area(...):
+    # Extract numeric area from metadata.
 
-  def _format_context(...):
+  def _parse_year(...):
+    # Extract year from metadata.
 
 class CentralHubGenerator:
-    # Facade for central hub task generation.
+    # Parallel StateGraph-based generator for Central Hub spatial morphology analysis.
 
   def __init__(...):
 
@@ -2070,11 +2442,53 @@ class CentralHubGenerator:
 
   def _ensure_llm(...):
 
-  def _expand_queries(...):
+  def _strip_json_markers(...):
 
-  def retrieve_contexts(...):
+  def _safe_json_loads(...):
+
+  def _format_context(...):
+
+  def _node_init(...):
+    # 初始化节点：确保 LLM 就绪，准备并行执行。
+
+  def _node_typology(...):
+    # 形态溯源节点：归纳科技馆中庭的典型空间原型。
+
+  def _node_benchmarking(...):
+    # 规模对标节点：基于项目面积筛选同量级案例。
+
+  def _node_trends(...):
+    # 趋势分析节点：检索 2019-2025 年案例，分析最新趋势。
+
+  def _node_assembly(...):
+    # 最终整合节点：纯 Python 拼接，无 LLM 调用 (Zero-Loss Aggregation)。
+
+  def _build_graph(...):
+    # Build true parallel Fan-Out / Fan-In topology.
+    # 
+    # Graph structure:
+    #     init ──┬── typology ────┐
+    #            ├── benchmarking ┼── assembly ── END
+    #            └── trends ──────┘
+    # 
+    # All three analysis nodes run in PARALLEL after init.
 
   def generate(...):
+    # 运行并行 Fan-Out/Fan-In 图，生成综合大厅空间形态分析 JSON。
+    # 
+    # Args:
+    #     project_name: 项目名称
+    #     project_features: 项目特征描述
+    #     total_area: 总建筑面积 (平方米)
+    #     project_location: 项目区位
+    #     rebuild_index: 是否重建索引
+    #     dry_run: 仅预览检索结果，不调用 LLM
+    # 
+    # Returns:
+    #     包含 json_result 或中间结果的字典
+
+class CentralHubPromptBuilder:
+    # Legacy prompt builder - kept for backward compatibility.
 
 ```
 
@@ -2121,14 +2535,25 @@ class DesignConceptVectorStore:
   def _match_filters(...):
 
 class DesignConceptPromptBuilder:
-    # Builds prompts aligned with the design brief requirements.
+    # Builds structured prompts for the design concept JSON workflow.
 
-  def build_prompt(...):
+  def build_concept_sourcing_prompt(...):
+
+  def build_benchmarking_prompt(...):
+
+  def build_trend_prompt(...):
+
+  def build_final_json_prompt(...):
+    # 构建最终 JSON prompt，匹配高密度 Schema。
 
   def _format_context(...):
 
+  def _format_single_context(...):
+
+  def _extract_year(...):
+
 class DesignConceptGenerator:
-    # High-level facade that orchestrates ETL, vector search, and prompt-driven generation.
+    # High-level facade that orchestrates ETL, graph-based workflow, and JSON generation.
 
   def __init__(...):
 
@@ -2136,9 +2561,40 @@ class DesignConceptGenerator:
 
   def _ensure_llm(...):
 
-  def retrieve_contexts(...):
+  def _resolve_creative_temperature(...):
+
+  def _strip_json_markers(...):
+    # Remove common markdown fences around JSON payloads.
+
+  def _safe_json_loads(...):
+
+  def _node_concept_sourcing(...):
+    # 溯源节点：只返回需要更新的字段。
+
+  def _node_benchmarking(...):
+    # 对标节点：只返回需要更新的字段。
+
+  def _node_trend(...):
+    # 趋势节点：只返回需要更新的字段。
+
+  def _node_final_json(...):
+    # 最终 JSON 整合节点：纯 Python 拼接，无 LLM 调用。
+
+  def _node_init(...):
+    # 入口节点，用于支持后续节点并行执行。
+
+  def _build_graph(...):
 
   def generate(...):
+    # 运行“溯源-对标-趋势-整合”四段式图，并返回 JSON 结果。
+
+  def _extract_numeric_area(...):
+
+  def _build_area_filter(...):
+
+  def _extract_location_keywords(...):
+
+  def _filter_by_year(...):
 
 ```
 
@@ -2167,6 +2623,48 @@ class ExhibitionPromptBuilder:
 
 class ExhibitionGenerator:
     # High-level facade for exhibition space requirement generation.
+
+  def __init__(...):
+
+  def ensure_index(...):
+
+  def _ensure_llm(...):
+
+  def _expand_queries(...):
+
+  def retrieve_contexts(...):
+
+  def generate(...):
+
+```
+
+### `code\pipelines\domains\operation_pipeline.py`
+
+```python
+class OperationVectorStore:
+    # Vector store for operation (commercial & edu) evidence.
+
+  def __init__(...):
+
+  def load(...):
+
+  def build(...):
+
+  def ensure_ready(...):
+
+  def search(...):
+
+class OperationPromptBuilder:
+    # Prompt enforcing evidence/opinion separation and required markdown layout.
+
+  def _escape_braces(...):
+
+  def _format_context(...):
+
+  def build_prompt(...):
+
+class OperationGenerator:
+    # Operation generator with parallel query expansion.
 
   def __init__(...):
 
@@ -2277,14 +2775,20 @@ class SpecialTheaterVectorStore:
   def search(...):
 
 class SpecialTheaterPromptBuilder:
-    # Builds prompts for special theater design using centralized prompt registry.
+    # Builds structured prompts for typology, trends, suitability.
 
-  def build_prompt(...):
+  def _escape_braces(...):
 
   def _format_context(...):
 
+  def build_typology_prompt(...):
+
+  def build_trend_prompt(...):
+
+  def build_suitability_prompt(...):
+
 class SpecialTheaterGenerator:
-    # Facade for special theater generation.
+    # Parallel graph for special theater typology/trend/suitability with Python assembly.
 
   def __init__(...):
 
@@ -2292,9 +2796,25 @@ class SpecialTheaterGenerator:
 
   def _ensure_llm(...):
 
+  def _strip_json_markers(...):
+
+  def _safe_json_loads(...):
+
   def _expand_queries(...):
 
   def retrieve_contexts(...):
+
+  def _node_init(...):
+
+  def _node_typology(...):
+
+  def _node_trends(...):
+
+  def _node_suitability(...):
+
+  def _node_assembly(...):
+
+  def _build_graph(...):
 
   def generate(...):
 
@@ -2511,11 +3031,11 @@ def parse_area_value(...):
 def get_size_class(...):
     # 根据面积判定科技馆等级（依据《科学技术馆建设标准》）。
     # 
-    # 分级标准（硬编码）：
-    # - 特大型馆：面积 > 40,000 m² (设计使用年限: 100年)
-    # - 大型馆：20,000 m² ≤ 面积 ≤ 40,000 m² (设计使用年限: 100年)
-    # - 中型馆：8,000 m² ≤ 面积 < 20,000 m² (设计使用年限: 50年)
-    # - 小型馆：面积 < 8,000 m² (设计使用年限: 50年)
+    # 分级标准（依据《科学技术馆建设标准》）：
+    # - 特大型馆：面积 > 30,000 m² (设计使用年限: 100年)
+    # - 大型馆：15,000 m² < 面积 ≤ 30,000 m² (设计使用年限: 100年)
+    # - 中型馆：8,000 m² < 面积 ≤ 15,000 m² (设计使用年限: 50年)
+    # - 小型馆：面积 ≤ 8,000 m² (设计使用年限: 50年)
     # 
     # Args:
     #     area_sqm: 建筑面积（平方米）
@@ -2549,6 +3069,14 @@ def _extract_height(...):
 def _extract_name(...):
     # 从 JSON 数据中提取项目名称
 
+def _clamp_percentage_range(...):
+    # 归一化百分比区间，确保有序且在 0~100 之间。
+
+def _get_classification_entry(...):
+
+def calculate_compliance_specs(...):
+    # 依据《科学技术馆建设标准》推演功能配比与承载力。
+
 def load_all_cases(...):
     # 加载所有建筑案例数据。
     # 
@@ -2564,8 +3092,9 @@ def analyze_indicators(...):
     # 
     # 分析内容：
     # 1. 定级：根据《科学技术馆建设标准》判定目标馆等级
-    # 2. 同级统计：计算同等级案例的面积均值、最大值、最小值、近年趋势
-    # 3. 相似案例匹配：寻找面积最接近的前 K 个案例
+    # 2. 规范合规性推演：根据功能用房占比与核心技术指标计算建议面积区间、展品数量与瞬时承载量
+    # 3. 同级统计：计算同等级案例的面积均值、最大值、最小值、近年趋势
+    # 4. 相似案例匹配：寻找面积最接近的前 K 个案例
     # 
     # Args:
     #     target_area: 目标建筑面积（平方米）
@@ -2590,6 +3119,7 @@ def analyze_indicators(...):
     #             "recent_count": int,
     #             "recent_mean_area": float | None,
     #         },
+    #         "compliance": {...},
     #         "similar_cases": [
     #             {
     #                 "name": str,
@@ -2604,7 +3134,7 @@ def analyze_indicators(...):
     #     }
 
 def format_analysis_report(...):
-    # 将分析结果格式化为可读的文本报告
+    # 以 Markdown 文本输出“规范 + 实证”双轨结论。
 
 def query_building_indicators(...):
     # Run building indicator analysis and return a formatted report.

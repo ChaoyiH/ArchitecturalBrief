@@ -36,7 +36,7 @@ from config import (
     PublicServiceConfig,
 )
 from pipelines.orchestration.brief_assembly_pipeline import BriefAssemblyPipeline
-from pipelines.domains.business_research_pipeline import BusinessResearchGenerator
+from pipelines.domains.operation_pipeline import OperationGenerator
 from pipelines.domains.central_hub_pipeline import CentralHubGenerator
 from pipelines.domains.design_concept_pipeline import DesignConceptGenerator
 from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
@@ -99,7 +99,7 @@ def _parse_args() -> argparse.Namespace:
         "--step",
         default=None,  # 改为 None，让 YAML 配置优先
         help=(
-            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / business_research / both / all / full（全案整合），"
+            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / operation / both / all / full（全案整合），"
             "或以逗号分隔组合。如未指定，默认为 design"
         ),
     )
@@ -293,10 +293,12 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "science-education": ["science_education"],
         "education": ["science_education"],
         "science": ["science_education"],
-        "business_research": ["business_research"],
-        "business-research": ["business_research"],
-        "business": ["business_research"],
-        "research": ["business_research"],
+        "business_research": ["operation"],
+        "business-research": ["operation"],
+        "business": ["operation"],
+        "research": ["operation"],
+        "operation": ["operation"],
+        "operations": ["operation"],
         "both": ["design", "exhibition"],
     }
 
@@ -312,7 +314,7 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "special_theater",
         "science_education",
         "public_service",
-        "business_research",
+        "operation",
         "full",
     }
     for token in tokens:
@@ -333,7 +335,7 @@ EXECUTION_ORDER = [
     "special_theater",
     "science_education",
     "public_service",
-    "business_research",
+    "operation",
 ]
 
 SECTION_KEY_MAP = {
@@ -344,7 +346,7 @@ SECTION_KEY_MAP = {
     "special_theater": "special_theater",
     "science_education": "science_education",
     "public_service": "public_service",
-    "business_research": "business_research",
+    "operation": "operation",
 }
 
 STEP_TITLES = {
@@ -355,7 +357,7 @@ STEP_TITLES = {
     "special_theater": "特效影院区空间设计策划书",
     "science_education": "科教活动与空间融合策划书",
     "public_service": "公共服务区空间设计策划书",
-    "business_research": "业务科研区空间设计策划书",
+    "operation": "商业与运营体系策划书",
     "full": "建筑设计任务书",
 }
 
@@ -535,13 +537,13 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             dry_run=args.dry_run,
         )
 
-    if step_name == "business_research":
+    if step_name == "operation":
         business_config: BusinessResearchConfig = _override_llm_config(
             DEFAULT_BUSINESS_RESEARCH_CONFIG,
             args,
         )
-        business_generator = BusinessResearchGenerator(business_config)
-        _log_request("business_research", project_name, project_features, query)
+        business_generator = OperationGenerator(business_config)
+        _log_request("operation", project_name, project_features, query)
         return business_generator.generate(
             project_name=project_name,
             project_features=project_features,
