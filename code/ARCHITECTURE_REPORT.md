@@ -44,9 +44,13 @@ code/
 ├── CONTEXT.md
 ├── design_config.yaml
 ├── design_generator.py
+├── exhibition_config.yaml
 ├── main.py
+├── operation_config.yaml
 ├── prompts.py
+├── public_service_config.yaml
 ├── requirements.txt
+├── science_education_config.yaml
 ├── special_theater_config.yaml
 ├── 济南科技馆_设计任务书 copy.md
 ├── 济南科技馆_设计任务书.json
@@ -444,6 +448,7 @@ class BriefGenerationInput(TypedDict, total=False):
     filters: Optional[Dict[str, Any]]
     llm_provider: Optional[str]
     llm_model: Optional[str]
+    target_area: Optional[float]
 
 
 class ModuleOutput(TypedDict, total=False):
@@ -470,7 +475,8 @@ class BriefGenerationState(TypedDict, total=False):
         special_theater: 特效影院模块输出
         science_education: 科教活动模块输出
         public_service: 公共服务模块输出
-        operation: 业务科研模块输出
+        business_research: 业务科研模块输出（后勤/BOH）
+        operation: 商业运营模块输出（前场/FOH）
         assembled_brief: 最终组装的任务书 Markdown
         errors: 各模块运行错误记录
         execution_log: 执行日志（可选，用于调试）
@@ -487,6 +493,7 @@ class BriefGenerationState(TypedDict, total=False):
     special_theater: ModuleOutput
     science_education: ModuleOutput
     public_service: ModuleOutput
+    business_research: ModuleOutput
     operation: ModuleOutput
 
     # ========== 组装输出层（第二阶段） ==========
@@ -507,6 +514,7 @@ def create_initial_state(
     filters: Optional[Dict[str, Any]] = None,
     llm_provider: Optional[str] = None,
     llm_model: Optional[str] = None,
+    target_area: Optional[float] = None,
 ) -> BriefGenerationState:
     """
     工厂函数：创建初始状态对象。
@@ -534,6 +542,7 @@ def create_initial_state(
             filters=filters,
             llm_provider=llm_provider,
             llm_model=llm_model,
+            target_area=target_area,
         ),
         design={},
         indicators={},
@@ -542,6 +551,7 @@ def create_initial_state(
         special_theater={},
         science_education={},
         public_service={},
+        business_research={},
         operation={},
         assembled_brief=None,
         errors={},
@@ -558,6 +568,7 @@ MODULE_STATE_KEYS = [
     "special_theater",
     "science_education",
     "public_service",
+    "business_research",
     "operation",
 ]
 
@@ -570,6 +581,7 @@ SECTION_KEY_MAP = {
     "special_theater": "special_theater",
     "science_education": "science_education",
     "public_service": "public_service",
+    "business_research": "business_research",
     "operation": "operation",
 }
 
@@ -590,9 +602,10 @@ SECTION_KEY_MAP = {
       ├──> central_hub ────────┤
       ├──> exhibition ─────────┤
       ├──> special_theater ────┼──> assembly ──> END
-      ├──> science_education ──┤
-    ├──> public_service ─────┤
-    └──> operation ──────────┘
+            ├──> science_education ──┤
+        ├──> public_service ─────┤
+        ├──> business_research ──┤
+        └──> operation ──────────┘
 
 设计说明：
 - 所有领域模块从 START 并行启动
@@ -613,6 +626,7 @@ from .nodes import (
     NODE_REGISTRY,
     PARALLEL_NODES,
     assembly_node,
+    business_research_node,
     operation_node,
     central_hub_node,
     design_node,
@@ -645,6 +659,7 @@ def build_brief_generation_graph() -> StateGraph:
     graph.add_node("special_theater", special_theater_node)
     graph.add_node("science_education", science_education_node)
     graph.add_node("public_service", public_service_node)
+    graph.add_node("business_research", business_research_node)
     graph.add_node("operation", operation_node)
 
     # 添加组装节点
@@ -789,6 +804,7 @@ from config import (
     DEFAULT_SPECIAL_THEATER_CONFIG,
 )
 from pipelines.domains.operation_pipeline import OperationGenerator
+from pipelines.domains.business_research_pipeline import BusinessResearchGenerator
 from pipelines.domains.central_hub_pipeline import CentralHubGenerator
 from pipelines.domains.design_concept_pipeline import DesignConceptGenerator
 from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
@@ -979,6 +995,7 @@ def _run_exhibition_sync(state: BriefGenerationState) -> ModuleOutput:
             project_features=inp.get("project_features", ""),
             query=inp.get("query"),
             top_k=inp.get("top_k"),
+            target_area=inp.get("target_area"),
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
         )
@@ -1124,14 +1141,56 @@ async def public_service_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 
 # =============================================================================
-# 业务科研节点
+# 业务科研节点（后勤/BOH）
 # =============================================================================
 
 
 def _run_business_research_sync(state: BriefGenerationState) -> ModuleOutput:
-    """同步执行业务科研生成。"""
+    """同步执行业务科研（后勤）生成。"""
     if _should_skip_module(state, "business_research"):
-        logger.info("📊 业务科研模块已成功完成，本次补跑将跳过执行")
+        logger.info("📚 业务科研模块已成功完成，本次补跑将跳过执行")
+        return ModuleOutput()
+
+    inp = state.get("input", {})
+    try:
+        config = _override_llm_config(DEFAULT_BUSINESS_RESEARCH_CONFIG, inp)
+        generator = BusinessResearchGenerator(config)
+        result = generator.generate(
+            project_name=inp.get("project_name", ""),
+            project_features=inp.get("project_features", ""),
+            target_area=inp.get("target_area"),
+            top_k=inp.get("top_k"),
+            rebuild_index=inp.get("rebuild_index", False),
+            dry_run=inp.get("dry_run", False),
+        )
+        return ModuleOutput(
+            prompt=result.get("prompts"),
+            contexts=result.get("contexts"),
+            response=result.get("response"),
+            json_result=result.get("final_json"),
+        )
+    except Exception as exc:
+        logger.exception("业务科研模块执行失败")
+        return ModuleOutput(error=str(exc))
+
+
+async def business_research_node(state: BriefGenerationState) -> Dict[str, Any]:
+    """异步业务科研/后勤节点。"""
+    logger.info("📚 开始执行: 业务科研/后勤模块")
+    output = await asyncio.to_thread(_run_business_research_sync, state)
+    logger.info("📚 完成: 业务科研/后勤模块")
+    return {"business_research": output}
+
+
+# =============================================================================
+# 商业运营节点（前场/FOH）
+# =============================================================================
+
+
+def _run_operation_sync(state: BriefGenerationState) -> ModuleOutput:
+    """同步执行商业运营生成。"""
+    if _should_skip_module(state, "operation"):
+        logger.info("📊 商业运营模块已成功完成，本次补跑将跳过执行")
         return ModuleOutput()
 
     inp = state.get("input", {})
@@ -1152,15 +1211,15 @@ def _run_business_research_sync(state: BriefGenerationState) -> ModuleOutput:
             response=result.get("response"),
         )
     except Exception as exc:
-        logger.exception("业务科研模块执行失败")
+        logger.exception("商业运营模块执行失败")
         return ModuleOutput(error=str(exc))
 
 
 async def operation_node(state: BriefGenerationState) -> Dict[str, Any]:
-    """异步业务科研/运营节点。"""
-    logger.info("📊 开始执行: 业务科研/运营模块")
-    output = await asyncio.to_thread(_run_business_research_sync, state)
-    logger.info("📊 完成: 业务科研/运营模块")
+    """异步商业运营节点。"""
+    logger.info("📊 开始执行: 商业与运营模块")
+    output = await asyncio.to_thread(_run_operation_sync, state)
+    logger.info("📊 完成: 商业与运营模块")
     return {"operation": output}
 
 
@@ -1250,6 +1309,7 @@ def _run_assembly_sync(state: BriefGenerationState) -> str:
         "science_education",
         "public_service",
         "business_research",
+        "operation",
     ]:
         output: ModuleOutput = state.get(module_key, {})
         section_key = SECTION_KEY_MAP.get(module_key, module_key)
@@ -1298,6 +1358,7 @@ NODE_REGISTRY = {
     "special_theater": special_theater_node,
     "science_education": science_education_node,
     "public_service": public_service_node,
+    "business_research": business_research_node,
     "operation": operation_node,
     "assembly": assembly_node,
 }
@@ -1311,6 +1372,7 @@ PARALLEL_NODES = [
     "special_theater",
     "science_education",
     "public_service",
+    "business_research",
     "operation",
 ]
 
@@ -1358,6 +1420,7 @@ from config import (
 )
 from pipelines.orchestration.brief_assembly_pipeline import BriefAssemblyPipeline
 from pipelines.domains.operation_pipeline import OperationGenerator
+from pipelines.domains.business_research_pipeline import BusinessResearchGenerator
 from pipelines.domains.central_hub_pipeline import CentralHubGenerator
 from pipelines.domains.design_concept_pipeline import DesignConceptGenerator
 from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
@@ -1614,12 +1677,15 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "science-education": ["science_education"],
         "education": ["science_education"],
         "science": ["science_education"],
-        "business_research": ["operation"],
-        "business-research": ["operation"],
-        "business": ["operation"],
-        "research": ["operation"],
+        "business_research": ["business_research"],
+        "business-research": ["business_research"],
+        "backoffice": ["business_research"],
+        "back_of_house": ["business_research"],
+        "business": ["business_research"],
+        "research": ["business_research"],
         "operation": ["operation"],
         "operations": ["operation"],
+        "commercial": ["operation"],
         "both": ["design", "exhibition"],
     }
 
@@ -1636,6 +1702,7 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "science_education",
         "public_service",
         "operation",
+        "business_research",
         "full",
     }
     for token in tokens:
@@ -1656,6 +1723,7 @@ EXECUTION_ORDER = [
     "special_theater",
     "science_education",
     "public_service",
+    "business_research",
     "operation",
 ]
 
@@ -1667,6 +1735,7 @@ SECTION_KEY_MAP = {
     "special_theater": "special_theater",
     "science_education": "science_education",
     "public_service": "public_service",
+    "business_research": "business_research",
     "operation": "operation",
 }
 
@@ -1678,6 +1747,7 @@ STEP_TITLES = {
     "special_theater": "特效影院区空间设计策划书",
     "science_education": "科教活动与空间融合策划书",
     "public_service": "公共服务区空间设计策划书",
+    "business_research": "业务科研与后勤策划书",
     "operation": "商业与运营体系策划书",
     "full": "建筑设计任务书",
 }
@@ -1806,6 +1876,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             project_features=project_features,
             query=query,
             top_k=top_k,
+            target_area=target_area,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
@@ -1853,6 +1924,23 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             project_name=project_name,
             project_features=project_features,
             query=query,
+            target_area=target_area,
+            top_k=top_k,
+            rebuild_index=args.rebuild_index,
+            dry_run=args.dry_run,
+        )
+
+    if step_name == "business_research":
+        br_config: BusinessResearchConfig = _override_llm_config(
+            DEFAULT_BUSINESS_RESEARCH_CONFIG,
+            args,
+        )
+        br_generator = BusinessResearchGenerator(br_config)
+        _log_request("business_research", project_name, project_features, query)
+        return br_generator.generate(
+            project_name=project_name,
+            project_features=project_features,
+            target_area=target_area,
             top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
@@ -1978,6 +2066,7 @@ async def generate_full_brief_parallel(args: argparse.Namespace, filters: Dict[s
         filters=filters if filters else None,
         llm_provider=getattr(args, "llm_provider", None),
         llm_model=getattr(args, "llm_model", None),
+        target_area=cfg.get("target_area", getattr(args, "target_area", None)),
     )
 
     # 注入 target_area 到初始状态的 input 字段，供 indicators 节点使用
@@ -2176,7 +2265,8 @@ class BriefAssemblyPipeline:
         ("exhibition", "主要功能设计要求 / 展陈体系 (Exhibition)"),
         ("science_education", "主要功能设计要求 / 科研教学 (Science Education)"),
         ("public_service", "主要功能设计要求 / 公共服务 (Public Service)"),
-        ("business_research", "主要功能设计要求 / 业务科研与后勤 (Business & Research)"),
+        ("operation", "主要功能设计要求 / 商业与运营 (Front-of-House Operations)"),
+        ("business_research", "主要功能设计要求 / 业务科研与后勤 (Back-of-House)"),
         # 重点空间
         ("special_theater", "重点空间 / 特效影院 (Special Theater)"),
         ("central_hub", "重点空间 / 综合大厅与中庭 (Central Hub & Atrium)"),
@@ -2362,42 +2452,35 @@ class BriefAssemblyPipeline:
 ### `code\pipelines\domains\business_research_pipeline.py`
 
 ```python
-class BusinessResearchVectorStore:
-    # Vector store for business & operations evidence.
-
-  def __init__(...):
-
-  def load(...):
-
-  def build(...):
-
-  def ensure_ready(...):
-
-  def search(...):
-
-class BusinessResearchPromptBuilder:
-    # Prompt enforcing evidence/opinion separation and required markdown layout.
-
-  def _escape_braces(...):
-
-  def _format_context(...):
-
-  def build_prompt(...):
+class BusinessResearchState:
+    # Graph state for the business research pipeline.
 
 class BusinessResearchGenerator:
-    # Business & operations generator with parallel query expansion.
+    # Generates back-of-house program guidance (业务研究用房).
 
   def __init__(...):
-
-  def ensure_index(...):
 
   def _ensure_llm(...):
 
-  def _expand_queries(...):
+  def _load_normative_corpus(...):
+    # Load GB + 专栏讲解文本用于规范抽取。
 
-  def retrieve_contexts(...):
+  def _ensure_documents(...):
+
+  def _summarize_indicators(...):
+
+  def _run_normative_branch(...):
+
+  def _filter_empirical_docs(...):
+
+  def _format_empirical_context(...):
+
+  def _run_empirical_branch(...):
+
+  def _merge_structures(...):
 
   def generate(...):
+    # Run the LangGraph pipeline and return JSON text payload.
 
 ```
 
@@ -2601,6 +2684,9 @@ class DesignConceptGenerator:
 ### `code\pipelines\domains\exhibition_pipeline.py`
 
 ```python
+class ExhibitionState:
+    # LangGraph state for exhibition generation.
+
 class ExhibitionVectorStore:
     # Vector index dedicated to exhibition space knowledge.
 
@@ -2614,15 +2700,8 @@ class ExhibitionVectorStore:
 
   def search(...):
 
-class ExhibitionPromptBuilder:
-    # Builds prompts for exhibition space design using centralized prompt registry.
-
-  def build_prompt(...):
-
-  def _format_context(...):
-
 class ExhibitionGenerator:
-    # High-level facade for exhibition space requirement generation.
+    # Dual-track Exhibition generator with evidence-first enforcement.
 
   def __init__(...):
 
@@ -2630,9 +2709,15 @@ class ExhibitionGenerator:
 
   def _ensure_llm(...):
 
-  def _expand_queries(...):
+  def _search_and_filter(...):
 
-  def retrieve_contexts(...):
+  def _run_foundation_branch(...):
+
+  def _run_trend_branch(...):
+
+  def _merge(...):
+
+  def _format_context(...):
 
   def generate(...):
 
@@ -2683,8 +2768,11 @@ class OperationGenerator:
 ### `code\pipelines\domains\public_service_pipeline.py`
 
 ```python
+class PublicServiceState:
+    # LangGraph state for public service generation.
+
 class PublicServiceVectorStore:
-    # Vector store dedicated to public service area knowledge.
+    # Vector store dedicated to public service area knowledge with filtering.
 
   def __init__(...):
 
@@ -2696,14 +2784,10 @@ class PublicServiceVectorStore:
 
   def search(...):
 
-class PublicServicePromptBuilder:
-
-  def build_prompt(...):
-
-  def _format_context(...):
+  def _match_filters(...):
 
 class PublicServiceGenerator:
-    # High-level facade for public service area planning.
+    # Dual-track generator for front-of-house public service.
 
   def __init__(...):
 
@@ -2711,9 +2795,17 @@ class PublicServiceGenerator:
 
   def _ensure_llm(...):
 
-  def _expand_queries(...):
+  def _search_and_filter(...):
 
-  def retrieve_contexts(...):
+  def _format_context(...):
+
+  def _safe_indicator_snapshot(...):
+
+  def _run_normative_branch(...):
+
+  def _run_design_branch(...):
+
+  def _merge(...):
 
   def generate(...):
 
@@ -2722,8 +2814,11 @@ class PublicServiceGenerator:
 ### `code\pipelines\domains\science_education_pipeline.py`
 
 ```python
+class ScienceEducationState:
+    # LangGraph state for science education generation.
+
 class ScienceEducationVectorStore:
-    # Vector store for science & education knowledge.
+    # FAISS-backed index with metadata filtering support.
 
   def __init__(...):
 
@@ -2735,14 +2830,10 @@ class ScienceEducationVectorStore:
 
   def search(...):
 
-class ScienceEducationPromptBuilder:
-
-  def build_prompt(...):
-
-  def _format_context(...):
+  def _match_filters(...):
 
 class ScienceEducationGenerator:
-    # Facade for science education planning.
+    # Dual-track (规范 + 案例) generator for 科教活动.
 
   def __init__(...):
 
@@ -2750,9 +2841,19 @@ class ScienceEducationGenerator:
 
   def _ensure_llm(...):
 
-  def _expand_queries(...):
+  def _search_and_filter(...):
 
-  def retrieve_contexts(...):
+  def _format_context(...):
+
+  def _safe_indicator_snapshot(...):
+
+  def _run_normative_branch(...):
+
+  def _run_activity_branch(...):
+
+  def _build_spatial_matrix(...):
+
+  def _merge(...):
 
   def generate(...):
 

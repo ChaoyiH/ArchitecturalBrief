@@ -216,12 +216,13 @@ def _run_exhibition_sync(state: BriefGenerationState) -> ModuleOutput:
     try:
         config = _override_llm_config(DEFAULT_EXHIBITION_CONFIG, inp)
         generator = ExhibitionGenerator(config)
+        target_area = _extract_target_area(inp)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
             query=inp.get("query"),
             top_k=inp.get("top_k"),
-            target_area=inp.get("target_area"),
+            target_area=target_area if target_area > 0 else inp.get("target_area"),
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
         )
@@ -299,11 +300,13 @@ def _run_science_education_sync(state: BriefGenerationState) -> ModuleOutput:
     try:
         config = _override_llm_config(DEFAULT_SCIENCE_EDUCATION_CONFIG, inp)
         generator = ScienceEducationGenerator(config)
+        target_area = _extract_target_area(inp)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
             query=inp.get("query"),
             top_k=inp.get("top_k"),
+            target_area=target_area if target_area > 0 else inp.get("target_area"),
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
         )
@@ -340,10 +343,12 @@ def _run_public_service_sync(state: BriefGenerationState) -> ModuleOutput:
     try:
         config = _override_llm_config(DEFAULT_PUBLIC_SERVICE_CONFIG, inp)
         generator = PublicServiceGenerator(config)
+        target_area = _extract_target_area(inp)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
             query=inp.get("query"),
+            target_area=target_area if target_area > 0 else inp.get("target_area"),
             top_k=inp.get("top_k"),
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
