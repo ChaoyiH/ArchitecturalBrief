@@ -541,6 +541,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             project_name=project_name,
             project_features=project_features,
             query=query,
+            target_area=target_area,
             top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,

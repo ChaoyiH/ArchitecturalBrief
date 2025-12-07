@@ -1,0 +1,23 @@
+# 公共服务区（前场）单步运行配置
+
+project:
+  name: "济南科技馆"
+  features: "前场体验升级，强调门厅流线、文创与餐饮"
+  target_area: 40000
+  user_project_info: "总建筑面积约 40000 ㎡，需优化入口流线、卫生间与无障碍、餐饮与文创组合"
+  query: null
+
+llm:
+  provider: "gemini"
+  model: "gemini-3-pro-preview"
+
+pipeline:
+  step: "public_service"
+  mode: "sequential"
+  top_k: 6
+  min_area: null
+  max_area: null
+  category: null
+  rebuild_index: false
+  dry_run: false
+  show_contexts: false

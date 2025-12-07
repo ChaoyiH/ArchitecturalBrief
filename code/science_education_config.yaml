@@ -1,0 +1,23 @@
+# 科教活动模块单步运行配置
+
+project:
+  name: "济南科技馆"
+  features: "科教活动升级，强调研学、创客与科学表演的融合"
+  target_area: 40000
+  user_project_info: "总建筑面积约 40000 ㎡，需配置教室、实验室与科普演示空间"
+  query: null
+
+llm:
+  provider: "gemini"
+  model: "gemini-3-pro-preview"
+
+pipeline:
+  step: "science_education"
+  mode: "sequential"
+  top_k: 6
+  min_area: null
+  max_area: null
+  category: null
+  rebuild_index: false
+  dry_run: false
+  show_contexts: false
