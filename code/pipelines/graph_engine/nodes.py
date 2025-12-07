@@ -221,6 +221,7 @@ def _run_exhibition_sync(state: BriefGenerationState) -> ModuleOutput:
             project_features=inp.get("project_features", ""),
             query=inp.get("query"),
             top_k=inp.get("top_k"),
+            target_area=inp.get("target_area"),
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
         )

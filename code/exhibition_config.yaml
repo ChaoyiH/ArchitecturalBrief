@@ -1,0 +1,23 @@
+# 陈列展览区（Permanent Exhibition System）单步运行配置
+
+project:
+  name: "济南科技馆"
+  features: "科普导向，常设展览体系与参观体验"
+  target_area: 40000
+  user_project_info: "总建筑面积约 40000 ㎡，常设展览需兼顾重载与沉浸体验"
+  query: null
+
+llm:
+  provider: "gemini"
+  model: "gemini-3-pro-preview"
+
+pipeline:
+  step: "exhibition"
+  mode: "sequential"
+  top_k: 6
+  min_area: null
+  max_area: null
+  category: null
+  rebuild_index: false
+  dry_run: false
+  show_contexts: false

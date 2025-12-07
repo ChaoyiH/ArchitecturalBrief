@@ -1,0 +1,29 @@
+==== RUN START 2025-12-07T16:37:35.214616 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: .\design_generator.py --config .\exhibition_config.yaml --dry-run
+=================================
+
+2025-12-07 16:37:35,220 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2025-12-07 16:37:35,221 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-12-07 16:37:41,330 - core.embedding_manager - INFO - 共享 embedding 模型初始化完成: BAAI/bge-small-zh-v1.5
+2025-12-07 16:37:41,333 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2025-12-07 16:37:41,350 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2025-12-07 16:37:41,371 - pipelines.domains.exhibition_pipeline - INFO - 已加载展览空间索引: D:\016_RAG\project\code\vector_index\exhibition_space
+2025-12-07 16:37:41,412 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2025-12-07 16:37:41,711 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2025-12-07 16:37:43,226 - core.generation_integration - INFO - 速率限制器初始化: provider=gemini, rpm=25, min_interval=2.28s
+2025-12-07 16:37:43,227 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2025-12-07 16:37:43,227 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2025-12-07 16:37:43,234 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-07 16:37:45,520 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-07 16:38:11,192 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-07 16:38:14,198 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+================================================================================
+🎯 项目: 济南科技馆 | 步骤: 展览空间设计要求
+🧭 特征: 科普导向，常设展览体系与参观体验
+================================================================================
+🧱 DRY RUN (未调用模型)
+
+=================================
+==== RUN END   2025-12-07T16:38:14.209490 ====

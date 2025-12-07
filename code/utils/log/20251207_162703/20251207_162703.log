@@ -1,0 +1,24 @@
+==== RUN START 2025-12-07T16:27:03.788318 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: .\design_generator.py --config .\exhibition_config.yaml --dry-run
+=================================
+
+2025-12-07 16:27:03,799 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2025-12-07 16:27:03,800 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2025-12-07 16:27:14,012 - huggingface_hub.utils._http - WARNING - '(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: f39daa5e-f7af-4aa8-8b47-a4b5cc1af637)')' thrown while requesting HEAD https://huggingface.co/BAAI/bge-small-zh-v1.5/resolve/main/./modules.json
+2025-12-07 16:27:14,014 - huggingface_hub.utils._http - WARNING - Retrying in 1s [Retry 1/5].
+2025-12-07 16:27:25,191 - huggingface_hub.utils._http - WARNING - '(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 4d3b594a-798e-4a7e-9f84-1de2158c4c99)')' thrown while requesting HEAD https://huggingface.co/BAAI/bge-small-zh-v1.5/resolve/main/./modules.json
+2025-12-07 16:27:25,191 - huggingface_hub.utils._http - WARNING - Retrying in 2s [Retry 2/5].
+2025-12-07 16:27:37,367 - huggingface_hub.utils._http - WARNING - '(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: b32ebc53-86ed-4cc9-9952-3642d4b35779)')' thrown while requesting HEAD https://huggingface.co/BAAI/bge-small-zh-v1.5/resolve/main/./modules.json
+2025-12-07 16:27:37,367 - huggingface_hub.utils._http - WARNING - Retrying in 4s [Retry 3/5].
+2025-12-07 16:27:51,571 - huggingface_hub.utils._http - WARNING - '(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 38f0d112-aa02-4715-86d5-4c376a683439)')' thrown while requesting HEAD https://huggingface.co/BAAI/bge-small-zh-v1.5/resolve/main/./modules.json
+2025-12-07 16:27:51,571 - huggingface_hub.utils._http - WARNING - Retrying in 8s [Retry 4/5].
+2025-12-07 16:28:09,767 - huggingface_hub.utils._http - WARNING - '(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 1ed24bbe-e21e-4e67-af8c-86554444efd7)')' thrown while requesting HEAD https://huggingface.co/BAAI/bge-small-zh-v1.5/resolve/main/./modules.json
+2025-12-07 16:28:09,767 - huggingface_hub.utils._http - WARNING - Retrying in 8s [Retry 5/5].
+2025-12-07 16:28:27,947 - huggingface_hub.utils._http - WARNING - '(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 1ecc4240-1c04-4dab-884b-f1e41fb47793)')' thrown while requesting HEAD https://huggingface.co/BAAI/bge-small-zh-v1.5/resolve/main/./modules.json
+2025-12-07 16:28:38,175 - huggingface_hub.utils._http - WARNING - '(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: c8ab5f5b-dce5-4629-9b2e-b8751081c172)')' thrown while requesting HEAD https://huggingface.co/BAAI/bge-small-zh-v1.5/resolve/main/./config_sentence_transformers.json
+2025-12-07 16:28:38,176 - huggingface_hub.utils._http - WARNING - Retrying in 1s [Retry 1/5].
+
+=================================
+==== RUN END   2025-12-07T16:28:49.347388 ====
