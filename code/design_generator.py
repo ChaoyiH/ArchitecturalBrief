@@ -121,6 +121,11 @@ def _parse_args() -> argparse.Namespace:
         help="当 step=render 时指定已生成的模块 JSON 路径",
     )
     parser.add_argument(
+        "--target-json",
+        dest="target_json",
+        help="单步运行时用于写回的目标总 JSON 路径",
+    )
+    parser.add_argument(
         "--llm-provider",
         dest="llm_provider",
         help="覆盖默认的 LLM provider，例如 minimax 或 moonshot",
@@ -154,6 +159,7 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
         "dry_run": False,
         "show_contexts": False,
         "render_json": None,
+        "target_json": None,
     }
 
     if getattr(args, "config", None):
@@ -195,6 +201,7 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
                 "dry_run": bool(pipeline.get("dry_run", False) or execution.get("dry_run", False)),
                 "show_contexts": bool(pipeline.get("show_contexts", False) or execution.get("verbose", False)),
                 "render_json": pipeline.get("render_json"),
+                "target_json": pipeline.get("target_json"),
             }
         )
 
@@ -234,6 +241,8 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
         base["show_contexts"] = True
     if getattr(args, "render_json", None):
         base["render_json"] = args.render_json
+    if getattr(args, "target_json", None):
+        base["target_json"] = args.target_json
 
     if not base["project_name"] or not base["project_features"]:
         raise ValueError("项目名称 --project-name 和项目特征 --project-features 必须在命令行或 YAML 中至少提供一处")
@@ -417,6 +426,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
     top_k = cfg.get("top_k", getattr(args, "top_k", None))
     target_area = cfg.get("target_area", getattr(args, "target_area", None))
     user_project_info = cfg.get("user_project_info", None)
+    target_json_path = cfg.get("target_json") or getattr(args, "target_json", None)
 
     if step_name == "design":
         design_config: DesignConceptConfig = _override_llm_config(
@@ -435,12 +445,16 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
         # 为了兼容后续打印逻辑，这里将 json_result 再序列化为字符串形式的 response
         json_result = result.get("json_result")
         response_str = json.dumps(json_result, ensure_ascii=False, indent=2) if json_result is not None else ""
-        return {
-            "prompt": None,
-            "contexts": result.get("retrieved_sources"),  # dry_run 时才会有
-            "response": response_str,
-            "json_result": json_result,
-        }
+        return _finalize_step_result(
+            step_name,
+            {
+                "prompt": None,
+                "contexts": result.get("retrieved_sources"),  # dry_run 时才会有
+                "response": response_str,
+                "json_result": json_result,
+            },
+            target_json_path,
+        )
 
     if step_name == "indicators":
         # 推导目标面积：优先使用显式传入的 target_area，其次尝试从最小/最大面积取中值
@@ -457,7 +471,11 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
 
         _log_request("indicators", project_name, project_features, query)
         result = analyze_indicators(float(target_area)) if target_area is not None else {}
-        return {"response": json.dumps(result, ensure_ascii=False)}
+        return _finalize_step_result(
+            step_name,
+            {"response": json.dumps(result, ensure_ascii=False)},
+            target_json_path,
+        )
 
     if step_name == "central_hub":
         hub_config: CentralHubConfig = _override_llm_config(
@@ -478,12 +496,16 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
         # 为了兼容后续打印逻辑，返回标准格式
         json_result = result.get("json_result")
         response_str = json.dumps(json_result, ensure_ascii=False, indent=2) if json_result is not None else ""
-        return {
-            "prompt": None,
-            "contexts": None,  # 中间结果可通过 result["raw_text"] 访问
-            "response": response_str,
-            "json_result": json_result,
-        }
+        return _finalize_step_result(
+            step_name,
+            {
+                "prompt": None,
+                "contexts": None,  # 中间结果可通过 result["raw_text"] 访问
+                "response": response_str,
+                "json_result": json_result,
+            },
+            target_json_path,
+        )
 
     if step_name == "exhibition":
         exhibition_config: ExhibitionConfig = _override_llm_config(
@@ -492,7 +514,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
         )
         exhibition_generator = ExhibitionGenerator(exhibition_config)
         _log_request("exhibition", project_name, project_features, query)
-        return exhibition_generator.generate(
+        result = exhibition_generator.generate(
             project_name=project_name,
             project_features=project_features,
             query=query,
@@ -501,6 +523,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
+        return _finalize_step_result(step_name, result, target_json_path)
 
     if step_name == "special_theater":
         theater_config: SpecialTheaterConfig = _override_llm_config(
@@ -522,7 +545,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             result["response"] = json.dumps(json_result, ensure_ascii=False, indent=2)
         if json_result is not None:
             result["json_result"] = json_result
-        return result
+        return _finalize_step_result(step_name, result, target_json_path)
 
     if step_name == "science_education":
         science_config: ScienceEducationConfig = _override_llm_config(
@@ -531,7 +554,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
         )
         science_generator = ScienceEducationGenerator(science_config)
         _log_request("science_education", project_name, project_features, query)
-        return science_generator.generate(
+        result = science_generator.generate(
             project_name=project_name,
             project_features=project_features,
             query=query,
@@ -539,6 +562,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
+        return _finalize_step_result(step_name, result, target_json_path)
 
     if step_name == "public_service":
         service_config: PublicServiceConfig = _override_llm_config(
@@ -547,7 +571,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
         )
         service_generator = PublicServiceGenerator(service_config)
         _log_request("public_service", project_name, project_features, query)
-        return service_generator.generate(
+        result = service_generator.generate(
             project_name=project_name,
             project_features=project_features,
             query=query,
@@ -556,6 +580,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
+        return _finalize_step_result(step_name, result, target_json_path)
 
     if step_name == "business_research":
         br_config: BusinessResearchConfig = _override_llm_config(
@@ -564,7 +589,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
         )
         br_generator = BusinessResearchGenerator(br_config)
         _log_request("business_research", project_name, project_features, query)
-        return br_generator.generate(
+        result = br_generator.generate(
             project_name=project_name,
             project_features=project_features,
             target_area=target_area,
@@ -572,6 +597,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
+        return _finalize_step_result(step_name, result, target_json_path)
 
     if step_name == "operation":
         business_config: BusinessResearchConfig = _override_llm_config(
@@ -580,7 +606,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
         )
         business_generator = OperationGenerator(business_config)
         _log_request("operation", project_name, project_features, query)
-        return business_generator.generate(
+        result = business_generator.generate(
             project_name=project_name,
             project_features=project_features,
             query=query,
@@ -588,6 +614,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
+        return _finalize_step_result(step_name, result, target_json_path)
 
     if step_name == "render":
         renderer = JsonBriefRenderer()
@@ -599,7 +626,11 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             project_features=project_features,
             json_path=render_path,
         )
-        return {"response": result.get("response"), "json_result": result.get("sections")}
+        return _finalize_step_result(
+            step_name,
+            {"response": result.get("response"), "json_result": result.get("sections")},
+            target_json_path,
+        )
 
     raise ValueError(f"未知的步骤: {step_name}")
 
@@ -623,6 +654,50 @@ def _resolve_output_path(project_name: str) -> Path:
         sanitized = "项目"
     filename = f"{sanitized}_设计任务书.md"
     return Path(__file__).resolve().parent / filename
+
+
+def _persist_section_to_file(section_key: str, section_data: Any, target_json_path: str | Path) -> None:
+    if not section_key or section_data is None or not target_json_path:
+        return
+    path = Path(target_json_path)
+    try:
+        existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        if not isinstance(existing, dict):
+            existing = {}
+    except Exception:
+        existing = {}
+
+    payload = section_data
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except Exception:
+            pass
+
+    existing[section_key] = payload
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _finalize_step_result(step_name: str, result: Dict[str, Any], target_json_path: Optional[str]) -> Dict[str, Any]:
+    if not isinstance(result, dict):
+        return result
+
+    json_result = result.get("json_result") or result.get("json")
+    if json_result is not None:
+        result["json_result"] = json_result
+        if result.get("response") is None and not isinstance(json_result, str):
+            try:
+                result["response"] = json.dumps(json_result, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+
+    section_key = SECTION_KEY_MAP.get(step_name)
+    payload = result.get("json_result") or result.get("json") or result.get("response")
+    if section_key and target_json_path and payload is not None:
+        _persist_section_to_file(section_key, payload, target_json_path)
+
+    return result
 
 
 def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) -> None:

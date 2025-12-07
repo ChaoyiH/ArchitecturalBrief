@@ -30,6 +30,9 @@ execution:
   
   # 输出详细日志
   verbose: true
+
+pipeline:
+  target_json: 'D:\016_RAG\project\code\济南科技馆_设计任务书.json'
 llm:
   # 可选值: minimax / moonshot / gemini
   provider: "gemini"

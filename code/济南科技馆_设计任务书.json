@@ -579,100 +579,79 @@
   },
   "science_education": {
     "normative_requirements": {
-      "target_level": "特大型馆",
-      "compliance_source": "科学技术馆建设标准, 博物馆建筑设计规范",
+      "target_level": "大型馆",
+      "compliance_source": "《科学技术馆建设标准》(建标 101-2007)",
       "mandatory_rooms": [
         {
-          "room_type": "展览教育用房",
-          "min_area": "[无具体证据]",
-          "note": "来源:科学技术馆建设标准(片段1)。通常将展览用房与教育用房合称为展览教育区(来源:博物馆建筑设计规范)。具体面积指标分配参见本标准附录(上下文未提供)。"
+          "room_type": "通用教室",
+          "min_area": "60-80 m²",
+          "note": "基于展教占比推估，[通用知识]"
         },
         {
-          "room_type": "公众服务用房",
-          "min_area": "[无具体证据]",
-          "note": "来源:科学技术馆建设标准(片段1)。具体面积指标分配参见本标准附录(上下文未提供)。"
-        },
-        {
-          "room_type": "业务研究用房",
-          "min_area": "[无具体证据]",
-          "note": "来源:科学技术馆建设标准(片段1)。具体面积指标分配参见本标准附录(上下文未提供)。"
-        },
-        {
-          "room_type": "管理保障用房",
-          "min_area": "[无具体证据]",
-          "note": "来源:科学技术馆建设标准(片段1)。具体面积指标分配参见本标准附录(上下文未提供)。"
+          "room_type": "实验/创客空间",
+          "min_area": "80-120 m²",
+          "note": "需排风与耐污地面，[通用知识]"
         }
       ],
       "safety_specs": [
-        "[无具体证据]"
+        "化学/湿式实验需独立排风与洗眼器 [通用知识]",
+        "教室宜设置双出口与应急照明 [通用知识]"
       ]
     },
     "activity_programming": {
       "trends": [
         {
-          "activity_name": "Live Science Theater & Adult Evening Events",
-          "spatial_need": "A dedicated Science Show Theatre (auditorium style) for demonstrations; Flexible exhibition halls or atriums capable of hosting social gatherings (catering/lighting) for 'Science After Hours' or 'Science Lates'.",
-          "reference_case": "The Franklin Institute, Philadelphia; Glasgow Science Centre, Glasgow; CERN Science Gateway, Geneva",
+          "activity_name": "Theatrical Science Performances & Live Demonstrations",
+          "spatial_need": "Science Show Theatre or Theater-style performance space (e.g., Floor 1 Theatre)",
+          "reference_case": "Glasgow Science Centre, CERN Science Gateway, Pacific Science Center",
           "is_general_knowledge": false
         },
         {
-          "activity_name": "STEM Career Pathways & Youth Internship Hubs",
-          "spatial_need": "Multi-purpose seminar rooms and co-working style spaces for long-term programs like 'STEM Scholars' or 'Teen Interns'; Dedicated zones for career exploration (e.g., 'My World of Work Live').",
-          "reference_case": "The Franklin Institute, Philadelphia; California Science Center, Los Angeles; Glasgow Science Centre, Glasgow",
+          "activity_name": "Hands-on Maker Workshops & Lab Classes (Robotics, Construction, Physics)",
+          "spatial_need": "Dedicated Laboratory spaces (e.g., 'The Lab', 'The Bothy') or Science Education Center",
+          "reference_case": "Glasgow Science Centre, CERN Science Gateway, National Science Museum Daejeon",
           "is_general_knowledge": false
         },
         {
-          "activity_name": "Hands-on Laboratory & Maker Workshops",
-          "spatial_need": "Specialized education rooms including Wet Labs (sinks, safety ventilation) for chemistry/biology and Dry Labs/Maker Spaces ('The Bothy') for construction and robotics.",
-          "reference_case": "CERN Science Gateway, Geneva; Glasgow Science Centre, Glasgow; National Science Museum, Daejeon",
+          "activity_name": "Intensive STEM Camps & Youth Scholar Programs (Study Tours)",
+          "spatial_need": "Multi-purpose Education Hubs or Classrooms for seasonal camps and long-term programs",
+          "reference_case": "California Science Center, Pacific Science Center, The Franklin Institute",
           "is_general_knowledge": false
         },
         {
-          "activity_name": "Mobile Science Outreach Logistics",
-          "spatial_need": "Dedicated loading docks and storage areas for 'Science on Wheels' vans and portable exhibits to facilitate community outreach.",
-          "reference_case": "Pacific Science Center, Seattle; The Franklin Institute, Philadelphia",
+          "activity_name": "STEM Career Exploration & Youth Internships",
+          "spatial_need": "Interactive Career Hubs (e.g., 'My World of Work Live') or Youth Development Zones",
+          "reference_case": "Glasgow Science Centre, The Franklin Institute, California Science Center",
           "is_general_knowledge": false
-        },
-        {
-          "activity_name": "Yellow River Ecological & Hydrological Workshops",
-          "spatial_need": "Outdoor observation decks facing the river and semi-outdoor wet labs for water sampling and sediment analysis, integrating the museum's location into the curriculum.",
-          "reference_case": "[General Knowledge]",
-          "is_general_knowledge": true
         }
       ],
       "suggested_curriculum_zones": [
-        "Science Show Theatre (Live Demos)",
-        "The Lab (Wet/Dry Educational Workshops)",
-        "Maker Space / The Bothy (Construction & Robotics)",
-        "STEM Career Hub (Youth Development & Internships)",
-        "Mobile Outreach Logistics Center",
-        "Riverside Ecological Observation Zone"
+        "Science Show Theatre (for Live Demos)",
+        "Maker Labs / 'The Bothy' (for Construction & Engineering)",
+        "Science Education Center (for Camps & Workshops)",
+        "STEM Career Exploration Hub",
+        "Digital/Virtual Learning Zone (Virtual Field Trips)"
       ]
     },
     "spatial_integration_matrix": [
       {
-        "activity_name": "Live Science Theater & Adult Evening Events",
-        "candidate_room": "展览教育用房",
+        "activity_name": "Theatrical Science Performances & Live Demonstrations",
+        "candidate_room": "通用教室",
         "rationale": "基于空间需求与房间类型匹配"
       },
       {
-        "activity_name": "STEM Career Pathways & Youth Internship Hubs",
-        "candidate_room": "展览教育用房",
+        "activity_name": "Hands-on Maker Workshops & Lab Classes (Robotics, Construction, Physics)",
+        "candidate_room": "实验/创客空间",
         "rationale": "基于空间需求与房间类型匹配"
       },
       {
-        "activity_name": "Hands-on Laboratory & Maker Workshops",
-        "candidate_room": "展览教育用房",
+        "activity_name": "Intensive STEM Camps & Youth Scholar Programs (Study Tours)",
+        "candidate_room": "通用教室",
         "rationale": "基于空间需求与房间类型匹配"
       },
       {
-        "activity_name": "Mobile Science Outreach Logistics",
-        "candidate_room": "展览教育用房",
-        "rationale": "基于空间需求与房间类型匹配"
-      },
-      {
-        "activity_name": "Yellow River Ecological & Hydrological Workshops",
-        "candidate_room": "展览教育用房",
+        "activity_name": "STEM Career Exploration & Youth Internships",
+        "candidate_room": "通用教室",
         "rationale": "基于空间需求与房间类型匹配"
       }
     ]
