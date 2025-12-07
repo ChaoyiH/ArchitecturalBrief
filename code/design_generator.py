@@ -684,6 +684,9 @@ async def generate_full_brief_parallel(args: argparse.Namespace, filters: Dict[s
         llm_provider=getattr(args, "llm_provider", None),
         llm_model=getattr(args, "llm_model", None),
         target_area=cfg.get("target_area", getattr(args, "target_area", None)),
+        total_area=cfg.get("total_area", None),
+        project_location=cfg.get("project_location", None),
+        user_project_info=cfg.get("user_project_info", None),
     )
 
     # 注入 target_area 到初始状态的 input 字段，供 indicators 节点使用
@@ -697,6 +700,10 @@ async def generate_full_brief_parallel(args: argparse.Namespace, filters: Dict[s
             if query is not None:
                 input_payload.setdefault("query", query)
             input_payload["target_area"] = cfg.get("target_area", getattr(args, "target_area", None))
+            input_payload["total_area"] = cfg.get("total_area", None)
+            input_payload["project_location"] = cfg.get("project_location", None)
+            if cfg.get("user_project_info"):
+                input_payload["user_project_info"] = cfg.get("user_project_info")
             if getattr(args, "llm_provider", None):
                 input_payload["llm_provider"] = args.llm_provider
             if getattr(args, "llm_model", None):

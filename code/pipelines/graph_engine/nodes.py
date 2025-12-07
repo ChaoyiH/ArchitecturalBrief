@@ -134,18 +134,25 @@ def _run_design_sync(state: BriefGenerationState) -> ModuleOutput:
         config = _override_llm_config(DEFAULT_DESIGN_CONCEPT_CONFIG, inp)
         generator = DesignConceptGenerator(config)
         generator.ensure_index(rebuild=inp.get("rebuild_index", False))
+        user_project_info = (
+            inp.get("user_project_info")
+            or inp.get("query")
+            or inp.get("project_features")
+            or inp.get("project_name")
+        )
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
-            query=inp.get("query"),
-            top_k=inp.get("top_k"),
-            filters=inp.get("filters"),
+            user_project_info=user_project_info,
             dry_run=inp.get("dry_run", False),
         )
+        json_result = result.get("json_result")
+        response_text = json.dumps(json_result, ensure_ascii=False, indent=2) if json_result else None
         return ModuleOutput(
             prompt=result.get("prompt"),
-            contexts=result.get("contexts"),
-            response=result.get("response"),
+            contexts=result.get("retrieved_sources"),
+            response=response_text,
+            json_result=json_result,
         )
     except Exception as exc:
         logger.exception("设计理念模块执行失败")
@@ -175,9 +182,14 @@ def _run_central_hub_sync(state: BriefGenerationState) -> ModuleOutput:
     try:
         config = _override_llm_config(DEFAULT_CENTRAL_HUB_CONFIG, inp)
         generator = CentralHubGenerator(config)
+        total_area = inp.get("total_area")
+        if not total_area:
+            total_area = _extract_target_area(inp)
         result = generator.generate(
             project_name=inp.get("project_name", ""),
             project_features=inp.get("project_features", ""),
+            total_area=total_area if total_area else None,
+            project_location=inp.get("project_location"),
             query=inp.get("query"),
             top_k=inp.get("top_k"),
             rebuild_index=inp.get("rebuild_index", False),
@@ -463,6 +475,7 @@ def _extract_target_area(input_data: Dict[str, Any]) -> float:
     """从输入中提取建筑面积，支持多种字段名与类型。"""
 
     candidates = [
+        "total_area",
         "target_area",
         "building_area",
         "gross_floor_area",

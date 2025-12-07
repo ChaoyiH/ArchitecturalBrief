@@ -30,6 +30,9 @@ class BriefGenerationInput(TypedDict, total=False):
     llm_provider: Optional[str]
     llm_model: Optional[str]
     target_area: Optional[float]
+    total_area: Optional[float]
+    project_location: Optional[str]
+    user_project_info: Optional[str]
 
 
 class ModuleOutput(TypedDict, total=False):
@@ -96,6 +99,9 @@ def create_initial_state(
     llm_provider: Optional[str] = None,
     llm_model: Optional[str] = None,
     target_area: Optional[float] = None,
+    total_area: Optional[float] = None,
+    project_location: Optional[str] = None,
+    user_project_info: Optional[str] = None,
 ) -> BriefGenerationState:
     """
     工厂函数：创建初始状态对象。
@@ -124,6 +130,9 @@ def create_initial_state(
             llm_provider=llm_provider,
             llm_model=llm_model,
             target_area=target_area,
+            total_area=total_area,
+            project_location=project_location,
+            user_project_info=user_project_info,
         ),
         design={},
         indicators={},
