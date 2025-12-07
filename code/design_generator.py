@@ -869,6 +869,14 @@ def main():
             print("⚠️ 未获得模型输出")
             continue
 
+        # Render 步骤：直接写入同名 MD 文件，不再打印正文
+        if step_name == "render":
+            output_path = _resolve_output_path(project_name)
+            output_path.write_text(str(response), encoding="utf-8")
+            print(f"✅ 渲染后的任务书已保存 -> {output_path}")
+            _log_response(step_name, str(response)[:2000])
+            continue
+
         print(f"🧠 {title} (JSON):\n")
         print(response)
         _log_response(step_name, str(response))

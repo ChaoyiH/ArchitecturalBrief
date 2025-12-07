@@ -11,6 +11,8 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
+from .json_renderer import JSONRenderer
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,94 +36,7 @@ class BriefAssemblyPipeline:
     ]
 
     def __init__(self) -> None:
-        """初始化（无需 LLM 配置）。"""
-        pass
-
-    @staticmethod
-    def _dict_to_markdown(data: Any, level: int = 3) -> str:
-        """
-        递归将字典/列表/字符串转换为 Markdown 格式文本。
-
-        Args:
-            data: 待转换的数据（dict, list, str, 或其他）
-            level: 当前标题层级（默认 3，即 ###）
-
-        Returns:
-            格式化后的 Markdown 字符串
-        """
-        if data is None:
-            return "_（暂无数据）_\n"
-
-        if isinstance(data, str):
-            text = data.strip()
-            return f"{text}\n" if text else "_（暂无数据）_\n"
-
-        if isinstance(data, bool):
-            return f"{'是' if data else '否'}\n"
-
-        if isinstance(data, (int, float)):
-            return f"{data}\n"
-
-        if isinstance(data, list):
-            if not data:
-                return "_（暂无数据）_\n"
-            lines = []
-            for item in data:
-                if isinstance(item, dict):
-                    # 列表中的字典，展开为子项
-                    item_md = BriefAssemblyPipeline._dict_to_markdown(item, level + 1)
-                    lines.append(item_md)
-                elif isinstance(item, str):
-                    lines.append(f"- {item.strip()}")
-                else:
-                    lines.append(f"- {item}")
-            return "\n".join(lines) + "\n"
-
-        if isinstance(data, dict):
-            if not data:
-                return "_（暂无数据）_\n"
-
-            lines = []
-            header_prefix = "#" * min(level, 6)  # 最多 6 级标题
-
-            for key, value in data.items():
-                # 将 key 格式化为更友好的标题
-                title = BriefAssemblyPipeline._format_key_as_title(key)
-
-                if isinstance(value, dict):
-                    lines.append(f"{header_prefix} {title}\n")
-                    lines.append(BriefAssemblyPipeline._dict_to_markdown(value, level + 1))
-                elif isinstance(value, list):
-                    lines.append(f"{header_prefix} {title}\n")
-                    lines.append(BriefAssemblyPipeline._dict_to_markdown(value, level + 1))
-                elif isinstance(value, str) and len(value) > 100:
-                    # 长文本单独作为段落
-                    lines.append(f"{header_prefix} {title}\n")
-                    lines.append(f"{value.strip()}\n")
-                else:
-                    # 短文本/数字/布尔值作为行内描述
-                    formatted_value = BriefAssemblyPipeline._dict_to_markdown(value, level + 1).strip()
-                    lines.append(f"**{title}**: {formatted_value}\n")
-
-            return "\n".join(lines) + "\n"
-
-        # 其他类型直接转字符串
-        return f"{data}\n"
-
-    @staticmethod
-    def _format_key_as_title(key: str) -> str:
-        """
-        将字典的 key 格式化为更友好的标题。
-
-        Args:
-            key: 原始 key（如 snake_case 或 camelCase）
-
-        Returns:
-            格式化后的标题
-        """
-        title = key.replace("_", " ")
-        title = title.title()
-        return title
+        self._renderer = JSONRenderer()
 
     def assemble_generated_content(
         self,
@@ -166,7 +81,7 @@ class BriefAssemblyPipeline:
                 else:
                     lines.append(f"{section_data.strip()}\n")
             else:
-                lines.append(self._dict_to_markdown(section_data, level=3))
+                lines.append(self._renderer.render(section_data, level=3, key=key))
 
             lines.append("")
             section_num += 1

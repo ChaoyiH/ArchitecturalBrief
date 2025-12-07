@@ -9,7 +9,7 @@
 | 模式 | 入口文件 | 功能 |
 |------|---------|------|
 | **问答模式** | `main.py` | 交互式建筑规范问答，基于 GB 标准检索 |
-| **任务书生成模式** | `design_generator.py` | 生成完整的《建筑设计任务书》 |
+| **任务书生成 / 渲染模式** | `design_generator.py` | 生成或仅渲染《建筑设计任务书》（full 并行，单步顺序） |
 
 两种模式的架构兼容性设计：
 - 共享 `core/` 底层基础设施（embedding、检索、LLM 调用）
@@ -24,7 +24,7 @@
 code/
 ├── config.py                 # 全局配置与各模块默认参数
 ├── main.py                   # 📖 问答模式入口
-├── design_generator.py       # 📝 任务书生成模式入口 (支持顺序/并行)
+├── design_generator.py       # 📝 任务书生成 / 渲染入口（full 并行，单步顺序）
 │
 ├── core/                     # 🔧 底层基础设施 (两种模式共享)
 │   ├── __init__.py
@@ -46,7 +46,8 @@ code/
 │   │   └── business_research_pipeline.py # 业务科研区
 │   │
 │   ├── orchestration/        # 编排与整合
-│   │   └── brief_assembly_pipeline.py    # 确定性 Markdown 拼接 (无 LLM)
+│   │   ├── brief_assembly_pipeline.py    # 确定性 Markdown 拼接 (无 LLM)
+│   │   └── json_renderer.py              # 策略化 JSON→Markdown 渲染
 │   │
 │   └── graph_engine/         # LangGraph 并行执行引擎
 │       ├── __init__.py
@@ -91,7 +92,8 @@ code/
 | 模块 | 职责 |
 |------|------|
 | `domains/*_pipeline.py` | 各领域专属生成器：数据抽取 → Prompt 构建 → LLM 调用 → JSON 输出 |
-| `orchestration/brief_assembly_pipeline.py` | 确定性模板拼接器：将各模块的 JSON 输出（含经济技术指标）组装为 Markdown 任务书 |
+| `orchestration/brief_assembly_pipeline.py` | 确定性模板拼接器：将各模块 JSON 交给 JSONRenderer 渲染后组装为 Markdown 任务书 |
+| `orchestration/json_renderer.py` | 策略化 JSON→Markdown 渲染：功能面积配比、案例列表、适配矩阵等表格/卡片化，通用列表自动表格化 |
 | `graph_engine/` | LangGraph 并行执行引擎，支持多模块并行（含指标分析）+ 组装汇聚 |
 
 ### 工具模块 (`utils/`)
@@ -127,43 +129,49 @@ code/
 回答输出
 ```
 
-### 任务书生成模式 (`design_generator.py`)
+### 任务书生成 / 渲染模式 (`design_generator.py`)
 
 ```
 项目参数 (名称、特征)
     │
-    ├── 顺序模式 (--mode sequential)
+    ├── 生成模式 (step=full 或逗号分隔步骤)
     │   │
     │   ▼
     │   ┌─────────────────────────────────────────────────────┐
-    │   │ 依次执行 7 个 pipelines/domains/*_pipeline.py        │
-    │   │  设计理念 → 综合大厅 → 展览空间 → 特效影院 →           │
-    │   │  科教活动 → 公共服务 → 业务科研                        │
+    │   │ pipelines/graph_engine/                              │
+    │   │  • LangGraph StateGraph 并行执行多模块 (7 领域 + 指标) │
+    │   │  • 所有模块完成后汇聚到 assembly 节点                  │
     │   └─────────────────────────────────────────────────────┘
+    │       │
+    │       ▼
+    │   ┌─────────────────────────────────────────────────────┐
+    │   │ pipelines/orchestration/brief_assembly_pipeline.py   │
+    │   │  • 调用 JSONRenderer 进行表格/卡片化渲染               │
+    │   │  • 确定性模板拼接 (无 LLM，毫秒级)                     │
+    │   └─────────────────────────────────────────────────────┘
+    │       │
+    │       ▼
+    │   《项目名_设计任务书.md》 + 同名 .json
     │
-    └── 并行模式 (--mode parallel)
+    ├── 单模块/少量步骤 (step=design 等)
+    │   │  顺序执行对应 pipeline，同步返回 JSON
+    │   └── 由 brief_assembly_pipeline 调用 JSONRenderer 输出 Markdown（若需要组装）
+    │
+    └── 渲染模式 (step=render)
+        │  输入：已有模块 JSON（不调用 LLM）
+        ▼
+    ┌──────────────────────────────────────────────────────┐
+    │ pipelines/orchestration/json_renderer.py             │
+    │  • 策略化 JSON→Markdown 渲染（表格/卡片/自动表）        │
+    └──────────────────────────────────────────────────────┘
         │
         ▼
-        ┌─────────────────────────────────────────────────────┐
-        │ pipelines/graph_engine/                              │
-        │  • LangGraph StateGraph 并行执行多模块 (7 领域 + 指标) │
-        │  • 所有模块完成后汇聚到 assembly 节点                  │
-        └─────────────────────────────────────────────────────┘
-            │
-            ▼
-        ┌─────────────────────────────────────────────────────┐
-        │ pipelines/orchestration/brief_assembly_pipeline.py   │
-        │  • 确定性模板拼接 (无 LLM，毫秒级)                      │
-        │  • 将 7 个模块的 JSON 转换为 Markdown                  │
-        └─────────────────────────────────────────────────────┘
-            │
-            ▼
-        《项目名_设计任务书.md》
+    《项目名_设计任务书.md》
 ```
 
 ---
 
-## LangGraph 图结构 (`--mode parallel`)
+## LangGraph 图结构 (默认并行)
 
 ```
                     ┌─────────┐
@@ -203,11 +211,11 @@ code/
 
 **解决方案**：`core/embedding_manager.py` 提供线程安全的单例 Embedding 实例，所有 pipeline 共享。
 
-### 2. 确定性任务书组装
+### 2. 确定性任务书组装 + 策略化渲染
 
 **问题**：使用 LLM 重写任务书会丢失上游模块产生的详细数据（面积指标、设备参数）。
 
-**解决方案**：`brief_assembly_pipeline.py` 采用确定性模板拼接，`_dict_to_markdown()` 递归转换 JSON 为格式化 Markdown。
+**解决方案**：`brief_assembly_pipeline.py` 调用 `JSONRenderer` 做策略化渲染（面积配比、案例卡片、适配矩阵自动表格化），随后确定性拼接为 Markdown，渲染器也支持 `step=render` 复用已有 JSON。
 
 ### 3. 适配器模式节点包装
 
