@@ -114,6 +114,7 @@ Context:
 3. 键名和层级必须严格符合下述 Schema；
 4. 所有字符串值必须使用双引号；
 5. 缺失信息用 "Not Specified"；证据字段必须来自原文。
+ 6. CRITICAL: 输出必须为简体中文；尤其是 morphology_panorama 的描述与 spatial_strategy_proposal 必须翻译为专业中文建筑术语，禁止输出英文句子。
 
 JSON Schema (Contract):
 {{

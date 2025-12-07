@@ -176,7 +176,8 @@ class ExhibitionGenerator:
             [
                 (
                     "system",
-                    "你是一名合规官，仅基于提供的上下文抽取信息，输出必须为中文。若上下文为空，对应字段填入 '缺失' 或 '[无具体证据]'，严禁编造GB条款。",
+                    "你是一名合规官，仅基于提供的上下文抽取信息，输出必须为中文。若上下文为空，对应字段填入 '缺失' 或 '[无具体证据]'，严禁编造GB条款。"
+                    " CRITICAL: 输出必须为简体中文，如检索内容为英文需翻译，不得输出英文句子。",
                 ),
                 (
                     "human",
@@ -254,7 +255,8 @@ class ExhibitionGenerator:
             [
                 (
                     "system",
-                    "你是一名策展人，仅基于上下文提炼3-5条全球趋势，输出必须为中文。每条趋势需包含 evidence_snippet 引文；若无相关案例，则 evidence_cases 为空并标记 is_general_knowledge=true，不得编造。",
+                    "你是一名策展人，仅基于上下文提炼3-5条全球趋势，输出必须为中文。每条趋势需包含 evidence_snippet 引文；若无相关案例，则 evidence_cases 为空并标记 is_general_knowledge=true，不得编造。"
+                    " CRITICAL: 输出必须为简体中文，如检索内容为英文需翻译，不得输出英文句子。",
                 ),
                 (
                     "human",

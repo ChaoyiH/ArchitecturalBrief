@@ -311,6 +311,7 @@ class DesignConceptPromptBuilder:
             "你是一名熟悉中国《科学技术馆建设标准》《博物馆建筑设计规范》的建筑策划顾问。\n"
             "目标：为项目“{project_name}”提炼设计依据，严格区分【规范事实】与【分析推演】。\n"
             "请优先引用 Context 中的 GB/规范文本（标注为 [Standard Mandate]），并确保每条均为原文摘录。"
+            "输出必须为简体中文；如检索内容为英文需翻译为专业中文术语。"
         ).format(
             project_name=project_name,
             project_features=project_features or "（未提供特征）",
@@ -325,8 +326,9 @@ class DesignConceptPromptBuilder:
             "}}}}\n\n"
             "要求：\n"
             "- 仅输出 JSON，不要解释；\n"
-            "- standard_mandates 至少2条，若缺失填 Not Specified；\n"
-            "- Content 必须是 Context 原文片段（50-120字）。\n\n"
+            "- standard_mandates 至少2条；若未找到具体条文，可根据“标准规范”或“规范性参考”上下文**推断**设计原则，提炼其意图填入 clause/content，Source 可用具体标准名；若无明确标准名，用“通用建筑设计准则”；\n"
+            "- Content 优先用 Context 原文片段（50-120字）；若为推断，请清晰描述规范意图；\n"
+            "- 输出必须为简体中文。\n\n"
             "Context:\n{context_block}".format(context_block=context_block_safe)
         )
         return {"system_prompt": system_prompt, "user_prompt": user_prompt}
@@ -343,6 +345,7 @@ class DesignConceptPromptBuilder:
             "You are an architectural historian conducting a forensic analysis. Do NOT summarize.\n"
             "Project: {project_name}. Features: {project_features}.\n"
             "From Context, extract **facts** and structured details. If a field is missing, write 'Not Specified'."
+            " CRITICAL: Output must be in Simplified Chinese; translate any English context into professional Chinese architectural terminology."
         ).format(
             project_name=project_name,
             project_features=project_features or "(not provided)",
@@ -351,7 +354,7 @@ class DesignConceptPromptBuilder:
             "Output JSON array (len=3) strictly: \n"
             "[\n  {{{{\n    \"case_name\": \"...\",\n    \"metadata\": {{{{\"architect\": \"...\", \"year\": \"...\", \"location\": \"城市, 国家\"}}}},\n    \"similarity_logic\": \"为何相似，规模/气候/区位\",\n    \"design_details\": {{{{\n      \"form_logic\": [\"至少3条：隐喻/几何/体量关系\"],\n      \"materiality\": [\"至少2条：幕墙/结构/生态技术\"],\n      \"spatial_features\": [\"至少3条：中庭/流线/界面\"]\n    }}}},\n    \"evidence_snippet\": \"引用 Context 中的原文句子\"\n  }}}}\n]\n\n"
             "Instructions:\n"
-            "1. Identify Architect & Year explicitly (Fact).\n"
+            "1. Identify Architect & Year explicitly (Fact)，尽力从文本中提取建筑师/年份/地点；出现“completed in 2015”则提取年份；“位于上海中心”则提取上海。仅在完全缺失时用 Not Specified。\n"
             "2. form_logic: metaphors/geometry/volume; materiality: facade+structure+ecotech; spatial_features: atrium/circulation/openings.\n"
             "3. evidence_snippet must be a quoted sentence from Context.\n"
             "4. Use bullet-like short items, no long paragraphs.\n\n"

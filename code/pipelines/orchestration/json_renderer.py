@@ -14,7 +14,13 @@ class JSONRenderer:
     # Heuristic to detect if a string already contains Markdown-like markers
     MARKDOWN_HINT_RE = re.compile(r"[#|\*-]|\d+\.\s", re.MULTILINE)
 
-    def render(self, data: Any, level: int = 3, key: Optional[str] = None) -> str:
+    def render(
+        self,
+        data: Any,
+        level: int = 3,
+        key: Optional[str] = None,
+        section_number: Optional[int] = None,
+    ) -> str:
         if data is None:
             return "_(暂无数据)_\n"
 
@@ -78,11 +84,15 @@ class JSONRenderer:
 
             # Special theater specialized renderer
             if key and str(key).lower() == "special_theater":
-                return self._render_special_theater(data, level)
+                return self._render_special_theater(data, level, section_number)
 
             # Central hub specialized renderer
             if key and str(key).lower() == "central_hub":
                 return self._render_central_hub(data, level)
+
+            # Operation specialized renderer (structured JSON -> Markdown)
+            if key and str(key).lower() == "operation":
+                return self._render_operation(data, level, section_number)
 
             # Key-specific tables
             if key == "function_area_ranges":
@@ -513,10 +523,10 @@ class JSONRenderer:
                 if b_rows:
                     lines.append("\n".join([b_header, b_divider, *b_rows]))
 
-        # 3) 全球趋势（结构化列表）
+        # 3) 趋势（结构化列表）
         global_trends = trend_data.get("global_trends") or []
         if global_trends:
-            lines.append(f"{h} 全球趋势")
+            lines.append(f"{h} 趋势")
             for trend in global_trends:
                 if not isinstance(trend, dict):
                     continue
@@ -541,6 +551,87 @@ class JSONRenderer:
             return "_(暂无数据)_\n"
 
         return "\n\n".join(lines) + "\n"
+
+    def _render_operation(self, data: Dict[str, Any], level: int, section_number: Optional[int]) -> str:
+        """Render operation module from structured JSON into Markdown."""
+        if not isinstance(data, dict):
+            return self.render(data, level)
+
+        base = section_number or 5
+        h = "#" * min(level, 6)
+        lines: List[str] = []
+
+        # 5.1 全球运营模式案例循证
+        lines.append(f"{h} {base}.1 全球运营模式案例循证 (Evidence of Operational Models)")
+        evidence_list = data.get("global_evidence") or []
+        if evidence_list:
+            lines.append("> 本节内容基于数据库案例检索生成，仅陈述事实。")
+            for item in evidence_list:
+                if not isinstance(item, dict):
+                    lines.append(f"- {self._stringify(item)}")
+                    continue
+                category = item.get("category", "-")
+                desc = item.get("description")
+                cases = item.get("cases") or []
+                bullet = f"- **{category}**"
+                if desc:
+                    bullet += f": {self._stringify(desc)}"
+                lines.append(bullet)
+                if cases:
+                    lines.append("\n".join(f"  - {self._stringify(c)}" for c in cases))
+        else:
+            lines.append("_(暂无案例数据)_")
+
+        # 5.2 商业空间落位策略（表格）
+        lines.append(f"\n{h} {base}.2 商业空间落位策略 (Spatial Integration Strategy)")
+        strategy_list = data.get("spatial_strategy") or []
+        if strategy_list:
+            header = "| 业态类型 | 空间耦合建议 | 规范/案例依据 |"
+            divider = "| --- | --- | --- |"
+            rows: List[str] = []
+            for item in strategy_list:
+                if not isinstance(item, dict):
+                    continue
+                t = item.get("type", "-")
+                proposal = item.get("proposal", "-")
+                ref = item.get("reference", "-")
+                rows.append(f"| {self._stringify(t)} | {self._stringify(proposal)} | {self._stringify(ref)} |")
+            if rows:
+                lines.append("\n".join([header, divider, *rows]))
+            else:
+                lines.append("_(暂无落位策略)_")
+        else:
+            lines.append("_(暂无落位策略)_")
+
+        # 5.3 济南项目定制化建议
+        lines.append(f"\n{h} {base}.3 济南项目定制化建议 (Tailored Recommendations)")
+        tailored = data.get("tailored_recommendations") or []
+        if tailored:
+            for item in tailored:
+                if not isinstance(item, dict):
+                    lines.append(f"- {self._stringify(item)}")
+                    continue
+                topic = item.get("topic", "主题")
+                strategy = item.get("strategy")
+                rationale = item.get("rationale")
+                lines.append(f"- **{self._stringify(topic)}**")
+                if strategy:
+                    lines.append(f"  - *策略*: {self._stringify(strategy)}")
+                if rationale:
+                    lines.append(f"  - *依据*: {self._stringify(rationale)}")
+        else:
+            lines.append("_(暂无定制化建议)_")
+
+        # 5.4 运营支持空间技术要求
+        lines.append(f"\n{h} {base}.4 运营支持空间技术要求 (Technical Requirements)")
+        tech_reqs = data.get("technical_requirements") or []
+        if tech_reqs:
+            for req in tech_reqs:
+                lines.append(f"- {self._stringify(req)}")
+        else:
+            lines.append("_(暂无技术要求)_")
+
+        return "\n".join(lines) + "\n"
 
     def _render_science_education(self, data: Dict[str, Any], level: int) -> str:
         """Render science education with hard/soft separation."""
@@ -613,7 +704,7 @@ class JSONRenderer:
 
         # Empirical highlights table
         if highlights:
-            lines.append(f"{h} 实证亮点")
+            lines.append(f"{h} 亮点案例")
             header = "| 创新特征 | 案例来源 | 描述 |"
             divider = "| --- | --- | --- |"
             rows = []
@@ -642,24 +733,61 @@ class JSONRenderer:
             return "_(暂无数据)_\n"
         return "\n\n".join(lines) + "\n"
 
-    def _render_special_theater(self, data: Dict[str, Any], level: int) -> str:
-        """Render special theater with recommendation-first layout."""
+    def _render_special_theater(self, data: Dict[str, Any], level: int, section_number: Optional[int]) -> str:
+        """Render special theater with inductive flow: typology -> trends -> recommendations."""
         if not isinstance(data, dict):
             return self.render(data, level)
 
+        base = section_number or 9
         h = "#" * min(level, 6)
-        h_sub = "#" * min(level + 1, 6)
         lines: List[str] = []
 
         suitability = data.get("suitability_data") or {}
         typology = data.get("typology_data") or {}
         trend_data = data.get("trend_data") or {}
 
-        # Suitability recommendations first
+        # 1) Typology first
+        types = typology.get("types") or []
+        lines.append(f"{h} {base}.1 影厅类型谱系 (Theater Typologies)")
+        if types:
+            header = "| 类型名称 | 定义与特征 | 典型配置 |"
+            divider = "| --- | --- | --- |"
+            rows = []
+            for t in types:
+                if not isinstance(t, dict):
+                    continue
+                name = t.get("name", "-")
+                desc = t.get("description", "-")
+                evidence = t.get("evidence") or t.get("configuration") or "-"
+                rows.append(f"| {self._stringify(name)} | {self._stringify(desc)} | {self._stringify(evidence)} |")
+            lines.append("\n".join([header, divider, *rows]))
+        else:
+            lines.append("_(暂无类型数据)_")
+
+        # 2) Trends second
+        trend_list = trend_data.get("trend_list") or []
+        strategies = trend_data.get("actionable_strategies") or []
+        lines.append(f"\n{h} {base}.2 技术演进趋势 (Technological Trends)")
+        if trend_list:
+            for tr in trend_list:
+                if not isinstance(tr, dict):
+                    lines.append(f"- {self._stringify(tr)}")
+                    continue
+                name = tr.get("trend_name", "-")
+                desc = tr.get("description", "-")
+                lines.append(f"- **{self._stringify(name)}**: {self._stringify(desc)}")
+        else:
+            lines.append("_(暂无趋势数据)_")
+        if strategies:
+            lines.append("  - **应对策略 (Strategies):**")
+            for s in strategies:
+                lines.append(f"    - {self._stringify(s)}")
+
+        # 3) Suitability recommendations third
         recs = suitability.get("recommendations") or []
+        lines.append(f"\n{h} {base}.3 选型与空间建议 (Selection & Spatial Recommendations)")
         if recs:
-            lines.append(f"{h} 选型建议")
-            header = "| 影院类型 | 建议容量 | 核心功能 | 选型理由 |"
+            header = "| 推荐类型 | 建议容量 | 核心功能 | 选型逻辑 |"
             divider = "| --- | --- | --- | --- |"
             rows = []
             for r in recs:
@@ -669,46 +797,17 @@ class JSONRenderer:
                 cap = r.get("recommended_capacity", "-")
                 func = r.get("core_function", "-")
                 rationale = r.get("rationale", "-")
-                rows.append(f"| {t} | {cap} | {func} | {rationale} |")
-            if rows:
-                lines.append("\n".join([header, divider, *rows]))
+                rows.append(f"| {self._stringify(t)} | {self._stringify(cap)} | {self._stringify(func)} | {self._stringify(rationale)} |")
+            lines.append("\n".join([header, divider, *rows]))
+        else:
+            lines.append("_(暂无选型建议)_")
 
         spatial_reqs = suitability.get("spatial_requirements") or []
         if spatial_reqs:
-            lines.append("- **空间要求**:")
-            lines.append("\n".join(f"  - {req}" for req in spatial_reqs))
+            reqs_text = "; ".join(self._stringify(r) for r in spatial_reqs)
+            lines.append(f"> **技术要求**: {reqs_text}")
 
-        # Typology table
-        types = typology.get("types") or []
-        if types:
-            lines.append(f"{h} 影厅类型")
-            header = "| 类型 | 描述 |"
-            divider = "| --- | --- |"
-            rows = []
-            for t in types:
-                if not isinstance(t, dict):
-                    continue
-                name = t.get("name", "-")
-                desc = t.get("description", "-")
-                rows.append(f"| {name} | {desc} |")
-            if rows:
-                lines.append("\n".join([header, divider, *rows]))
-
-        # Trend list
-        trend_list = trend_data.get("trend_list") or []
-        if trend_list:
-            lines.append(f"{h} 趋势")
-            for tr in trend_list:
-                if not isinstance(tr, dict):
-                    continue
-                name = tr.get("trend_name", "-")
-                desc = tr.get("description", "-")
-                lines.append(f"{h_sub} {name}")
-                lines.append(desc)
-
-        if not lines:
-            return "_(暂无数据)_\n"
-        return "\n\n".join(lines) + "\n"
+        return "\n".join(lines) + "\n"
 
     def _render_central_hub(self, data: Dict[str, Any], level: int) -> str:
         """Render central hub with visual anatomy focus."""

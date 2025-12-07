@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import re
 from typing import Dict, List, Optional, Sequence
 
 from langchain_core.documents import Document
@@ -59,7 +61,7 @@ class OperationVectorStore:
 
 
 class OperationPromptBuilder:
-    """Prompt enforcing evidence/opinion separation and required markdown layout."""
+    """Prompt enforcing evidence/opinion separation with structured JSON schema."""
 
     @staticmethod
     def _escape_braces(text: str) -> str:
@@ -89,33 +91,31 @@ class OperationPromptBuilder:
             " Uphold public-benefit framing: commercial services must serve science education, not pure profit."
         )
 
+        schema = (
+            "{\n"
+            "  \"global_evidence\": [\n"
+            "    {\"category\": \"文创与零售 / Education / etc.\", \"description\": \"Summary...\", \"cases\": [\"Case A\", \"Case B\"]}\n"
+            "  ],\n"
+            "  \"spatial_strategy\": [\n"
+            "    {\"type\": \"主题餐饮 / 研学教室 / etc.\", \"proposal\": \"Suggestion...\", \"reference\": \"Evidence...\"}\n"
+            "  ],\n"
+            "  \"tailored_recommendations\": [\n"
+            "    {\"topic\": \"IP开发 / 夜间经济 / etc.\", \"strategy\": \"Core strategy...\", \"rationale\": \"Why...\"}\n"
+            "  ],\n"
+            "  \"technical_requirements\": [\"Requirement 1\", \"Requirement 2\"]\n"
+            "}"
+        )
+
         user_raw = (
             f"项目：{project_name or '未命名'} | 特征：{project_features or '未提供'}\n"
-            "请仅用中文输出，遵循以下结构和要求：\n"
-            "1) 严禁幻觉：只依据 Context 生成事实。若无证据，写“未检索到相关证据”。\n"
-            "2) 事实与建议分离：事实=检索到的案例做法；建议=面向济南的主观策略。\n"
-            "3) 如 Context 含有《建筑设计防火规范》或类似条文，须在 5.4 指出商业区人员密度/疏散宽度等要求。\n"
-            "4) 若未检索到“元宇宙商业”相关内容，不得编造。\n\n"
+            "请仅用中文输出，严格返回 JSON（不要添加 Markdown、标题、列表符号、代码块或 ```json 包裹）。\n"
+            "值中禁止使用 Markdown 粗体/标题（如 **、##），除非必要的规范编号。\n"
+            "严禁幻觉：仅依据 Context，缺证据则填写空字符串/空数组并可注明“未检索到相关证据”。\n"
+            "如 Context 含有《建筑设计防火规范》或类似条文，须在 technical_requirements 中体现疏散/人员密度要求。\n"
+            "若未检索到“元宇宙商业”等概念，不得编造。\n"
             "Context:\n" + ctx + "\n\n"
-            "输出 Markdown，必须严格使用此模版，且不要输出主标题（例如不要写'## 5. ...'），直接从子章节开始，可使用三级标题：\n"
-            "### 全球运营模式案例循证 (Evidence of Operational Models)\n"
-            "> 本节内容基于数据库案例检索生成，仅陈述事实。\n"
-            "* **文创与零售模式**: 逐条写 \"In case <项目名>, it features <具体商业设施/活动>.\"\n"
-            "* **教育与研学模式**: 同上，仅写案例事实。\n"
-            "* **场地租赁与活动**: 同上，仅写案例事实。\n\n"
-            "### 商业空间落位策略 (Spatial Integration Strategy)\n"
-            "| 业态类型 | 空间耦合建议 | 规范/案例依据 |\n| :--- | :--- | :--- |\n"
-            "| 主题餐饮 | 建议落位 | 参考案例/规范条文 |\n"
-            "| 研学教室 | 建议落位 | 参考案例/规范条文 |\n"
-            "| 文创/零售 | 建议落位 | 参考案例/规范条文 |\n"
-            "| 活动/租赁 | 建议落位 | 参考案例/规范条文 |\n"
-            "| 夜间经济/独立动线 | 建议落位 | 参考案例/规范条文 |\n\n"
-            "### 济南项目定制化建议 (Tailored Recommendations)\n"
-            "* **IP开发方向**: 结合“泉水”“名士”与科技的文创产品线建议，标明基于哪些案例启发。\n"
-            "* **夜间经济**: 是否建议“博物馆奇妙夜”，结合 Context 证据与济南消费习惯推断。\n"
-            "* **价值循环设计**: 解释商业如何反哺科普（会员、研学、二次消费）。\n\n"
-            "### 运营支持空间技术要求\n"
-            "简述为支持上述商业需预留的建筑条件：排油烟/给排水/卸货/独立门禁/夜间出入口/声学与防火疏散。如缺少证据，写“未检索到相关条文/案例，需进一步论证”。\n"
+            "输出必须完全符合以下 JSON 结构，键名不可更改，可为空：\n"
+            f"{schema}\n"
         )
 
         user = self._escape_braces(user_raw)
@@ -222,4 +222,26 @@ class OperationGenerator:
         ])
         chain = chat_prompt | self._llm_module.llm | StrOutputParser()
         response = chain.invoke({})
-        return {"prompt": prompt, "contexts": contexts, "response": response}
+        response_text = response.strip() if isinstance(response, str) else str(response)
+        parsed = self._parse_json_response(response_text)
+
+        return {
+            "prompt": prompt,
+            "contexts": contexts,
+            "response": response_text,
+            "json_result": parsed,
+        }
+
+    @staticmethod
+    def _parse_json_response(text: str) -> Dict[str, object]:
+        if not text:
+            return {}
+        cleaned = text.strip()
+        cleaned = re.sub(r"^```json|```$", "", cleaned, flags=re.IGNORECASE).strip()
+        try:
+            parsed = json.loads(cleaned)
+        except Exception:
+            return {}
+        if isinstance(parsed, dict):
+            return parsed
+        return {"data": parsed}

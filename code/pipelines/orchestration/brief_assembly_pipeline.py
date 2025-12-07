@@ -80,7 +80,7 @@ class BriefAssemblyPipeline:
                 else:
                     lines.append(f"{section_data.strip()}\n")
             else:
-                lines.append(self._renderer.render(section_data, level=3, key=key))
+                lines.append(self._renderer.render(section_data, level=3, key=key, section_number=section_num))
 
             lines.append("")
             section_num += 1

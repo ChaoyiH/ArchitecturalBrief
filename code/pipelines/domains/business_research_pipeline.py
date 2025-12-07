@@ -267,7 +267,8 @@ class BusinessResearchGenerator:
 			[
 				(
 					"system",
-					"你是科技馆后勤与业务研究区的案例挖掘助手，专注办公/科研/库房/工作坊创新做法，忽略常规办公室。",
+					"你是科技馆后勤与业务研究区的案例挖掘助手，专注办公/科研/库房/工作坊创新做法，忽略常规办公室。"
+					"CRITICAL: empirical_highlights 中的 feature_name 与 description 必须输出为简体中文，若检索文本为英文需译为专业中文建筑术语，禁止输出英文。",
 				),
 				(
 					"human",
