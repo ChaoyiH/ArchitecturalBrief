@@ -97,6 +97,10 @@ def _should_skip_module(state: BriefGenerationState, module_key: str) -> bool:
     if isinstance(error, str) and error.strip():
         return False
 
+    json_result = output.get("json_result")
+    if json_result is not None:
+        return True
+
     response = output.get("response")
     if isinstance(response, str) and response.strip():
         return True
@@ -195,10 +199,15 @@ def _run_central_hub_sync(state: BriefGenerationState) -> ModuleOutput:
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
         )
+        json_result = result.get("json_result") or result.get("final_json")
+        response_text = result.get("response")
+        if json_result is not None and not response_text:
+            response_text = json.dumps(json_result, ensure_ascii=False, indent=2)
         return ModuleOutput(
             prompt=result.get("prompt"),
             contexts=result.get("contexts"),
-            response=result.get("response"),
+            response=response_text,
+            json_result=json_result,
         )
     except Exception as exc:
         logger.exception("综合大厅模块执行失败")
@@ -238,10 +247,15 @@ def _run_exhibition_sync(state: BriefGenerationState) -> ModuleOutput:
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
         )
+        json_result = result.get("final_json") or result.get("json_result")
+        response_text = result.get("response")
+        if json_result is not None and not response_text:
+            response_text = json.dumps(json_result, ensure_ascii=False, indent=2)
         return ModuleOutput(
             prompt=result.get("prompt"),
             contexts=result.get("contexts"),
-            response=result.get("response"),
+            response=response_text,
+            json_result=json_result,
         )
     except Exception as exc:
         logger.exception("展览空间模块执行失败")
@@ -279,10 +293,15 @@ def _run_special_theater_sync(state: BriefGenerationState) -> ModuleOutput:
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
         )
+        json_result = result.get("json") or result.get("json_result")
+        response_text = result.get("response")
+        if json_result is not None and not response_text:
+            response_text = json.dumps(json_result, ensure_ascii=False, indent=2)
         return ModuleOutput(
             prompt=result.get("prompt"),
             contexts=result.get("contexts"),
-            response=result.get("response"),
+            response=response_text,
+            json_result=json_result,
         )
     except Exception as exc:
         logger.exception("特效影院模块执行失败")
@@ -322,10 +341,15 @@ def _run_science_education_sync(state: BriefGenerationState) -> ModuleOutput:
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
         )
+        json_result = result.get("final_json") or result.get("json_result")
+        response_text = result.get("response")
+        if json_result is not None and not response_text:
+            response_text = json.dumps(json_result, ensure_ascii=False, indent=2)
         return ModuleOutput(
             prompt=result.get("prompt"),
             contexts=result.get("contexts"),
-            response=result.get("response"),
+            response=response_text,
+            json_result=json_result,
         )
     except Exception as exc:
         logger.exception("科教活动模块执行失败")
@@ -365,10 +389,15 @@ def _run_public_service_sync(state: BriefGenerationState) -> ModuleOutput:
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
         )
+        json_result = result.get("final_json") or result.get("json_result")
+        response_text = result.get("response")
+        if json_result is not None and not response_text:
+            response_text = json.dumps(json_result, ensure_ascii=False, indent=2)
         return ModuleOutput(
             prompt=result.get("prompt"),
             contexts=result.get("contexts"),
-            response=result.get("response"),
+            response=response_text,
+            json_result=json_result,
         )
     except Exception as exc:
         logger.exception("公共服务模块执行失败")
@@ -406,11 +435,15 @@ def _run_business_research_sync(state: BriefGenerationState) -> ModuleOutput:
             rebuild_index=inp.get("rebuild_index", False),
             dry_run=inp.get("dry_run", False),
         )
+        json_result = result.get("final_json") or result.get("json_result")
+        response_text = result.get("response")
+        if json_result is not None and not response_text:
+            response_text = json.dumps(json_result, ensure_ascii=False, indent=2)
         return ModuleOutput(
             prompt=result.get("prompts"),
             contexts=result.get("contexts"),
-            response=result.get("response"),
-            json_result=result.get("final_json"),
+            response=response_text,
+            json_result=json_result,
         )
     except Exception as exc:
         logger.exception("业务科研模块执行失败")
@@ -542,7 +575,21 @@ def _run_assembly_sync(state: BriefGenerationState) -> str:
     """同步执行任务书组装。"""
     inp = state.get("input", {})
 
-    # 收集各模块输出
+    def _section_payload(output: ModuleOutput) -> Any:
+        if not isinstance(output, dict):
+            return "(暂无内容)"
+        if output.get("error"):
+            return f"生成失败: {output['error']}"
+        if output.get("json_result") is not None:
+            return output.get("json_result")
+        if output.get("response"):
+            parsed = _parse_json_response(output.get("response"))
+            if parsed not in ({}, "", None):
+                return parsed
+            return output.get("response")
+        return "(暂无内容)"
+
+    # 收集各模块输出为结构化 JSON
     sections: Dict[str, Any] = {}
     for module_key in [
         "design",
@@ -557,14 +604,7 @@ def _run_assembly_sync(state: BriefGenerationState) -> str:
     ]:
         output: ModuleOutput = state.get(module_key, {})
         section_key = SECTION_KEY_MAP.get(module_key, module_key)
-
-        if output.get("error"):
-            sections[section_key] = f"生成失败: {output['error']}"
-        elif output.get("response"):
-            parsed = _parse_json_response(output["response"])
-            sections[section_key] = parsed or "(暂无内容)"
-        else:
-            sections[section_key] = "(暂无内容)"
+        sections[section_key] = _section_payload(output)
 
     assembler = BriefAssemblyPipeline()
     result = assembler.generate_brief(
@@ -572,6 +612,8 @@ def _run_assembly_sync(state: BriefGenerationState) -> str:
         project_features=inp.get("project_features", ""),
         sections=sections,
     )
+
+    state["assembled_json"] = sections  # type: ignore[index]
     return result.get("response", "")
 
 
@@ -583,11 +625,12 @@ async def assembly_node(state: BriefGenerationState) -> Dict[str, Any]:
     # 检查是否为 dry_run 模式
     if inp.get("dry_run", False):
         logger.info("📝 Dry-run 模式，跳过组装")
-        return {"assembled_brief": "(dry-run 模式，跳过组装)"}
+        return {"assembled_brief": "(dry-run 模式，跳过组装)", "assembled_json": {}}
 
     markdown = await asyncio.to_thread(_run_assembly_sync, state)
     logger.info("📝 完成: 任务书组装")
-    return {"assembled_brief": markdown}
+    assembled_json = state.get("assembled_json") if isinstance(state, dict) else None
+    return {"assembled_brief": markdown, "assembled_json": assembled_json}
 
 
 # =============================================================================

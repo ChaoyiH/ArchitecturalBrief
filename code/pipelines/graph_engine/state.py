@@ -82,6 +82,7 @@ class BriefGenerationState(TypedDict, total=False):
 
     # ========== 组装输出层（第二阶段） ==========
     assembled_brief: Optional[str]
+    assembled_json: Optional[Dict[str, Any]]
 
     # ========== 元信息 ==========
     errors: Dict[str, str]
@@ -144,6 +145,7 @@ def create_initial_state(
         business_research={},
         operation={},
         assembled_brief=None,
+        assembled_json=None,
         errors={},
         execution_log=[],
     )

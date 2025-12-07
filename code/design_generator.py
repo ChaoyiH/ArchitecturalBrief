@@ -36,6 +36,7 @@ from config import (
     PublicServiceConfig,
 )
 from pipelines.orchestration.brief_assembly_pipeline import BriefAssemblyPipeline
+from pipelines.orchestration.json_renderer import JsonBriefRenderer
 from pipelines.domains.operation_pipeline import OperationGenerator
 from pipelines.domains.business_research_pipeline import BusinessResearchGenerator
 from pipelines.domains.central_hub_pipeline import CentralHubGenerator
@@ -100,7 +101,7 @@ def _parse_args() -> argparse.Namespace:
         "--step",
         default=None,  # 改为 None，让 YAML 配置优先
         help=(
-            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / operation / both / all / full（全案整合），"
+            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / business_research / operation / render / both / all / full（全案整合，强制 parallel），"
             "或以逗号分隔组合。如未指定，默认为 design"
         ),
     )
@@ -115,10 +116,9 @@ def _parse_args() -> argparse.Namespace:
         help="打印检索到的上下文摘要",
     )
     parser.add_argument(
-        "--mode",
-        default="sequential",
-        choices=["sequential", "parallel"],
-        help="执行模式：sequential (顺序) 或 parallel (并行，使用 LangGraph)",
+        "--render-json",
+        dest="render_json",
+        help="当 step=render 时指定已生成的模块 JSON 路径",
     )
     parser.add_argument(
         "--llm-provider",
@@ -146,7 +146,6 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
         "llm_provider": None,
         "llm_model": None,
         "step": None,
-        "mode": None,
         "top_k": None,
         "min_area": None,
         "max_area": None,
@@ -154,6 +153,7 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
         "rebuild_index": False,
         "dry_run": False,
         "show_contexts": False,
+        "render_json": None,
     }
 
     if getattr(args, "config", None):
@@ -187,7 +187,6 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
                 "llm_provider": llm.get("provider"),
                 "llm_model": llm.get("model"),
                 "step": step_value,
-                "mode": pipeline.get("mode"),
                 "top_k": pipeline.get("top_k"),
                 "min_area": pipeline.get("min_area"),
                 "max_area": pipeline.get("max_area"),
@@ -195,6 +194,7 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
                 "rebuild_index": bool(pipeline.get("rebuild_index", False) or execution.get("rebuild_index", False)),
                 "dry_run": bool(pipeline.get("dry_run", False) or execution.get("dry_run", False)),
                 "show_contexts": bool(pipeline.get("show_contexts", False) or execution.get("verbose", False)),
+                "render_json": pipeline.get("render_json"),
             }
         )
 
@@ -218,8 +218,6 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
         base["llm_model"] = args.llm_model
     if getattr(args, "step", None):
         base["step"] = args.step
-    if getattr(args, "mode", None):
-        base["mode"] = args.mode
     if getattr(args, "top_k", None) is not None:
         base["top_k"] = args.top_k
     if getattr(args, "min_area", None) is not None:
@@ -234,6 +232,8 @@ def _load_yaml_config(args: argparse.Namespace) -> Dict[str, Any]:
         base["dry_run"] = True
     if getattr(args, "show_contexts", False):
         base["show_contexts"] = True
+    if getattr(args, "render_json", None):
+        base["render_json"] = args.render_json
 
     if not base["project_name"] or not base["project_features"]:
         raise ValueError("项目名称 --project-name 和项目特征 --project-features 必须在命令行或 YAML 中至少提供一处")
@@ -304,6 +304,7 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "operations": ["operation"],
         "commercial": ["operation"],
         "both": ["design", "exhibition"],
+        "render": ["render"],
     }
 
     if lowered in alias_map:
@@ -366,6 +367,7 @@ STEP_TITLES = {
     "public_service": "公共服务区空间设计策划书",
     "business_research": "业务科研与后勤策划书",
     "operation": "商业与运营体系策划书",
+    "render": "JSON 渲染任务书",
     "full": "建筑设计任务书",
 }
 
@@ -437,6 +439,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             "prompt": None,
             "contexts": result.get("retrieved_sources"),  # dry_run 时才会有
             "response": response_str,
+            "json_result": json_result,
         }
 
     if step_name == "indicators":
@@ -479,6 +482,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             "prompt": None,
             "contexts": None,  # 中间结果可通过 result["raw_text"] 访问
             "response": response_str,
+            "json_result": json_result,
         }
 
     if step_name == "exhibition":
@@ -505,7 +509,7 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
         )
         theater_generator = SpecialTheaterGenerator(theater_config)
         _log_request("special_theater", project_name, project_features, query)
-        return theater_generator.generate(
+        result = theater_generator.generate(
             project_name=project_name,
             project_features=project_features,
             query=query,
@@ -513,6 +517,12 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,
         )
+        json_result = result.get("json") or result.get("json_result")
+        if json_result is not None and not result.get("response"):
+            result["response"] = json.dumps(json_result, ensure_ascii=False, indent=2)
+        if json_result is not None:
+            result["json_result"] = json_result
+        return result
 
     if step_name == "science_education":
         science_config: ScienceEducationConfig = _override_llm_config(
@@ -579,6 +589,18 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             dry_run=args.dry_run,
         )
 
+    if step_name == "render":
+        renderer = JsonBriefRenderer()
+        render_path = cfg.get("render_json") or getattr(args, "render_json", None)
+        if not render_path:
+            raise ValueError("render 步骤需要提供 JSON 路径 (--render-json 或 pipeline.render_json)")
+        result = renderer.render(
+            project_name=project_name,
+            project_features=project_features,
+            json_path=render_path,
+        )
+        return {"response": result.get("response"), "json_result": result.get("sections")}
+
     raise ValueError(f"未知的步骤: {step_name}")
 
 
@@ -628,7 +650,7 @@ def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) ->
             continue
 
         response_payload = result.get("response")
-        parsed_payload = _parse_json_response(response_payload)
+        parsed_payload = result.get("json_result") or _parse_json_response(response_payload)
         context_data[SECTION_KEY_MAP.get(step_name, step_name)] = parsed_payload or "(暂无内容)"
 
     if not context_data:
@@ -646,6 +668,14 @@ def generate_full_brief(args: argparse.Namespace, filters: Dict[str, object]) ->
     output_path.write_text(markdown, encoding="utf-8")
     print(f"✅ 《{project_name} 建筑设计任务书》已生成 -> {output_path}")
     _log_response("full", markdown[:2000])
+
+    # 输出总 JSON
+    try:
+        json_path = output_path.with_suffix(".json")
+        json_path.write_text(json.dumps(context_data, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"🧩 模块级 JSON 输出已生成 -> {json_path}")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("写入模块级 JSON 输出时出错: %s", exc)
 
     if step_errors:
         print("⚠️ 以下模块生成失败，已在任务书中标注：")
@@ -744,18 +774,24 @@ async def generate_full_brief_parallel(args: argparse.Namespace, filters: Dict[s
         from pipelines.graph_engine.state import MODULE_STATE_KEYS, SECTION_KEY_MAP
         from pipelines.graph_engine.nodes import _parse_json_response  # type: ignore
 
-        modules_payload: Dict[str, Any] = {}
-        for module_key in MODULE_STATE_KEYS:
-            output = final_state.get(module_key, {}) or {}
-            section_key = SECTION_KEY_MAP.get(module_key, module_key)
+        modules_payload: Dict[str, Any] = final_state.get("assembled_json") or {}
 
-            if output.get("error"):
-                modules_payload[section_key] = {"error": output.get("error")}
-            elif output.get("response"):
-                parsed = _parse_json_response(output.get("response"))
-                modules_payload[section_key] = parsed
-            else:
-                modules_payload[section_key] = None
+        # 回退：若 assembled_json 不存在，则逐模块解析
+        if not modules_payload:
+            modules_payload = {}
+            for module_key in MODULE_STATE_KEYS:
+                output = final_state.get(module_key, {}) or {}
+                section_key = SECTION_KEY_MAP.get(module_key, module_key)
+
+                if output.get("error"):
+                    modules_payload[section_key] = {"error": output.get("error")}
+                elif output.get("json_result") is not None:
+                    modules_payload[section_key] = output.get("json_result")
+                elif output.get("response"):
+                    parsed = _parse_json_response(output.get("response"))
+                    modules_payload[section_key] = parsed
+                else:
+                    modules_payload[section_key] = None
 
         json_path = output_path.with_suffix(".json")
         json_path.write_text(json.dumps(modules_payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -788,18 +824,9 @@ def main():
     requested_steps: List[str] = _resolve_steps(merged.get("step", getattr(args, "step", "design")))
 
     if "full" in requested_steps:
-        # 全案整合模式：根据 --mode 选择执行方式
-        mode = merged.get("mode", args.mode)
-        if mode == "parallel":
-            asyncio.run(generate_full_brief_parallel(args, filters))
-        else:
-            generate_full_brief(args, filters)
+        # 全案整合模式强制使用并行图
+        asyncio.run(generate_full_brief_parallel(args, filters))
         return
-
-    # 单步/多步模式：暂不支持并行，使用顺序执行
-    mode = merged.get("mode", args.mode)
-    if mode == "parallel":
-        print("ℹ️ 并行模式仅支持 --step full，当前自动降级为顺序模式")
 
     steps: List[str] = [step for step in EXECUTION_ORDER if step in requested_steps]
     if not steps:

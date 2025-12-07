@@ -1,0 +1,21 @@
+# 全案并行生成配置（full 模式默认 parallel）
+project:
+  name: "济南科技馆"
+  features: "在黄河边，以黄河为概念"
+  target_area: 40000
+  user_project_info: "总建筑面积约 40000 ㎡，滨水，北方寒冷地区"
+  query: null
+
+llm:
+  provider: "gemini"
+  model: "gemini-3-pro-preview"
+
+pipeline:
+  step: "full"           # full 模式强制并行
+  top_k: 6
+  min_area: null
+  max_area: null
+  category: null
+  rebuild_index: false
+  dry_run: false
+  show_contexts: false

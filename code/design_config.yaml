@@ -22,9 +22,8 @@ llm:
 pipeline:
   # step: design / central_hub / exhibition / special_theater /
   #       science_education / public_service / business_research /
-  #       full / all / both
+  #       render / full / all / both
   step: "design"
-  mode: "sequential"   # sequential / parallel (仅 step=full 时生效)
   top_k: 6              # 检索案例数量
   min_area: null        # 建筑面积下限
   max_area: null        # 建筑面积上限
