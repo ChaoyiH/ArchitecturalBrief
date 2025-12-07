@@ -38,6 +38,48 @@ python main.py
 
 ### 方式二：生成设计任务书
 
+#### 2.1 使用 YAML 配置（推荐）
+
+1. 在 `code` 目录下复制示例配置：
+
+```powershell
+cd d:\016_RAG\project\code
+copy design_config.example.yaml design_config.yaml
+```
+
+2. 按项目修改 `design_config.yaml` 中的：
+
+- `project.name` / `project.features` / `project.target_area`
+- `llm.provider` / `llm.model`
+- `pipeline.step` / `pipeline.mode` / `pipeline.top_k` 等
+
+3. 使用配置文件生成任务书：
+
+```powershell
+python design_generator.py --config design_config.yaml
+```
+
+> 命令行参数会覆盖 YAML 中的同名配置，例如：
+>
+> ```powershell
+> python design_generator.py --config design_config.yaml --step full
+> ```
+>
+> 会以 YAML 为基础，仅把步骤强制改为 `full`（默认并行执行）。
+
+#### 2.2 仅渲染已有 JSON（跳过生成）
+
+1. 确认已有 JSON（例如 `济南科技馆_设计任务书.json`）路径。
+2. 更新或直接使用 `render_from_json_config.yaml`（`pipeline.step: render`，`pipeline.render_json` 指向 JSON）。
+
+```powershell
+python design_generator.py --config render_from_json_config.yaml
+```
+
+输出：`code/{项目名}_设计任务书.md`，不在终端打印全文。
+
+#### 2.3 仍使用命令行参数
+
 **生成完整任务书（全案整合）：**
 ```powershell
 python design_generator.py `
@@ -56,6 +98,9 @@ python design_generator.py --project-name "科普馆" --project-features "山区
 
 # 综合大厅
 python design_generator.py --project-name "科普馆" --project-features "山区低碳" --step central_hub
+
+# 仅渲染已有 JSON
+python design_generator.py --project-name "科普馆" --project-features "山区低碳" --step render --render-json .\科普馆_设计任务书.json
 ```
 
 **预览模式（不调用 LLM）：**
@@ -81,6 +126,7 @@ python design_generator.py `
 | `--rebuild-index` | 强制重建向量索引 |
 | `--dry-run` | 仅输出 Prompt，不调用 LLM |
 | `--show-contexts` | 打印检索到的案例摘要 |
+| `--render-json` | `step=render` 时指定现有 JSON 路径 |
 
 ### `--step` 可选值
 
@@ -93,7 +139,34 @@ python design_generator.py `
 | `science_education` | 科教活动与空间融合策划书 |
 | `public_service` | 公共服务区空间设计策划书 |
 | `business_research` | 业务科研区空间设计策划书 |
-| `full` / `all` | 全案整合（生成完整任务书） |
+| `render` | 仅渲染现有 JSON（不调用 LLM） |
+| `full` / `all` | 全案整合（生成完整任务书，默认并行） |
+
+### LLM 提供商与模型组合
+
+当前代码支持以下 `--llm-provider` 与模型组合（也可在 `design_config.yaml` 的 `llm` 块中配置）：
+
+| provider | 示例 model | 说明 |
+|----------|------------|------|
+| `minimax` | `Minimax-M2` | 默认配置，需设置 `MINIMAX_API_KEY` 和 `MINIMAX_GROUP_ID` 环境变量 |
+| `moonshot` | `kimi-k2-0711-preview` | 使用 Moonshot/Kimi，需设置 `MOONSHOT_API_KEY` 环境变量 |
+| `gemini` | `gemini-3-pro-preview` / `gemini-2.5-pro` | 使用 Google Gemini，需设置 `GEMINI_API_KEY` 环境变量 |
+
+在命令行中使用示例：
+
+```powershell
+# MiniMax
+python design_generator.py --project-name "科普馆" --project-features "山区低碳" `
+  --llm-provider minimax --llm-model Minimax-M2 --step design
+
+# Moonshot
+python design_generator.py --project-name "科普馆" --project-features "山区低碳" `
+  --llm-provider moonshot --llm-model kimi-k2-0711-preview --step design
+
+# Gemini
+python design_generator.py --project-name "济南科技馆" --project-features "在黄河边，以黄河为概念" `
+  --llm-provider gemini --llm-model gemini-3-pro-preview --step design
+```
 
 ---
 
