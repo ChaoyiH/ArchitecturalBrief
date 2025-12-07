@@ -580,78 +580,86 @@
   "science_education": {
     "normative_requirements": {
       "target_level": "大型馆",
-      "compliance_source": "《科学技术馆建设标准》(建标 101-2007)",
+      "compliance_source": "《科学技术馆建设标准》, 《博物馆建筑设计规范》",
       "mandatory_rooms": [
         {
-          "room_type": "通用教室",
-          "min_area": "60-80 m²",
-          "note": "基于展教占比推估，[通用知识]"
+          "room_type": "展览教育用房",
+          "min_area": "[无具体证据]",
+          "note": "来源:gb_standard | 依据:《科学技术馆建设标准》第二十条及条文说明，具体面积指标参见附录一至附录三(上下文未提供)。注:《博物馆建筑设计规范》指出通常将展览用房与教育用房合称为展览教育区。"
         },
         {
-          "room_type": "实验/创客空间",
-          "min_area": "80-120 m²",
-          "note": "需排风与耐污地面，[通用知识]"
+          "room_type": "公众服务用房",
+          "min_area": "[无具体证据]",
+          "note": "来源:gb_standard | 依据:《科学技术馆建设标准》第二十条，具体面积指标参见附录(上下文未提供)。"
+        },
+        {
+          "room_type": "业务研究用房",
+          "min_area": "[无具体证据]",
+          "note": "来源:gb_standard | 依据:《科学技术馆建设标准》第二十条，具体面积指标参见附录(上下文未提供)。"
+        },
+        {
+          "room_type": "管理保障用房",
+          "min_area": "[无具体证据]",
+          "note": "来源:gb_standard | 依据:《科学技术馆建设标准》第二十条，具体面积指标参见附录(上下文未提供)。"
         }
       ],
       "safety_specs": [
-        "化学/湿式实验需独立排风与洗眼器 [通用知识]",
-        "教室宜设置双出口与应急照明 [通用知识]"
+        "[无具体证据]"
       ]
     },
     "activity_programming": {
       "trends": [
         {
-          "activity_name": "Theatrical Science Performances & Live Demonstrations",
-          "spatial_need": "Science Show Theatre or Theater-style performance space (e.g., Floor 1 Theatre)",
-          "reference_case": "Glasgow Science Centre, CERN Science Gateway, Pacific Science Center",
+          "activity_name": "剧场式科学表演与巡回秀",
+          "spatial_need": "需设置专门的科学表演剧场（Science Show Theatre）或配备舞台设施的多功能厅，用于举办现场科学演示（Live Demonstrations）；同时需考虑巡回展示（Traveling Science Shows）的设备存储与准备空间。",
+          "reference_case": "Glasgow Science Centre, Glasgow; CERN Science Gateway, Geneva; The Franklin Institute, Philadelphia",
           "is_general_knowledge": false
         },
         {
-          "activity_name": "Hands-on Maker Workshops & Lab Classes (Robotics, Construction, Physics)",
-          "spatial_need": "Dedicated Laboratory spaces (e.g., 'The Lab', 'The Bothy') or Science Education Center",
-          "reference_case": "Glasgow Science Centre, CERN Science Gateway, National Science Museum Daejeon",
+          "activity_name": "创客实验室与动手工作坊",
+          "spatial_need": "需规划专用实验室（如'The Lab'或'The Bothy'）及教育中心教室，空间需支持模型构建、机器人编程、无线电操作等动手实践课程，并配备相应的工具台与安全设施。",
+          "reference_case": "Glasgow Science Centre, Glasgow; National Science Museum, Daejeon; CERN Science Gateway, Geneva",
           "is_general_knowledge": false
         },
         {
-          "activity_name": "Intensive STEM Camps & Youth Scholar Programs (Study Tours)",
-          "spatial_need": "Multi-purpose Education Hubs or Classrooms for seasonal camps and long-term programs",
-          "reference_case": "California Science Center, Pacific Science Center, The Franklin Institute",
+          "activity_name": "全龄段沉浸式研学营",
+          "spatial_need": "需设置灵活的研学教室或夏令营专用基地，支持从学前班到高中的分龄教学（如Hands-On Science Camp），空间需适应长期项目（如为期一周的课程）及高强度学习活动。",
+          "reference_case": "California Science Center, Los Angeles; Pacific Science Center, Seattle; National Science Museum, Daejeon",
           "is_general_knowledge": false
         },
         {
-          "activity_name": "STEM Career Exploration & Youth Internships",
-          "spatial_need": "Interactive Career Hubs (e.g., 'My World of Work Live') or Youth Development Zones",
-          "reference_case": "Glasgow Science Centre, The Franklin Institute, California Science Center",
+          "activity_name": "青少年STEM职业探索与实习基地",
+          "spatial_need": "需设立职业探索中心（如'My World of Work Live' hub）或研讨室，用于开展青少年实习（Teen Interns）、职业指导及深度STEM学者项目。",
+          "reference_case": "The Franklin Institute, Philadelphia; Glasgow Science Centre, Glasgow; California Science Center, Los Angeles",
           "is_general_knowledge": false
         }
       ],
       "suggested_curriculum_zones": [
-        "Science Show Theatre (for Live Demos)",
-        "Maker Labs / 'The Bothy' (for Construction & Engineering)",
-        "Science Education Center (for Camps & Workshops)",
-        "STEM Career Exploration Hub",
-        "Digital/Virtual Learning Zone (Virtual Field Trips)"
+        "科学表演剧场 (Science Show Theatre)",
+        "创客教育实验室 (Maker Education Labs)",
+        "研学活动中心 (Study Tour Activity Center)",
+        "STEM职业探索枢纽 (STEM Career Hub)"
       ]
     },
     "spatial_integration_matrix": [
       {
-        "activity_name": "Theatrical Science Performances & Live Demonstrations",
-        "candidate_room": "通用教室",
+        "activity_name": "剧场式科学表演与巡回秀",
+        "candidate_room": "展览教育用房",
         "rationale": "基于空间需求与房间类型匹配"
       },
       {
-        "activity_name": "Hands-on Maker Workshops & Lab Classes (Robotics, Construction, Physics)",
-        "candidate_room": "实验/创客空间",
+        "activity_name": "创客实验室与动手工作坊",
+        "candidate_room": "展览教育用房",
         "rationale": "基于空间需求与房间类型匹配"
       },
       {
-        "activity_name": "Intensive STEM Camps & Youth Scholar Programs (Study Tours)",
-        "candidate_room": "通用教室",
+        "activity_name": "全龄段沉浸式研学营",
+        "candidate_room": "展览教育用房",
         "rationale": "基于空间需求与房间类型匹配"
       },
       {
-        "activity_name": "STEM Career Exploration & Youth Internships",
-        "candidate_room": "通用教室",
+        "activity_name": "青少年STEM职业探索与实习基地",
+        "candidate_room": "展览教育用房",
         "rationale": "基于空间需求与房间类型匹配"
       }
     ]

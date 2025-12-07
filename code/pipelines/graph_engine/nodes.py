@@ -25,7 +25,6 @@ from config import (
     DEFAULT_CENTRAL_HUB_CONFIG,
     DEFAULT_DESIGN_CONCEPT_CONFIG,
     DEFAULT_EXHIBITION_CONFIG,
-    DEFAULT_PUBLIC_SERVICE_CONFIG,
     DEFAULT_SCIENCE_EDUCATION_CONFIG,
     DEFAULT_SPECIAL_THEATER_CONFIG,
 )
@@ -34,7 +33,6 @@ from pipelines.domains.business_research_pipeline import BusinessResearchGenerat
 from pipelines.domains.central_hub_pipeline import CentralHubGenerator
 from pipelines.domains.design_concept_pipeline import DesignConceptGenerator
 from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
-from pipelines.domains.public_service_pipeline import PublicServiceGenerator
 from pipelines.domains.science_education_pipeline import ScienceEducationGenerator
 from pipelines.domains.special_theater_pipeline import SpecialTheaterGenerator
 from pipelines.orchestration.brief_assembly_pipeline import BriefAssemblyPipeline
@@ -365,54 +363,6 @@ async def science_education_node(state: BriefGenerationState) -> Dict[str, Any]:
 
 
 # =============================================================================
-# 公共服务节点
-# =============================================================================
-
-
-def _run_public_service_sync(state: BriefGenerationState) -> ModuleOutput:
-    """同步执行公共服务生成。"""
-    if _should_skip_module(state, "public_service"):
-        logger.info("🚻 公共服务模块已成功完成，本次补跑将跳过执行")
-        return ModuleOutput()
-
-    inp = state.get("input", {})
-    try:
-        config = _override_llm_config(DEFAULT_PUBLIC_SERVICE_CONFIG, inp)
-        generator = PublicServiceGenerator(config)
-        target_area = _extract_target_area(inp)
-        result = generator.generate(
-            project_name=inp.get("project_name", ""),
-            project_features=inp.get("project_features", ""),
-            query=inp.get("query"),
-            target_area=target_area if target_area > 0 else inp.get("target_area"),
-            top_k=inp.get("top_k"),
-            rebuild_index=inp.get("rebuild_index", False),
-            dry_run=inp.get("dry_run", False),
-        )
-        json_result = result.get("final_json") or result.get("json_result")
-        response_text = result.get("response")
-        if json_result is not None and not response_text:
-            response_text = json.dumps(json_result, ensure_ascii=False, indent=2)
-        return ModuleOutput(
-            prompt=result.get("prompt"),
-            contexts=result.get("contexts"),
-            response=response_text,
-            json_result=json_result,
-        )
-    except Exception as exc:
-        logger.exception("公共服务模块执行失败")
-        return ModuleOutput(error=str(exc))
-
-
-async def public_service_node(state: BriefGenerationState) -> Dict[str, Any]:
-    """异步公共服务节点。"""
-    logger.info("🚻 开始执行: 公共服务模块")
-    output = await asyncio.to_thread(_run_public_service_sync, state)
-    logger.info("🚻 完成: 公共服务模块")
-    return {"public_service": output}
-
-
-# =============================================================================
 # 业务科研节点（后勤/BOH）
 # =============================================================================
 
@@ -598,7 +548,6 @@ def _run_assembly_sync(state: BriefGenerationState) -> str:
         "exhibition",
         "special_theater",
         "science_education",
-        "public_service",
         "business_research",
         "operation",
     ]:
@@ -644,7 +593,6 @@ NODE_REGISTRY = {
     "exhibition": exhibition_node,
     "special_theater": special_theater_node,
     "science_education": science_education_node,
-    "public_service": public_service_node,
     "business_research": business_research_node,
     "operation": operation_node,
     "assembly": assembly_node,
@@ -658,7 +606,6 @@ PARALLEL_NODES = [
     "exhibition",
     "special_theater",
     "science_education",
-    "public_service",
     "business_research",
     "operation",
 ]

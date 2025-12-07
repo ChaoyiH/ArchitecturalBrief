@@ -72,10 +72,6 @@ class JSONRenderer:
             if key and str(key).lower() == "science_education":
                 return self._render_science_education(data, level)
 
-            # Public service specialized renderer
-            if key and str(key).lower() == "public_service":
-                return self._render_public_service(data, level)
-
             # Business research / back-of-house specialized renderer
             if key and str(key).lower() == "business_research":
                 return self._render_business_research(data, level)
@@ -554,38 +550,28 @@ class JSONRenderer:
         h = "#" * min(level, 6)
         lines: List[str] = []
 
-        normative = data.get("normative_requirements") or {}
         activity = data.get("activity_programming") or {}
-        matrix = data.get("spatial_integration_matrix") or []
-
-        # Normative requirements table
-        mandatory_rooms = normative.get("mandatory_rooms") or []
-        if mandatory_rooms:
-            title = f"{h} 规范要求"
-            compliance = normative.get("compliance_source")
-            if compliance:
-                title += f"（依据：{compliance}）"
-            lines.append(title)
-            header = "| 房间类型 | 最小面积 | 备注/依据 |"
-            divider = "| --- | --- | --- |"
-            rows = []
-            for item in mandatory_rooms:
-                if not isinstance(item, dict):
-                    continue
-                room = item.get("room_type", "-")
-                min_area = item.get("min_area", "-")
-                note = item.get("note", "-")
-                rows.append(f"| {room} | {min_area} | {note} |")
-            if rows:
-                lines.append("\n".join([header, divider, *rows]))
-
-        # Activity programming table
         trends = activity.get("trends") or []
+
+        # Hardcoded normative table for 特大型馆
+        lines.append(f"{h} 规范占比与功能基准（特大型馆）")
+        norm_table = [
+            "| 功能分区 | 规范占比范围 | 建议内容/备注 |",
+            "| --- | --- | --- |",
+            "| 展览教育用房 | 55% ~ 60% | 核心功能区。含常设/临时展厅、科普实验室、特效影院等。 |",
+            "| 公众服务用房 | 15% ~ 20% | 含门厅、餐饮、文创商店、休息区等。 |",
+            "| 业务研究用房 | 10% ~ 15% | 含行政办公、科研办公室、展品维修车间。 |",
+            "| 管理保障用房 | 10% ~ 15% | 含安保监控、设备机房、总务仓库。 |",
+        ]
+        lines.append("\n".join(norm_table))
+        lines.append("*数据来源：《科学技术馆建设标准》(建标 101-2007) - 特大型馆指标*")
+
+        # Activity programming as compact definition-style list
         if trends:
             lines.append(f"{h} 活动策划")
             header = "| 活动名称 | 空间需求 | 参考案例 |"
             divider = "| --- | --- | --- |"
-            rows = []
+            rows: List[str] = []
             for t in trends:
                 if not isinstance(t, dict):
                     continue
@@ -595,85 +581,6 @@ class JSONRenderer:
                 rows.append(f"| {name} | {need} | {ref} |")
             if rows:
                 lines.append("\n".join([header, divider, *rows]))
-
-        # Spatial integration matrix
-        if matrix:
-            lines.append(f"{h} 空间耦合矩阵")
-            header = "| 活动 | 建议落位 | 匹配逻辑 |"
-            divider = "| --- | --- | --- |"
-            rows = []
-            for m in matrix:
-                if not isinstance(m, dict):
-                    continue
-                act = m.get("activity_name", "-")
-                room = m.get("candidate_room", "-")
-                rationale = m.get("rationale", "-")
-                rows.append(f"| {act} | {room} | {rationale} |")
-            if rows:
-                lines.append("\n".join([header, divider, *rows]))
-
-        if not lines:
-            return "_(暂无数据)_\n"
-        return "\n\n".join(lines) + "\n"
-
-    def _render_public_service(self, data: Dict[str, Any], level: int) -> str:
-        """Render public service with commercial focus."""
-        if not isinstance(data, dict):
-            return self.render(data, level)
-
-        h = "#" * min(level, 6)
-        h_sub = "#" * min(level + 1, 6)
-        lines: List[str] = []
-
-        normative = data.get("normative_requirements") or {}
-        strategies = data.get("design_strategies") or {}
-
-        # Normative data bullets
-        bullets: List[str] = []
-        if normative.get("project_scale_category"):
-            bullets.append(f"- **项目规模**: {normative.get('project_scale_category')}")
-        sanitary = normative.get("sanitary_facilities") or {}
-        if sanitary.get("ratio_requirement"):
-            bullets.append(f"- **卫生成比例**: {sanitary.get('ratio_requirement')}")
-        if sanitary.get("accessibility_note"):
-            bullets.append(f"- **无障碍说明**: {sanitary.get('accessibility_note')}")
-        if bullets:
-            lines.append(f"{h} 规范要点")
-            lines.append("\n".join(bullets))
-
-        # Lobby strategies
-        lobby = strategies.get("entrance_lobby") or {}
-        flow = lobby.get("flow_strategy")
-        atmosphere = lobby.get("atmosphere")
-        if flow or atmosphere:
-            lines.append(f"{h} 大堂设计策略")
-            if flow:
-                lines.append(f"**流线策略**: {flow}")
-            if atmosphere:
-                lines.append(f"**空间氛围**: {atmosphere}")
-
-        # Commercial planning table
-        commercial = strategies.get("commercial_planning") or []
-        if commercial:
-            lines.append(f"{h} 商业落位")
-            header = "| 业态分区 | 落位逻辑 | 参考案例 |"
-            divider = "| --- | --- | --- |"
-            rows = []
-            for item in commercial:
-                if not isinstance(item, dict):
-                    continue
-                zone = item.get("zone", "-")
-                logic = item.get("location_logic", "-")
-                ref = item.get("case_reference", "-")
-                rows.append(f"| {zone} | {logic} | {ref} |")
-            if rows:
-                lines.append("\n".join([header, divider, *rows]))
-
-        # Amenity innovation
-        amenity = strategies.get("amenity_innovation")
-        if amenity:
-            lines.append(f"{h_sub} 配套创新")
-            lines.append(f"> {amenity}")
 
         if not lines:
             return "_(暂无数据)_\n"

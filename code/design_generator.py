@@ -26,14 +26,12 @@ from config import (
     DEFAULT_EXHIBITION_CONFIG,
     DEFAULT_SPECIAL_THEATER_CONFIG,
     DEFAULT_SCIENCE_EDUCATION_CONFIG,
-    DEFAULT_PUBLIC_SERVICE_CONFIG,
     BusinessResearchConfig,
     CentralHubConfig,
     DesignConceptConfig,
     ExhibitionConfig,
     SpecialTheaterConfig,
     ScienceEducationConfig,
-    PublicServiceConfig,
 )
 from pipelines.orchestration.brief_assembly_pipeline import BriefAssemblyPipeline
 from pipelines.orchestration.json_renderer import JsonBriefRenderer
@@ -42,7 +40,6 @@ from pipelines.domains.business_research_pipeline import BusinessResearchGenerat
 from pipelines.domains.central_hub_pipeline import CentralHubGenerator
 from pipelines.domains.design_concept_pipeline import DesignConceptGenerator
 from pipelines.domains.exhibition_pipeline import ExhibitionGenerator
-from pipelines.domains.public_service_pipeline import PublicServiceGenerator
 from pipelines.domains.special_theater_pipeline import SpecialTheaterGenerator
 from pipelines.domains.science_education_pipeline import ScienceEducationGenerator
 from utils.indicator_analyzer import analyze_indicators
@@ -101,7 +98,7 @@ def _parse_args() -> argparse.Namespace:
         "--step",
         default=None,  # 改为 None，让 YAML 配置优先
         help=(
-            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / public_service / business_research / operation / render / both / all / full（全案整合，强制 parallel），"
+            "指定生成阶段，可选 design / central_hub / exhibition / special_theater / science_education / business_research / operation / render / both / all / full（全案整合，强制 parallel），"
             "或以逗号分隔组合。如未指定，默认为 design"
         ),
     )
@@ -281,9 +278,6 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "design": ["design"],
         "concept": ["design"],
         "exhibition": ["exhibition"],
-        "public_service": ["public_service"],
-        "public-service": ["public_service"],
-        "service": ["public_service"],
         "central_hub": ["central_hub"],
         "central-hub": ["central_hub"],
         "central": ["central_hub"],
@@ -295,9 +289,6 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "data": ["indicators"],
         "special_theater": ["special_theater"],
         "special-theater": ["special_theater"],
-        "theater": ["special_theater"],
-        "cinema": ["special_theater"],
-        "full": ["full"],
         "all": ["full"],
         "science_education": ["science_education"],
         "science-education": ["science_education"],
@@ -327,7 +318,6 @@ def _resolve_steps(step_arg: str) -> List[str]:
         "exhibition",
         "special_theater",
         "science_education",
-        "public_service",
         "operation",
         "business_research",
         "full",
@@ -349,7 +339,6 @@ EXECUTION_ORDER = [
     "exhibition",
     "special_theater",
     "science_education",
-    "public_service",
     "business_research",
     "operation",
 ]
@@ -361,7 +350,6 @@ SECTION_KEY_MAP = {
     "exhibition": "exhibition",
     "special_theater": "special_theater",
     "science_education": "science_education",
-    "public_service": "public_service",
     "business_research": "business_research",
     "operation": "operation",
 }
@@ -373,7 +361,6 @@ STEP_TITLES = {
     "exhibition": "展览空间设计要求",
     "special_theater": "特效影院区空间设计策划书",
     "science_education": "科教活动与空间融合策划书",
-    "public_service": "公共服务区空间设计策划书",
     "business_research": "业务科研与后勤策划书",
     "operation": "商业与运营体系策划书",
     "render": "JSON 渲染任务书",
@@ -558,24 +545,6 @@ def _execute_step(step_name: str, args: argparse.Namespace, filters: Dict[str, o
             project_name=project_name,
             project_features=project_features,
             query=query,
-            top_k=top_k,
-            rebuild_index=args.rebuild_index,
-            dry_run=args.dry_run,
-        )
-        return _finalize_step_result(step_name, result, target_json_path)
-
-    if step_name == "public_service":
-        service_config: PublicServiceConfig = _override_llm_config(
-            DEFAULT_PUBLIC_SERVICE_CONFIG,
-            args,
-        )
-        service_generator = PublicServiceGenerator(service_config)
-        _log_request("public_service", project_name, project_features, query)
-        result = service_generator.generate(
-            project_name=project_name,
-            project_features=project_features,
-            query=query,
-            target_area=target_area,
             top_k=top_k,
             rebuild_index=args.rebuild_index,
             dry_run=args.dry_run,

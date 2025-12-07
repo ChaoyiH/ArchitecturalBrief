@@ -58,7 +58,6 @@ class BriefGenerationState(TypedDict, total=False):
         exhibition: 展览空间模块输出
         special_theater: 特效影院模块输出
         science_education: 科教活动模块输出
-        public_service: 公共服务模块输出
         business_research: 业务科研模块输出（后勤/BOH）
         operation: 商业运营模块输出（前场/FOH）
         assembled_brief: 最终组装的任务书 Markdown
@@ -76,7 +75,6 @@ class BriefGenerationState(TypedDict, total=False):
     exhibition: ModuleOutput
     special_theater: ModuleOutput
     science_education: ModuleOutput
-    public_service: ModuleOutput
     business_research: ModuleOutput
     operation: ModuleOutput
 
@@ -141,7 +139,6 @@ def create_initial_state(
         exhibition={},
         special_theater={},
         science_education={},
-        public_service={},
         business_research={},
         operation={},
         assembled_brief=None,
@@ -159,7 +156,6 @@ MODULE_STATE_KEYS = [
     "exhibition",
     "special_theater",
     "science_education",
-    "public_service",
     "business_research",
     "operation",
 ]
@@ -172,7 +168,6 @@ SECTION_KEY_MAP = {
     "exhibition": "exhibition",
     "special_theater": "special_theater",
     "science_education": "science_education",
-    "public_service": "public_service",
     "business_research": "business_research",
     "operation": "operation",
 }

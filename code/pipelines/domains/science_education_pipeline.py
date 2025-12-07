@@ -334,7 +334,7 @@ class ScienceEducationGenerator:
             [
                 (
                     "system",
-                    "你是科教活动策划人。仅依据案例上下文提出活动与空间需求，输出 JSON，缺失时标记 is_general_knowledge=true 且 reference_case 用 '[General Knowledge]'。",
+                    "你是科教活动策划人。仅依据案例上下文提出活动与空间需求，输出 JSON，缺失时标记 is_general_knowledge=true 且 reference_case 用 '[General Knowledge]'。输出内容必须使用简体中文（活动名称、描述、空间需求均为中文，即便字段名是英文）。",
                 ),
                 (
                     "human",

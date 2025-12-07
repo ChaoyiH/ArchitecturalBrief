@@ -27,7 +27,6 @@ class BriefAssemblyPipeline:
         # 主要功能设计要求
         ("exhibition", "主要功能设计要求 / 展陈体系 (Exhibition)"),
         ("science_education", "主要功能设计要求 / 科研教学 (Science Education)"),
-        ("public_service", "主要功能设计要求 / 公共服务 (Public Service)"),
         ("operation", "主要功能设计要求 / 商业与运营 (Front-of-House Operations)"),
         ("business_research", "主要功能设计要求 / 业务科研与后勤 (Back-of-House)"),
         # 重点空间
