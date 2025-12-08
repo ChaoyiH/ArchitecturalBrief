@@ -408,19 +408,22 @@ class CentralHubGenerator:
 
         context_text = self._format_context(contexts)
         system_prompt = (
-            "You are a Senior Architectural Technician specialized in atrium spatial prototypes."
-            " Categorize cases by sectional profile (剖面形态) and output JSON only."
+            "你是一名专注于中庭剖面原型的高级建筑策划顾问，负责输出结构化 JSON。\n"
+            "CRITICAL: 所有生成内容（名称、描述、特征、案例）必须为简体中文，严禁出现英文句子。\n"
+            "Translate retrieved architectural terms into professional Chinese (如 Void->中庭/通高空间, Skylight->天窗/采光顶, Circulation->动线)。\n"
+            "字段规则：原型 name 用中文或 \"English Name (中文名)\"；spatial_diagram_desc 全中文；typical_features 全中文要点。"
         )
         user_prompt = (
             "基于下方 Context，输出可被 json.loads 解析的 JSON：\n"
             "{{\n"
             "  \"summary\": \"50-80字综述\",\n"
             "  \"archetypes\": [\n"
-            "    {{\"name\": \"原型名称\", \"spatial_diagram_desc\": \"剖面逻辑\", \"typical_features\": [\"特征1\", \"特征2\"], \"representative_case\": \"案例名\"}}\n"
+            "    {{\"name\": \"原型名称（仅中文或 English Name (中文名)）\", \"spatial_diagram_desc\": \"剖面逻辑（全中文）\", \"typical_features\": [\"特征1\", \"特征2\"], \"representative_case\": \"案例名\"}}\n"
             "  ]\n"
             "}}\n\n"
             "要求：\n"
             "- 以剖面/体量逻辑划分原型（如 Central Void, Linear Canyon, Dispersed Pockets）；\n"
+            "- 所有字段必须为简体中文，若案例原文为英文需翻译为专业中文术语；\n"
             "- typical_features 用简短要点；缺失填 Not Specified；\n"
             "- 必须是有效 JSON。\n\n"
             f"Context:\n{context_text}"
@@ -488,8 +491,10 @@ class CentralHubGenerator:
         context_text = self._format_context(contexts)
         area_display = f"{total_area / 10000:.1f}万" if total_area > 10000 else f"{total_area:.0f}"
         system_prompt = (
-            "You are a Senior Architectural Technician specialized in public space analysis."
-            " Do NOT write poetic summaries. Extract dimensions, structure, materials, interface, and circulation."
+            "你是一名专注公共空间剖析的高级建筑技术顾问，输出结构化 JSON。\n"
+            "CRITICAL: 所有生成内容必须为简体中文，禁止出现英文句子。\n"
+            "Translate retrieved architectural terms into专业中文 (Void->中庭/通高空间, Skylight->天窗/采光顶, Circulation->动线)。\n"
+            "字段规则：spatial_anatomy 内的 volume_strategy/light_environment/interface_materiality 要点需为中文；circulation_integration 必须为中文描述。"
         )
         user_prompt = (
             "项目：{project_name} | 规模：{area_display}㎡ | 特征：{project_features}\n"
@@ -499,7 +504,8 @@ class CentralHubGenerator:
             "- 寻找具体数字(高度/跨度/面积)；屋盖结构(网壳/桁架/天窗)；材料(石材/玻璃/金属/GRG)。\n"
             "- 如无明确数据，可基于描述推断但标注 Inferred。\n"
             "- evidence_quote 必须是原文摘录。\n"
-            "- 返回有效 JSON。\n\n"
+            "- 必须是有效 JSON。\n\n"
+            "- 必须是有效 JSON。\n\n"
             f"Context:\n{context_text}"
         ).format(project_name=project_name or "未命名", area_display=area_display, project_features=project_features or "(未提供)")
 
@@ -542,7 +548,10 @@ class CentralHubGenerator:
 
         context_text = self._format_context(contexts)
         system_prompt = (
-            "You are a Senior Architectural Technician. Output JSON only, focus on spatial/technical trends."
+            "你是一名关注空间与技术趋势的高级建筑策划专家，输出结构化 JSON。\n"
+            "CRITICAL: 全部输出（trend_name、description、tech_keywords、spatial_strategy_proposal）必须为简体中文，不得出现英文句子。\n"
+            "Translate all retrieved architectural terms into专业中文 (如 Void->中庭/通高空间, Skylight->天窗/采光顶, Circulation->动线)。\n"
+            "字段规则：trend_name 与 description 必须中文，tech_keywords 翻译为中文专业词汇。"
         )
         user_prompt = (
             "生成 JSON：\n"
@@ -554,7 +563,8 @@ class CentralHubGenerator:
             "}}\n\n"
             "要求：\n"
             "- 描述中指出光环境/气候响应/复合化等空间策略；\n"
-            "- tech_keywords 从案例中提取，如 烟囱效应/置换通风/遮阳一体化；\n"
+            "- tech_keywords 从案例中提取，如 烟囱效应/置换通风/遮阳一体化，并翻译为中文术语；\n"
+            "- 所有字段输出为简体中文，如原文为英文需翻译；\n"
             "- 若缺失填 Not Specified；必须为有效 JSON。\n\n"
             f"Context:\n{context_text}"
         )

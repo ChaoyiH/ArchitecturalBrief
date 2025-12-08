@@ -382,35 +382,45 @@
   },
   "central_hub": {
     "morphology_panorama": {
-      "summary": "本次分析的科技馆中庭呈现出从单纯交通核向“叙事性空间容器”演变的趋势。主流剖面原型为“巨型体量占据型”，通过悬浮球体或漏斗造型强化视觉焦点；另有以螺旋坡道主导的“动线导向型”及强调水平延展的“泛空间型”，共同构建了集采光、展示与交通于一体的复杂剖面逻辑。",
+      "summary": "国内科技馆中庭设计倾向于将“通高空间”转化为叙事载体，常采用核心体量悬浮、螺旋动线引导或异形体块嵌合的剖面策略。通过置入球幕影院、巨型装置或连续坡道，中庭不仅作为采光与交通枢纽，更通过“天地对话”的垂直构图强化科幻隐喻与视觉张力。",
       "archetypes": [
         {
-          "name": "Sculptural Object Void (巨型体量占据型)",
-          "spatial_diagram_desc": "在通高垂直空腔内部置入或悬挂巨大的几何体量（如球体、漏斗、扭转方盒），形成“容器与内容物”的对立统一，剖面呈现强烈的中心聚焦与包裹感。",
+          "name": "Central Sculptural Void (核心体量悬浮型)",
+          "spatial_diagram_desc": "在巨大的垂直通高空间中心，置入或悬挂一个极具雕塑感的巨型体量（如球体、漏斗），形成“虚包实”的剖面关系，核心体量通常容纳影院或特殊展项。",
           "typical_features": [
-            "悬浮或伫立的巨型几何装置",
-            "结合球幕影院等核心功能",
-            "30-40米级垂直通高"
+            "视觉焦点高度集中于中心装置",
+            "常隐喻星球、虫洞或空间之眼",
+            "核心体量内部往往具有沉浸式功能（如影院）"
           ],
-          "representative_case": "湖北省科学技术馆, 河南省科学技术馆, 山东省科学技术馆, 安徽省科学技术馆"
+          "representative_case": "湖北省科学技术馆（漏斗造型/虫洞）、河南省科学技术馆（悬挂球体）"
         },
         {
-          "name": "Spiral Circulation Void (螺旋动线导向型)",
-          "spatial_diagram_desc": "剖面形态由连续上升的螺旋坡道界定，中庭空间随动线盘旋贯穿楼层，顶部结合采光穹顶，强调垂直向上的流动性与光影引导。",
+          "name": "Spiral Circulation Void (螺旋动线通高型)",
+          "spatial_diagram_desc": "以连续上升的螺旋坡道界定中庭边界，动线本身成为空间的主体结构，顶部通常覆盖大型玻璃采光顶，形成从地面直通顶层的连续漫游体验。",
           "typical_features": [
-            "DNA双螺旋坡道结构",
-            "顶部全景玻璃穹顶",
-            "交通动线景观化"
+            "交通动线与景观视野合二为一",
+            "强调垂直方向的流动感与升腾感",
+            "顶部自然采光强化空间的向心性"
           ],
           "representative_case": "海南省科学技术馆"
         },
         {
-          "name": "Lateral Pan-Space (横向泛空间型)",
-          "spatial_diagram_desc": "打破单一垂直轴线，采用大跨度横向“泛空间”作为主核，辅以分散的垂直中庭连接功能块，剖面逻辑强调水平延展性与多核穿插。",
+          "name": "Interlocking Volumes (异形体块嵌合型)",
+          "spatial_diagram_desc": "中庭并非单一的垂直竖井，而是由悬浮方盒、扭转符号等异形体块在剖面上相互穿插、咬合而成，打破楼层界限，形成虚实交错的复杂空间。",
           "typical_features": [
-            "大尺度横向开敞空间",
-            "多中庭分散布局",
-            "适应大型科普活动"
+            "空间层次丰富，打破线性流线",
+            "利用形体扭转创造动态视觉",
+            "各楼层视线关系复杂多变"
+          ],
+          "representative_case": "山东省科学技术馆"
+        },
+        {
+          "name": "Distributed Pan-space (泛空间网络型)",
+          "spatial_diagram_desc": "不依赖单一的巨型中庭，而是采用宽敞的“泛空间”大厅配合多个分散的文化中庭，在水平维度上串联各功能区块，形成网络化的空间节点。",
+          "typical_features": [
+            "空间开阔，适应大型科普活动",
+            "多节点连接，功能穿插灵活",
+            "强调空间的水平延展性与连通性"
           ],
           "representative_case": "辽宁省科学技术馆"
         }
@@ -420,109 +430,112 @@
       {
         "case_name": "河南省科学技术馆",
         "basic_data": {
-          "total_area": "129,365 ㎡",
-          "atrium_height": "42m (Area: ~3000 ㎡)"
+          "total_area": "129,365㎡",
+          "atrium_height": "42米"
         },
         "spatial_anatomy": {
           "volume_strategy": [
-            "Ecological atrium void",
-            "Suspended spherical volume (Space Eye)"
+            "42米超高尺度通高空间",
+            "悬挂式球体体量（空间之眼）"
           ],
           "light_environment": [
-            "Ecological breathing design (Inferred natural ventilation/lighting)",
-            "Focal lighting on suspended sphere"
+            "生态呼吸式采光设计",
+            "球幕影院形成的视觉焦点光影"
           ],
           "interface_materiality": [
-            "Sphere cladding (Inferred metal/composite)",
-            "Atrium boundary (Inferred glass/steel)"
+            "球形设备表面材质",
+            "生态中庭围合界面"
           ]
         },
-        "circulation_integration": "Visual circulation centered on the suspended 'Space Eye' sphere; physical verticality emphasized by the 42m void",
-        "evidence_quote": "中庭通高42米，面积近3000平方米，设计为“能够呼吸”的生态中庭；其顶部悬挂有巨大的球形设备，即球幕影院"
+        "circulation_integration": "以悬挂球体为核心的视觉向心动线组织（基于视觉焦点描述推断）",
+        "evidence_quote": "中庭通高42米，面积近3000平方米，设计为“能够呼吸”的生态中庭；其顶部悬挂有巨大的球形设备"
       },
       {
         "case_name": "安徽省科学技术馆",
         "basic_data": {
-          "total_area": "60,000 ㎡",
-          "atrium_height": "34m"
+          "total_area": "60,000㎡",
+          "atrium_height": "约34米"
         },
         "spatial_anatomy": {
           "volume_strategy": [
-            "Spiral curve spatial form",
-            "Interior-Exterior visual continuity"
+            "34米大跨度通高空间",
+            "螺旋曲线空间形态"
           ],
           "light_environment": [
-            "LED ambient illumination (Earth Screen)",
-            "Permeable facade allowing interior-exterior visual interaction"
+            "LED球形屏自发光照明",
+            "科幻质感光影氛围"
           ],
           "interface_materiality": [
-            "Large-scale LED Sphere",
-            "Diamond-shaped curtain wall (Glass/Metal)"
+            "异形钻石形态幕墙",
+            "室内LED显示屏材质"
           ]
         },
-        "circulation_integration": "Visual axis connecting the interior LED sphere with the exterior roof observatory",
-        "evidence_quote": "序厅中庭区域拥有全国最大的室内LED球形显示屏... 距离地面高度约34米... 幕墙整体呈现“异形钻石”形态"
+        "circulation_integration": "围绕巨大地球LED屏幕展开的观览视线与空间互动",
+        "evidence_quote": "序厅中庭区域拥有全国最大的室内LED球形显示屏（地球屏幕）...中庭吊顶造型复杂，距离地面高度约34米"
       },
       {
         "case_name": "海南省科学技术馆",
         "basic_data": {
-          "total_area": "46,528 ㎡",
-          "atrium_height": "Full building height (Ground to Top)"
+          "total_area": "46,528㎡",
+          "atrium_height": "全馆通高 (Inferred)"
         },
         "spatial_anatomy": {
           "volume_strategy": [
-            "Vertical central void",
-            "DNA double helix sculptural volume"
+            "垂直贯通式中庭",
+            "DNA双螺旋结构体量"
           ],
           "light_environment": [
-            "Direct top lighting",
-            "Natural light penetration"
+            "顶部玻璃穹顶采光",
+            "自然光垂直漫射"
           ],
           "interface_materiality": [
-            "Glass Dome (Roof)",
-            "Ramp structural cladding (Inferred)"
+            "玻璃穹顶",
+            "螺旋坡道实体界面"
           ]
         },
-        "circulation_integration": "Spiral ramp (DNA structure) functions as both primary vertical transportation and core visual landscape",
-        "evidence_quote": "顶部设有巨大的玻璃穹顶，自然光可直接倾洒而下。一条极具视觉冲击力的螺旋坡道（类似DNA双螺旋结构）从地面蜿蜒盘旋至顶层"
+        "circulation_integration": "DNA双螺旋坡道作为核心交通动线与视觉景观贯穿全馆",
+        "evidence_quote": "中庭为通高空间，顶部设有巨大的玻璃穹顶...一条极具视觉冲击力的螺旋坡道（类似DNA双螺旋结构）从地面蜿蜒盘旋至顶层"
       }
     ],
     "design_trends": {
       "trend_list": [
         {
-          "trend_name": "气候响应型生态中庭 (Climate-Responsive Ecological Atrium)",
-          "description": "现代科技馆中庭正演变为气候调节核心，利用热烟囱效应促进自然通风，或采用双层呼吸幕墙调节热环境。设计在引入自然光的同时，通过遮阳一体化措施降低能耗，实现生态效益。",
+          "trend_name": "生态气候响应型中庭",
+          "description": "现代科技馆倾向于将中庭打造为“会呼吸”的生态核心。通过双层幕墙、热烟囱效应及自然采光策略，调节室内微气候。这不仅降低能耗，还通过光影变化增强空间的通透感，实现建筑与自然环境的有机融合。",
           "tech_keywords": [
-            "热烟囱效应",
             "双层呼吸玻璃幕墙",
-            "热增益控制",
-            "自然采光"
+            "热烟囱效应",
+            "被动式遮阳",
+            "自然通风策略",
+            "采光顶"
           ]
         },
         {
-          "trend_name": "结构与功能的垂直复合 (Vertical Structural & Functional Integration)",
-          "description": "核心空间趋向于将大跨度结构与功能体块结合，如将球幕影院悬吊或嵌入中庭形成视觉焦点（如漏斗、球体）。这种异形结构既支撑建筑荷载，又作为沉浸式体验容器，构建多维立体交通。",
+          "trend_name": "叙事性结构与核心地标",
+          "description": "空间设计强调视觉焦点的塑造，常利用大跨度钢结构或悬浮体量（如球幕影院、漏斗造型）占据中庭核心。这些巨型装置不仅作为功能载体，更作为“虫洞”或“空间之眼”等叙事符号，营造宏大且具有沉浸感的科技体验。",
           "tech_keywords": [
-            "钢桁架天桥",
-            "沉浸式空中影院",
-            "轨道式系统",
-            "异形结构支撑"
+            "大跨度钢桁架",
+            "悬浮体量",
+            "沉浸式装置",
+            "视觉焦点",
+            "通高空间"
           ]
         },
         {
-          "trend_name": "边界消隐与景观渗透 (Blurring Boundaries & Landscape Permeability)",
-          "description": "强调建筑公共性，通过大尺度玻璃面或半室外空间打破内外界限。设计注重视线通廊的构建，将周边海景或公园景观引入中庭，使内部交通空间成为城市公共生活的延伸。",
+          "trend_name": "泛在连接的城市客厅",
+          "description": "建筑边界逐渐消融，中庭演变为开放的城市公共空间。通过通透的玻璃界面或露天设计，将外部景观（如海景、公园）引入室内，动线设计强调从公共平台向各个展厅的自然发散，强化建筑的公共性与开放性。",
           "tech_keywords": [
-            "视觉通廊",
-            "玻璃幕墙遮阳",
-            "半室外中庭",
-            "景观融合"
+            "室内外融合",
+            "景观视廊",
+            "城市公共空间",
+            "开放式动线",
+            "露天中庭"
           ]
         }
       ],
-      "spatial_strategy_proposal": "建议本项目采用‘生态核+悬浮体’的空间策略：构建一个具备热烟囱效应的通高生态中庭以优化微气候；在中庭核心置入具有标志性的悬浮功能体块（如异形展厅或影院），利用大跨度钢结构实现无柱空间；同时通过通透的立面设计最大化景观朝向，形成‘内观科技结构，外观自然景观’的复合体验。"
+      "spatial_strategy_proposal": "建议本项目采用“生态核+叙事锚点”的复合空间策略。以高通高中央中庭为核心，植入具有象征意义的巨型结构（如悬浮影院或科技装置）作为视觉锚点。同时，利用高性能表皮技术引入自然光并控制热辐射，结合热烟囱效应实现被动式节能。在动线组织上，应打破封闭边界，通过景观视廊将周边城市或自然环境引入内部，打造既具科技震撼力又兼顾生态舒适度的城市公共客厅。"
     },
-    "generated_at": "2025-12-08T02:04:56.703960"
+    "generated_at": "2025-12-08T23:44:23.946424"
   },
   "exhibition": {
     "core_planning_data": {
