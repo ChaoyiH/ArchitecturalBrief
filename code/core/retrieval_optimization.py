@@ -58,12 +58,28 @@ class RetrievalOptimizationModule:
             检索到的文档列表
         """
         # 分别获取向量检索和BM25检索结果
-        vector_docs = self.vector_retriever.get_relevant_documents(query)
-        bm25_docs = self.bm25_retriever.get_relevant_documents(query)
+        vector_docs = self._run_retriever(self.vector_retriever, query)
+        bm25_docs = self._run_retriever(self.bm25_retriever, query)
 
         # 使用RRF重排
         reranked_docs = self._rrf_rerank(vector_docs, bm25_docs)
         return reranked_docs[:top_k]
+
+    @staticmethod
+    def _run_retriever(retriever, query: str) -> List[Document]:
+        """兼容不同LangChain版本的检索调用。"""
+        try:
+            if hasattr(retriever, "get_relevant_documents"):
+                return retriever.get_relevant_documents(query)
+            if hasattr(retriever, "invoke"):
+                return retriever.invoke(query)
+            if hasattr(retriever, "_get_relevant_documents"):
+                return retriever._get_relevant_documents(query)
+            if callable(retriever):
+                return retriever(query)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("检索器调用失败: %s", exc)
+        return []
 
     def _rrf_rerank(self, vector_docs: List[Document], bm25_docs: List[Document], k: int = 60) -> List[Document]:
         """

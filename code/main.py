@@ -26,6 +26,8 @@ from core import (
     RetrievalOptimizationModule,
     GenerationIntegrationModule
 )
+# 新增QA入口
+from pipelines.qa.main_qa import QAPipeline
 
 # 加载环境变量
 load_dotenv()
@@ -243,36 +245,60 @@ class BuildingRegulationRAGSystem:
 
 
 
+def run_interactive_qa():
+    """多轮 QA 入口，基于 QAPipeline。"""
+    qa = QAPipeline()
+    print("=" * 60)
+    print("🧠  双路混合检索 QA")
+    print("=" * 60)
+    print("输入'退出'或'quit'结束。\n")
+
+    while True:
+        try:
+            user_input = input("你的问题: ").strip()
+            if user_input.lower() in ["退出", "quit", "exit", "q", "bye", ""]:
+                break
+            answer = qa.answer(user_input)
+            print(f"\n答: {answer}\n")
+        except KeyboardInterrupt:
+            break
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("处理 QA 失败: %s", exc)
+            print(f"发生错误: {exc}")
+
+
 def main():
     """主函数"""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='建筑规范RAG系统')
-    parser.add_argument('--build_index', action='store_true', help='重建向量索引')
+    parser.add_argument('--build_index', action='store_true', help='重建向量索引（传统规范RAG路径）')
+    parser.add_argument('--qa', action='store_true', help='启动双路混合检索 QA（默认行为）')
     args = parser.parse_args()
-    
+
+    # 默认进入QA模式，除非显式要求构建索引或运行旧版交互
+    if args.qa or not args.build_index:
+        run_interactive_qa()
+        return
+
     try:
         # 创建RAG系统
         rag_system = BuildingRegulationRAGSystem()
-        
+
         if args.build_index:
             # 仅构建索引
             print("🔨 重建索引模式")
             rag_system.initialize_system()
-            
+
             # 删除旧索引
             index_path = Path(rag_system.config.index_save_path)
             if index_path.exists():
                 import shutil
                 print(f"删除旧索引: {index_path}")
                 shutil.rmtree(index_path)
-            
+
             rag_system.build_knowledge_base()
             print("✅ 索引构建完成！")
-        else:
-            # 运行交互式问答
-            rag_system.run_interactive()
-        
     except Exception as e:
         logger.error(f"系统运行出错: {e}")
         print(f"系统错误: {e}")
