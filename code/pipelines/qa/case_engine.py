@@ -79,6 +79,17 @@ class CaseAnalyst:
 
         if use_structured:
             structured = self._run_structured_query(user_input)
+
+            if not structured.records:
+                logger.warning("Structured query yielded no results, falling back to semantic search.")
+                semantic_docs = self._semantic_search(user_input, None)
+                return CaseResult(
+                    mode="semantic_fallback",
+                    records=[],
+                    documents=semantic_docs,
+                    query_expr=structured.query_expr,
+                )
+
             if semantic_needed and structured.documents:
                 # Hybrid: semantic re-ranking within structured subset
                 semantic_docs = self._semantic_search(user_input, structured.documents)
@@ -141,7 +152,7 @@ class CaseAnalyst:
         banned = ["__", "import", "eval", "exec", "os.", "sys.", "@", "open("]
         if any(b in lowered for b in banned):
             return False
-        return bool(re.fullmatch(r"[\w\s\'\"\&\|\<\>\=\.\-\(\)\,]+", expr))
+        return bool(re.fullmatch(r"[\w\s\'\"\&\|\<\>\=\.\-\(\)\,\~]+", expr))
 
     # ------------------------------------------------------------------
     # Semantic query branch

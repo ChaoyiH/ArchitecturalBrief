@@ -10,6 +10,9 @@ import threading
 import time
 from typing import Any, List, Optional, Sequence
 
+from google import genai
+from google.genai import types
+
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_community.chat_models.moonshot import MoonshotChat
 from langchain_community.chat_models import MiniMaxChat
@@ -48,6 +51,7 @@ class RateLimiter:
         "moonshot": 20,   # Kimi
         "minimax": 20,
         "gemini": 25,
+        "google": 30,
     }
     
     def __init__(self, provider: str, rpm: Optional[int] = None):
@@ -303,6 +307,32 @@ class GeminiChatModel(BaseChatModel):
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, lambda: self._generate(messages, stop=stop, **kwargs))
 
+
+class GoogleGenAIWrapper:
+    """轻量包装 Google GenAI v2 客户端，提供 invoke 接口。"""
+
+    def __init__(self, client: genai.Client, model_name: str, temperature: float, max_tokens: int) -> None:
+        self.client = client
+        self.model_name = model_name
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+
+    def invoke(self, prompt_text: str, config: Optional[types.GenerateContentConfig] = None) -> str:
+        cfg = config or types.GenerateContentConfig(
+            temperature=self.temperature,
+            max_output_tokens=self.max_tokens,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        )
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=[prompt_text],
+            config=cfg,
+        )
+        text = getattr(response, "text", None) or ""
+        if not text:
+            raise ValueError("Google GenAI 返回空响应")
+        return text
+
 class GenerationIntegrationModule:
     """生成集成模块 - 负责LLM集成和回答生成"""
     
@@ -377,7 +407,18 @@ class GenerationIntegrationModule:
                 max_tokens=self.max_tokens,
                 timeout=self.timeout,
             )
-            
+
+        elif self.provider == "google":
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("请设置 GEMINI_API_KEY 环境变量以使用 Google Gemini")
+
+            client = genai.Client(api_key=api_key)
+            # 直接使用原生 SDK，绕过 LangChain 以降低时延
+            self.llm = GoogleGenAIWrapper(client=client, model_name=self.model_name, temperature=self.temperature, max_tokens=self.max_tokens)
+            logger.info("LLM (google) 初始化完成，已使用原生 genai SDK")
+            return
+
         else:
             raise ValueError(f"不支持的LLM provider: {self.provider}")
         
@@ -404,7 +445,8 @@ class GenerationIntegrationModule:
         """
         context = self._build_context(context_docs)
         logger.debug(f"[RAG] docs={len(context_docs)}, context_len={len(context)}")
-        prompt = ChatPromptTemplate.from_template("""
+
+        template_text = """
 你是一个专业的中国建筑设计顾问。请根据以下提供的【建筑设计规范条文和技术资料】来回答用户的问题。
 
 你的回答必须：
@@ -416,7 +458,14 @@ class GenerationIntegrationModule:
 【建筑设计规范条文和技术资料】:
 {context}
 
-回答:""")
+回答:
+"""
+
+        if self.provider == "google":
+            prompt_text = template_text.format(question=query, context=context)
+            return self._generate_google_answer(prompt_text.strip())
+
+        prompt = ChatPromptTemplate.from_template(template_text)
 
         chain = (
             {"question": RunnablePassthrough(), "context": lambda _: context}
@@ -427,6 +476,14 @@ class GenerationIntegrationModule:
 
         response = chain.invoke(query)
         return response
+
+    def _generate_google_answer(self, prompt_text: str) -> str:
+        config = types.GenerateContentConfig(
+            temperature=self.temperature,
+            max_output_tokens=self.max_tokens,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        )
+        return self.llm.invoke(prompt_text, config=config)
 
 
     def _build_context(self, docs: List[Document], max_length: int = 4000) -> str:

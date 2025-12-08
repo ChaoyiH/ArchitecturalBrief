@@ -28,9 +28,12 @@ class Router:
         self,
         llm_provider: Optional[str] = None,
         llm_model: Optional[str] = None,
+        fast_llm_provider: str = "google",
+        fast_llm_model: str = "gemini-flash-latest",
     ) -> None:
-        self.llm_provider = llm_provider or DEFAULT_CONFIG.llm_provider
-        self.llm_model = llm_model or DEFAULT_CONFIG.llm_model
+        # 使用快速模型作为路由器默认
+        self.llm_provider = fast_llm_provider or llm_provider or DEFAULT_CONFIG.llm_provider
+        self.llm_model = fast_llm_model or llm_model or DEFAULT_CONFIG.llm_model
         self.llm_module = GenerationIntegrationModule(
             provider=self.llm_provider,
             model_name=self.llm_model,
@@ -39,20 +42,23 @@ class Router:
         )
 
     def classify(self, question: str) -> QAIntent:
-        prompt = ChatPromptTemplate.from_template(
-            """
+        template = """
 判断用户问题类型，输出以下之一：case / norm / hybrid。
 - case: 具体建筑案例、面积、地点、年份、项目名称、统计类排名。
 - norm: 建筑规范、标准、红线、强条、疏散、防火、指引。
 - hybrid: 同时涉及案例和规范或需要对比两者。
 用户问题: {question}
 仅输出类别单词。
-            """
-        )
-        chain = prompt | self.llm_module.llm | StrOutputParser()
+        """
 
         try:
-            result = chain.invoke({"question": question}).strip().lower()
+            if self.llm_provider == "google":
+                prompt_text = template.format(question=question).strip()
+                result = self.llm_module.llm.invoke(prompt_text).strip().lower()
+            else:
+                prompt = ChatPromptTemplate.from_template(template)
+                chain = prompt | self.llm_module.llm | StrOutputParser()
+                result = chain.invoke({"question": question}).strip().lower()
         except Exception as exc:  # noqa: BLE001
             logger.warning("路由 LLM 调用失败，使用启发式: %s", exc)
             return self._heuristic_route(question)
