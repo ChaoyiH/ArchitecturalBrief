@@ -378,6 +378,8 @@ class JSONRenderer:
             return self.render(data, level)
 
         # Extract blocks with safe defaults
+        concept_clusters = data.get("concept_clusters") or []
+        concept_summary = data.get("concept_summary") or data.get("summary_statement")
         sources = data.get("concept_sources") or {}
         theoretical_basis = sources.get("theoretical_basis")
         standard_mandates = sources.get("standard_mandates") or []
@@ -394,12 +396,28 @@ class JSONRenderer:
 
         lines: List[str] = []
 
-        # 1) 理念来源
-        if theoretical_basis:
+        # 1) 概念聚类/理念来源
+        if concept_summary:
+            lines.append(f"{h} 理念总述\n\n> {concept_summary.strip()}")
+        elif theoretical_basis:
             lines.append(f"{h} 理念来源\n\n> {theoretical_basis.strip()}")
 
-        # 2) 相关案例
-        if standard_mandates:
+        if concept_clusters:
+            cluster_header = "| 聚类名称 | 核心哲学 | 代表案例 | 证据摘录 |"
+            cluster_divider = "| --- | --- | --- | --- |"
+            cluster_rows: List[str] = []
+            for item in concept_clusters:
+                if not isinstance(item, dict):
+                    continue
+                name = item.get("cluster_name", "-")
+                philosophy = str(item.get("core_philosophy", "-")).replace("\n", "<br>")
+                examples = item.get("examples") or []
+                ex_str = "<br>".join(str(e) for e in examples) if examples else "-"
+                evidence = item.get("evidence_snippet", "-")
+                cluster_rows.append(f"| {name} | {philosophy} | {ex_str} | {evidence} |")
+            if cluster_rows:
+                lines.append(f"{h} 概念聚类\n\n" + "\n".join([cluster_header, cluster_divider, *cluster_rows]))
+        elif standard_mandates:
             table_lines: List[str] = []
             header = "| 来源 | 关注条款 | 内容 |"
             divider = "| --- | --- | --- |"

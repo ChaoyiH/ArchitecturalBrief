@@ -1,4 +1,4 @@
-"""Design Concept RAG pipeline utilities."""
+﻿"""Design Concept RAG pipeline utilities."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from core.generation_integration import GenerationIntegrationModule
 logger = logging.getLogger(__name__)
 
 
+# ===================== Data containers & ETL =====================
 @dataclass
 class DesignConceptDocument:
     """Lightweight container describing extracted concept text and metadata."""
@@ -34,9 +35,9 @@ class DesignConceptDocument:
 
 
 class DesignConceptETL:
-    """Extracts semantic fields for design concepts from heterogeneous data sources."""
+    """Extract semantic fields for design concepts from heterogeneous data sources."""
 
-    TARGET_ZLJ_SECTIONS = {"### 展陈设计要求", "### 环境与景观"}
+    TARGET_ZLJ_SECTIONS = {"### 展陈设计要求", "### 环境与场景"}
 
     def __init__(self, config: DesignConceptConfig):
         self.config = config
@@ -50,7 +51,7 @@ class DesignConceptETL:
         docs.extend(self._load_zlj_sections(self.config.knowledge_bwg_path))
 
         self.documents = [d.to_document() for d in docs if d.content.strip()]
-        logger.info("设计理念ETL完成，共提取 %d 条语义单元", len(self.documents))
+        logger.info("设计理念ETL完成，共提取 %d 条文本片段", len(self.documents))
         return self.documents
 
     def _load_structured_json(self, folder: str, source_type: str) -> List[DesignConceptDocument]:
@@ -207,6 +208,7 @@ class DesignConceptETL:
         return None
 
 
+# ===================== Vector store =====================
 class DesignConceptVectorStore:
     """FAISS-backed semantic index for design concept documents."""
 
@@ -223,12 +225,12 @@ class DesignConceptVectorStore:
             self.vectorstore = FAISS.load_local(
                 str(index_dir),
                 self.embedding,
-                allow_dangerous_deserialization=True
+                allow_dangerous_deserialization=True,
             )
             logger.info("已加载设计理念向量索引: %s", index_dir)
             return True
         except Exception as exc:
-            logger.warning("加载设计理念向量索引失败，将重新构建: %s", exc)
+            logger.warning("加载设计理念索引失败，将重建: %s", exc)
             return False
 
     def build(self, documents: Sequence[Document]) -> None:
@@ -237,10 +239,10 @@ class DesignConceptVectorStore:
 
         index_dir = Path(self.config.index_save_path)
         index_dir.mkdir(parents=True, exist_ok=True)
-        logger.info("正在构建设计理念向量索引（文档=%d）...", len(documents))
+        logger.info("正在构建设计理念向量索引（文档数=%d）...", len(documents))
         self.vectorstore = FAISS.from_documents(list(documents), self.embedding)
         self.vectorstore.save_local(str(index_dir))
-        logger.info("设计理念索引保存至: %s", index_dir)
+        logger.info("设计理念索引已保存至 %s", index_dir)
 
     def ensure_ready(self, documents_loader, rebuild: bool = False) -> None:
         if not rebuild and self.load():
@@ -295,10 +297,10 @@ class DesignConceptVectorStore:
         return True
 
 
+# ===================== Prompt builders =====================
 class DesignConceptPromptBuilder:
     """Builds structured prompts for the design concept JSON workflow."""
 
-    
     def build_concept_sourcing_prompt(
         self,
         project_name: str,
@@ -307,27 +309,32 @@ class DesignConceptPromptBuilder:
     ) -> Dict[str, str]:
         context_block = self._format_context(retrieved_docs)
         context_block_safe = context_block.replace("{", "{{").replace("}", "}}")
+
         system_prompt = (
-            "你是一名熟悉中国《科学技术馆建设标准》《博物馆建筑设计规范》的建筑策划顾问。\n"
-            "目标：为项目“{project_name}”提炼设计依据，严格区分【规范事实】与【分析推演】。\n"
-            "请优先引用 Context 中的 GB/规范文本（标注为 [Standard Mandate]），并确保每条均为原文摘录。"
+            "你是一名数据驱动的建筑策划分析师，擅长从案例语料中提炼设计理念。\n"
+            "目标：基于检索到的案例形成 3-5 个概念 Archetype，强调语料证据而非规范条文。\n"
             "输出必须为简体中文；如检索内容为英文需翻译为专业中文术语。"
-        ).format(
-            project_name=project_name,
-            project_features=project_features or "（未提供特征）",
         )
+
         user_prompt = (
-            "从下方 Context 中检索规范与案例，生成 JSON（必须可 json.loads）：\n"
+            "请分析 Context 中的案例设计理念，聚类为 3-5 个 Archetype，并给出每类的核心哲学与代表案例。\n"
+            "严格输出 JSON（可被 json.loads）：\n"
             "{{{{\n"
-            "  \"standard_mandates\": [\n"
-            "    {{{{\"source\": \"规范名称\", \"clause\": \"条款编号/标题\", \"content\": \"原文摘录\"}}}}\n"
+            "  \"concept_clusters\": [\n"
+            "    {{{{\n"
+            "      \"cluster_name\": \"隐喻叙事/生态融合/科技表达 等\",\n"
+            "      \"core_philosophy\": \"50-80字中文概述，结合案例证据\",\n"
+            "      \"examples\": [\"案例A (年份, 城市)\", \"案例B (年份, 城市)\", \"案例C\"],\n"
+            "      \"evidence_snippet\": \"引用 Context 原文短句\"\n"
+            "    }}}}\n"
             "  ],\n"
-            "  \"theoretical_basis\": \"基于建筑类型学/叙事/场所精神的分析（若缺失写 Not Specified）\"\n"
+            "  \"summary_statement\": \"20-40字中文总结，说明这些理念对本项目的启发\"\n"
             "}}}}\n\n"
             "要求：\n"
-            "- 仅输出 JSON，不要解释；\n"
-            "- standard_mandates 至少2条；若未找到具体条文，可根据“标准规范”或“规范性参考”上下文**推断**设计原则，提炼其意图填入 clause/content，Source 可用具体标准名；若无明确标准名，用“通用建筑设计准则”；\n"
-            "- Content 优先用 Context 原文片段（50-120字）；若为推断，请清晰描述规范意图；\n"
+            "- 仅输出 JSON，不要解释或添加 Markdown；\n"
+            "- 每个 cluster 至少列出 3 个案例引用，引用 Context 中真实案例名称，可含年份/城市；\n"
+            "- evidence_snippet 必须来自 Context 原文；\n"
+            "- 允许结合语义推断，但必须基于 Context 证据；禁止 Not Specified；\n"
             "- 输出必须为简体中文。\n\n"
             "Context:\n{context_block}".format(context_block=context_block_safe)
         )
@@ -342,22 +349,19 @@ class DesignConceptPromptBuilder:
         context_block = self._format_context(benchmark_docs)
         context_block_safe = context_block.replace("{", "{{").replace("}", "}}")
         system_prompt = (
-            "You are an architectural historian conducting a forensic analysis. Do NOT summarize.\n"
+            "你是一名数据驱动的建筑策划顾问，擅长发现与项目背景最相似的案例。\n"
             "Project: {project_name}. Features: {project_features}.\n"
-            "From Context, extract **facts** and structured details. If a field is missing, write 'Not Specified'."
-            " CRITICAL: Output must be in Simplified Chinese; translate any English context into professional Chinese architectural terminology."
-        ).format(
-            project_name=project_name,
-            project_features=project_features or "(not provided)",
-        )
+            "必须输出简体中文；如 Context 为英文需翻译。"
+        ).format(project_name=project_name, project_features=project_features or "(not provided)")
+
         user_prompt = (
-            "Output JSON array (len=3) strictly: \n"
-            "[\n  {{{{\n    \"case_name\": \"...\",\n    \"metadata\": {{{{\"architect\": \"...\", \"year\": \"...\", \"location\": \"城市, 国家\"}}}},\n    \"similarity_logic\": \"为何相似，规模/气候/区位\",\n    \"design_details\": {{{{\n      \"form_logic\": [\"至少3条：隐喻/几何/体量关系\"],\n      \"materiality\": [\"至少2条：幕墙/结构/生态技术\"],\n      \"spatial_features\": [\"至少3条：中庭/流线/界面\"]\n    }}}},\n    \"evidence_snippet\": \"引用 Context 中的原文句子\"\n  }}}}\n]\n\n"
-            "Instructions:\n"
-            "1. Identify Architect & Year explicitly (Fact)，尽力从文本中提取建筑师/年份/地点；出现“completed in 2015”则提取年份；“位于上海中心”则提取上海。仅在完全缺失时用 Not Specified。\n"
-            "2. form_logic: metaphors/geometry/volume; materiality: facade+structure+ecotech; spatial_features: atrium/circulation/openings.\n"
-            "3. evidence_snippet must be a quoted sentence from Context.\n"
-            "4. Use bullet-like short items, no long paragraphs.\n\n"
+            "请从 Context 中挑选 5-8 个与项目背景（如黄河/滨水/规模/色彩/叙事/生态/科技表达等）概念相似的案例，输出 JSON 数组：\n"
+            "[\n  {{{{\n    \"case_name\": \"...\",\n    \"metadata\": {{{{\"architect\": \"...\", \"year\": \"...\", \"location\": \"城市, 国家\"}}}},\n    \"similarity_logic\": \"明确说明概念/场地/材质/体量的相似点，至少2个要点\",\n    \"design_details\": {{{{\n      \"form_logic\": [\"隐喻/几何/体量关系，至少2条\"],\n      \"materiality\": [\"幕墙/结构/生态技术，至少2条\"],\n      \"spatial_features\": [\"流线/界面/公共空间，至少2条\"]\n    }}}},\n    \"evidence_snippet\": \"引用 Context 原文句子\"\n  }}}}\n]\n\n"
+            "要求：\n"
+            "- 仅输出 JSON，不要解释；\n"
+            "- 务必提取 architect / year / location，有线索就填，完全缺失才写 Not Specified；\n"
+            "- similarity_logic 必须与项目特征紧密相关，避免泛泛而谈；\n"
+            "- 全部用简体中文。\n\n"
             "Context:\n{context_block}".format(context_block=context_block_safe)
         )
         return {"system_prompt": system_prompt, "user_prompt": user_prompt}
@@ -371,26 +375,28 @@ class DesignConceptPromptBuilder:
         context_block = self._format_context(trend_docs)
         context_block_safe = context_block.replace("{", "{{").replace("}", "}}")
         system_prompt = (
-            "你是一名关注科普建筑前沿趋势的策划专家。\n"
-            "请输出结构化 JSON，显式区分证据与分析。"
+            "你是一名数据驱动的策展分析师。\n"
+            "任务：仅基于 Context 中 2015 年后的案例，总结新兴设计趋势（不引用预设套路）。\n"
+            "输出必须为简体中文；如 Context 为英文需翻译。"
         )
+
         user_prompt = (
-            "输出 JSON：\n"
+            "请仅基于 Context（优先 2015 年后的案例）归纳 3 条新兴趋势，输出 JSON：\n"
             "{{{{\n"
             "  \"trend_list\": [\n"
             "    {{{{\n"
             "      \"trend_name\": \"...\",\n"
-            "      \"description\": \"50-100字\",\n"
+            "      \"description\": \"50-100字中文描述\",\n"
             "      \"evidence_cases\": [\"案例A (年份)\", \"案例B (年份)\"],\n"
             "      \"evidence_snippet\": \"Context 原文摘录\"\n"
             "    }}}}\n"
             "  ],\n"
-            "  \"innovative_suggestions\": [\"建议1（含参考依据）\", \"建议2\"]\n"
+            "  \"innovative_suggestions\": [\"基于趋势的项目化建议1\", \"建议2\"]\n"
             "}}}}\n\n"
             "要求：\n"
-            "- 若找不到年份或案例名称，填 Not Specified；\n"
-            "- evidence_snippet 必须引用 Context 原文；\n"
-            "- description 用要点式短句，不要长段落。\n\n"
+            "- 每条趋势需至少 2 个案例支撑；\n"
+            "- 仅使用 Context 中出现的案例，禁止凭空假设；\n"
+            "- 全部用简体中文。\n\n"
             "Context:\n{context_block}".format(context_block=context_block_safe)
         )
         return {"system_prompt": system_prompt, "user_prompt": user_prompt}
@@ -403,31 +409,32 @@ class DesignConceptPromptBuilder:
         benchmark_struct: List[Dict[str, Any]],
         trend_struct: Dict[str, Any],
     ) -> Dict[str, str]:
-        """构建最终 JSON prompt，匹配高密度 Schema。"""
+        """Build the final aggregation prompt matching the updated schema."""
+
         def escape_braces(s: str) -> str:
             return s.replace("{", "{{").replace("}", "}}")
 
         schema_description = (
-            '{{{{"concept_sources": {{{{"standard_mandates": ["..."], "theoretical_basis": "..."}}}}, '
+            '{{{{"concept_clusters": [{{{{"cluster_name": "...", "core_philosophy": "...", "examples": ["..."], "evidence_snippet": "..."}}}}], '
+            '"concept_summary": "...", '
             '"benchmarking_cases": [{{{{"case_name": "...", "metadata": {{{{"architect": "...", "year": "...", "location": "..."}}}}, "similarity_logic": "...", "design_details": {{{{"form_logic": ["..."], "materiality": ["..."], "spatial_features": ["..."]}}}}, "evidence_snippet": "..."}}}}], '
-            '"design_trends": {{{{"trend_list": [{{{{"trend_name": "...", "evidence_cases": ["..."], "description": "..."}}}}], "innovative_suggestions": ["..."]}}}}, '
-            '"final_concept_proposal": "..."}}}}'
+            '"design_trends": {{{{"trend_list": [{{{{"trend_name": "...", "evidence_cases": ["..."], "description": "...", "evidence_snippet": "..."}}}}], "innovative_suggestions": ["..."]}}}}}}}}'
         )
 
         system_prompt = (
-            "你是一名严谨的建筑策划顾问，整理并输出严格符合下述 Schema 的 JSON。\n"
-            "- 仅输出 JSON 对象字符串，可被 json.loads 解析；\n"
-            "- 保留上游的所有案例与证据；\n"
-            "- 不要省略字段，缺失请填 Not Specified。\n\n"
+            "你是一名严谨的建筑策划专家，请将中间结果汇总为最终 JSON，严格匹配下述 Schema。\n"
+            "- 仅输出可被 json.loads 的 JSON 字符串；\n"
+            "- 保留已有案例与证据，不要虚构；\n"
+            "- 缺失字段用 Not Specified。\n\n"
             "Schema: {schema}"
         ).format(schema=schema_description)
 
         user_prompt = (
             "当前项目：{project_name} | 特征：{project_features}\n\n"
-            "[溯源-结构化结果]\n{concept_struct}\n\n"
+            "[概念聚类-结构化结果]\n{concept_struct}\n\n"
             "[对标-结构化结果]\n{benchmark_struct}\n\n"
             "[趋势-结构化结果]\n{trend_struct}\n\n"
-            "请直接输出最终 JSON，确保字段与层级完全匹配 Schema。"
+            "请直接输出最终 JSON，字段与层级严格匹配 Schema。"
         ).format(
             project_name=escape_braces(project_name),
             project_features=escape_braces(project_features) if project_features else "未提供",
@@ -439,7 +446,7 @@ class DesignConceptPromptBuilder:
 
     def _format_context(self, docs: Sequence[Document]) -> str:
         if not docs:
-            return "Context:\n（暂无检索案例，可结合行业知识自行补充对标与趋势。）"
+            return "Context:\n(暂无检索案例，可结合行业知识进行推演)"
 
         formatted: List[str] = []
         for idx, doc in enumerate(docs, 1):
@@ -457,9 +464,9 @@ class DesignConceptPromptBuilder:
         snippet = snippet.replace("\n", " ")
         snippet = snippet[:600] + "..." if len(snippet) > 600 else snippet
         return (
-            f"[{year}] {name}（{location} | {typology} | 来源:{source_label}）\n"
+            f"[{year}] {name}（{location} | {typology} | 来源:{source_label})\n"
             f"{snippet}\n"
-            "—— 请引用此案例名称进行对标"
+            "——请引用此案例名称进行对标"
         )
 
     @staticmethod
@@ -471,8 +478,8 @@ class DesignConceptPromptBuilder:
             "completionYear",
             "year_completed",
             "built_year",
-            "建成时间",
-            "建成年份",
+            "竣工时间",
+            "竣工年份",
         )
         for field in year_fields:
             value = metadata.get(field)
@@ -489,6 +496,7 @@ class DesignConceptPromptBuilder:
         return "未知年份"
 
 
+# ===================== Generator & graph orchestration =====================
 class DesignConceptGenerator:
     """High-level facade that orchestrates ETL, graph-based workflow, and JSON generation."""
 
@@ -499,10 +507,9 @@ class DesignConceptGenerator:
         self.prompt_builder = DesignConceptPromptBuilder()
         self._llm_module: Optional[GenerationIntegrationModule] = None
 
-        # 在生成器内部维护一个简单的状态字典，供 LangGraph 使用
         self._graph = self._build_graph()
 
-    # ========== LLM 与索引基础设施 ==========
+    # ---------- LLM & index helpers ----------
     def ensure_index(self, rebuild: bool = False) -> None:
         self.vector_store.ensure_ready(self.etl.load_documents, rebuild=rebuild)
 
@@ -526,7 +533,6 @@ class DesignConceptGenerator:
 
     @staticmethod
     def _strip_json_markers(text: str) -> str:
-        """Remove common markdown fences around JSON payloads."""
         cleaned = text.strip()
         for pattern in [r"^```json\s*(.*)```$", r"^```\s*(.*)```$"]:
             m = re.match(pattern, cleaned, flags=re.DOTALL | re.IGNORECASE)
@@ -544,29 +550,26 @@ class DesignConceptGenerator:
             logger.warning("JSON 解析失败，返回 None")
             return None
 
-    # ========== LangGraph 状态定义 (TypedDict) ==========
+    # ---------- LangGraph state definition ----------
     class _GraphState(TypedDict, total=False):
-        """Graph state as TypedDict for LangGraph incremental updates."""
         project_name: str
         project_features: str
         user_project_info: str
-        # 检索结果
         retrieved_sources: List[Document]
         retrieved_benchmarks: List[Document]
         retrieved_trends: List[Document]
-        # 中间结构化结果
         concept_struct: Dict[str, Any]
         benchmark_struct: List[Dict[str, Any]]
         trend_struct: Dict[str, Any]
-        # 最终 JSON
         final_json: Optional[Dict[str, Any]]
 
-    # ========== LangGraph 节点实现 ==========
+    # ---------- Graph nodes ----------
     def _node_concept_sourcing(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
-        """溯源节点：只返回需要更新的字段。"""
         self._ensure_llm()
-        query = "科学技术馆 设计理念 来源 标准 规范"
-        contexts = self.vector_store.search(query, top_k=self.config.top_k or 12, filters=None)
+        query_parts = [state["project_name"], state.get("project_features", ""), "设计理念 案例 概念 科技馆"]
+        query = " ".join([p for p in query_parts if p]).strip()
+        contexts = self.vector_store.search(query, top_k=max(self.config.top_k or 12, 20), filters=None)
+
         prompt = self.prompt_builder.build_concept_sourcing_prompt(
             state["project_name"],
             state.get("project_features", ""),
@@ -580,30 +583,22 @@ class DesignConceptGenerator:
         raw = chain.invoke({}) or ""
         parsed = self._safe_json_loads(str(raw))
         concept_struct: Dict[str, Any] = {
-            "standard_mandates": [],
-            "theoretical_basis": "Not Specified",
+            "concept_clusters": [],
+            "summary_statement": "",
         }
         if isinstance(parsed, dict):
-            mandates = parsed.get("standard_mandates")
-            if isinstance(mandates, list):
-                concept_struct["standard_mandates"] = mandates
-            basis = parsed.get("theoretical_basis")
-            if isinstance(basis, str) and basis.strip():
-                concept_struct["theoretical_basis"] = basis.strip()
-        if not concept_struct["standard_mandates"]:
-            fallback = {
-                "source": "Not Specified",
-                "clause": "Not Specified",
-                "content": "Not Specified",
-            }
-            concept_struct["standard_mandates"] = [fallback, fallback]
+            clusters = parsed.get("concept_clusters")
+            if isinstance(clusters, list):
+                concept_struct["concept_clusters"] = clusters
+            summary = parsed.get("summary_statement")
+            if isinstance(summary, str):
+                concept_struct["summary_statement"] = summary.strip()
         return {
             "retrieved_sources": contexts,
             "concept_struct": concept_struct,
         }
 
     def _node_benchmarking(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
-        """对标节点：只返回需要更新的字段。"""
         self._ensure_llm()
         user_project_info = state.get("user_project_info", "")
         project_features = state.get("project_features", "")
@@ -611,18 +606,18 @@ class DesignConceptGenerator:
 
         target_area = self._extract_numeric_area(user_project_info)
         area_filters = self._build_area_filter(target_area)
-        # location_keywords = self._extract_location_keywords(user_project_info)  # reserved for future
 
         filters: Dict[str, object] = {}
         if area_filters:
             filters.update(area_filters)
 
         query = user_project_info or project_features or project_name
-        candidates = self.vector_store.search(query, top_k=self.config.top_k or 12, filters=filters)
+        search_k = max(self.config.top_k or 12, 25)
+        candidates = self.vector_store.search(query, top_k=search_k, filters=filters)
 
-        if len(candidates) < 3 and area_filters:
-            logger.info("对标检索结果不足，降级为仅按规模过滤")
-            candidates = self.vector_store.search(query, top_k=self.config.top_k or 12, filters=area_filters)
+        if len(candidates) < 5:
+            logger.info("对标检索结果不足，扩大数量并去除过滤")
+            candidates = self.vector_store.search(query, top_k=search_k, filters=None)
 
         prompt = self.prompt_builder.build_benchmarking_prompt(
             project_name,
@@ -645,14 +640,13 @@ class DesignConceptGenerator:
         }
 
     def _node_trend(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
-        """趋势节点：只返回需要更新的字段。"""
         self._ensure_llm()
-        all_query = "科技馆 科普 博物馆 设计 趋势 新馆"
-        all_docs = self.vector_store.search(all_query, top_k=32, filters=None)
-        recent_docs = self._filter_by_year(all_docs, recent_years=7)
-        if len(recent_docs) < 5:
-            logger.info("近7年案例不足，扩大到近10年")
-            recent_docs = self._filter_by_year(all_docs, recent_years=10)
+        all_query = f"{state['project_name']} 科技馆 设计 趋势 创新 案例"
+        all_docs = self.vector_store.search(all_query, top_k=max(self.config.top_k or 12, 40), filters=None)
+        recent_docs = self._filter_by_year(all_docs, recent_years=10)
+        if len(recent_docs) < 6:
+            logger.info("近年案例不足，使用全部检索结果")
+            recent_docs = all_docs
 
         prompt = self.prompt_builder.build_trend_prompt(
             state["project_name"],
@@ -681,21 +675,21 @@ class DesignConceptGenerator:
         }
 
     def _node_final_json(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
-        """最终 JSON 整合节点：纯 Python 拼接，无 LLM 调用。"""
         from datetime import datetime
-        
+
         concept_struct = state.get("concept_struct", {
-            "standard_mandates": [],
-            "theoretical_basis": "Not Specified",
+            "concept_clusters": [],
+            "summary_statement": "",
         })
         benchmark_struct = state.get("benchmark_struct", [])
         trend_struct = state.get("trend_struct", {
             "trend_list": [],
             "innovative_suggestions": [],
         })
-        
+
         final_json = {
-            "concept_sources": concept_struct,
+            "concept_clusters": concept_struct.get("concept_clusters", []),
+            "concept_summary": concept_struct.get("summary_statement", ""),
             "benchmarking_cases": benchmark_struct,
             "design_trends": trend_struct,
             "generated_at": datetime.now().isoformat(),
@@ -703,10 +697,9 @@ class DesignConceptGenerator:
         return {"final_json": final_json}
 
     def _node_init(self, state: "DesignConceptGenerator._GraphState") -> Dict[str, Any]:
-        """入口节点，用于支持后续节点并行执行。"""
         return {}
 
-    # ========== Graph 构建与运行 ==========
+    # ---------- Graph build ----------
     def _build_graph(self):
         graph = StateGraph(self._GraphState)
         graph.add_node("init", self._node_init)
@@ -715,7 +708,6 @@ class DesignConceptGenerator:
         graph.add_node("trend", self._node_trend)
         graph.add_node("final_json", self._node_final_json)
 
-        # 入口后并行跑三个工作节点，最后汇总到 JSON
         graph.set_entry_point("init")
         graph.add_edge("init", "concept_sourcing")
         graph.add_edge("init", "benchmarking")
@@ -727,7 +719,7 @@ class DesignConceptGenerator:
 
         return graph.compile()
 
-    # ========== 外部调用接口 ==========
+    # ---------- Public API ----------
     def generate(
         self,
         project_name: str,
@@ -735,14 +727,11 @@ class DesignConceptGenerator:
         user_project_info: Optional[str] = None,
         dry_run: bool = False,
     ) -> Dict[str, object]:
-        """运行“溯源-对标-趋势-整合”四段式图，并返回 JSON 结果。"""
-
         if not project_name:
             raise ValueError("project_name 不能为空")
 
         self.ensure_index(rebuild=False)
 
-        # 初始状态为普通 dict，符合 TypedDict schema
         init_state: DesignConceptGenerator._GraphState = {
             "project_name": project_name,
             "project_features": project_features or "",
@@ -751,7 +740,6 @@ class DesignConceptGenerator:
 
         final_state = self._graph.invoke(init_state)
 
-        # LangGraph compiled graph 返回的是 dict 状态，而不是 dataclass 实例
         if isinstance(final_state, dict):
             json_result = final_state.get("final_json")
             if dry_run:
@@ -773,7 +761,6 @@ class DesignConceptGenerator:
                 },
             }
 
-        # 回退：若未来返回的是 dataclass 实例
         if dry_run:
             return {
                 "retrieved_sources": final_state.retrieved_sources,
@@ -793,12 +780,12 @@ class DesignConceptGenerator:
             },
         }
 
-    # ========== 辅助函数：面积、区位与年份解析 ==========
+    # ---------- Helper functions ----------
     @staticmethod
     def _extract_numeric_area(text: str) -> Optional[float]:
         if not text:
             return None
-        match = re.search(r"(\d+[\d,]*\.?\d*)\s*(平方米|m2|m²|sqm|平米|㎡)?", text)
+        match = re.search(r"(\d+[\d,]*\.?\d*)\s*(平方米|m2|sqm|平米|㎡)", text)
         if not match:
             return None
         num_str = match.group(1).replace(",", "")
@@ -822,7 +809,7 @@ class DesignConceptGenerator:
         if not text:
             return []
         keywords = []
-        for kw in ["滨水", "沿江", "河畔", "湖畔", "海边", "严寒", "寒冷", "南方", "北方", "山地", "丘陵"]:
+        for kw in ["黄河", "济南", "滨水", "科技", "生态", "文化"]:
             if kw in text:
                 keywords.append(kw)
         return keywords
@@ -832,12 +819,12 @@ class DesignConceptGenerator:
         if not docs:
             return []
         current_year = 2025
-        min_year = current_year - recent_years
+        min_year = max(2015, current_year - recent_years)
         filtered: List[Document] = []
         for doc in docs:
             meta = doc.metadata or {}
             year = None
-            for key in ["Year", "year", "opening_date", "开馆时间", "建成时间", "completion_year"]:
+            for key in ["Year", "year", "opening_date", "竣工时间", "建成时间", "completion_year"]:
                 value = meta.get(key)
                 if not value:
                     continue
