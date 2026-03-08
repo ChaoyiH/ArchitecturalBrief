@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output_file", help="Path to save JSON review output")
     parser.add_argument(
         "--sample",
-        default="5",
+        default=None,
         help="Number of personas to simulate (int) or 'all'",
     )
     return parser.parse_args()
@@ -47,7 +47,7 @@ def main() -> None:
 
     input_file = args.input_file or review_cfg.get("input_file")
     output_file = args.output_file or review_cfg.get("output_file")
-    sample_val = args.sample if args.sample is not None else review_cfg.get("sample", "5")
+    sample_val = args.sample if args.sample not in (None, "") else review_cfg.get("sample", "5")
 
     if not input_file:
         raise ValueError("input_file is required (via --input_file or config.review.input_file)")

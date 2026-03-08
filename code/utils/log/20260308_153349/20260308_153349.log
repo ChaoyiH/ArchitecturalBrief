@@ -1,0 +1,119 @@
+==== RUN START 2026-03-08T15:33:49.849938 ====
+CWD: D:\016_RAG\project\code
+PYTHON: 3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]
+CMD: design_generator.py --config .\design_full_config.yaml
+=================================
+
+🚀 启动并行模式（LangGraph 图引擎）
+⏳ 并行生成所有模块内容...
+2026-03-08 15:33:49,864 - pipelines.graph_engine.nodes - INFO - 预加载共享 embedding 模型...
+2026-03-08 15:33:49,864 - core.embedding_manager - INFO - 正在初始化共享 embedding 模型: BAAI/bge-small-zh-v1.5
+2026-03-08 15:33:49,865 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-zh-v1.5
+2026-03-08 15:33:56,850 - core.embedding_manager - INFO - 共享 embedding 模型初始化完成: BAAI/bge-small-zh-v1.5
+2026-03-08 15:33:56,850 - pipelines.graph_engine.nodes - INFO - embedding 模型预加载完成
+2026-03-08 15:33:56,858 - pipelines.graph_engine.graph - INFO - LangGraph 应用编译完成
+2026-03-08 15:33:56,860 - pipelines.graph_engine.nodes - INFO - 📚 开始执行: 业务科研/后勤模块
+2026-03-08 15:33:56,861 - pipelines.graph_engine.nodes - INFO - 🏛️ 开始执行: 综合大厅模块
+2026-03-08 15:33:56,864 - pipelines.graph_engine.nodes - INFO - 🎨 开始执行: 设计理念模块
+2026-03-08 15:33:56,867 - pipelines.graph_engine.nodes - INFO - 🖼️ 开始执行: 展览空间模块
+2026-03-08 15:33:56,874 - pipelines.graph_engine.nodes - INFO - 📐 开始执行: 经济技术指标模块
+2026-03-08 15:33:56,878 - pipelines.graph_engine.nodes - INFO - 📊 开始执行: 商业与运营模块
+2026-03-08 15:33:56,879 - pipelines.graph_engine.nodes - INFO - 🔬 开始执行: 科教活动模块
+2026-03-08 15:33:56,880 - pipelines.graph_engine.nodes - INFO - 🎬 开始执行: 特效影院模块
+2026-03-08 15:33:56,886 - faiss.loader - INFO - Loading faiss with AVX2 support.
+2026-03-08 15:33:56,912 - faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+2026-03-08 15:33:56,929 - pipelines.domains.design_concept_pipeline - INFO - 已加载设计理念向量索引: D:\016_RAG\project\code\vector_index\design_concepts
+2026-03-08 15:33:56,931 - pipelines.domains.operation_pipeline - INFO - 已加载商业/运营索引: D:\016_RAG\project\code\vector_index\business_research
+2026-03-08 15:33:56,932 - pipelines.domains.central_hub_pipeline - INFO - 已加载综合大厅索引: D:\016_RAG\project\code\vector_index\central_hub
+2026-03-08 15:33:56,935 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:56,939 - pipelines.domains.special_theater_pipeline - INFO - 已加载特效影院索引: D:\016_RAG\project\code\vector_index\special_theater
+2026-03-08 15:33:56,939 - pipelines.domains.exhibition_pipeline - INFO - 已加载展览空间索引: D:\016_RAG\project\code\vector_index\exhibition_space
+2026-03-08 15:33:56,940 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:56,942 - pipelines.domains.design_concept_pipeline - INFO - 已加载设计理念向量索引: D:\016_RAG\project\code\vector_index\design_concepts
+2026-03-08 15:33:56,943 - pipelines.domains.science_education_pipeline - INFO - 已加载科教活动索引: D:\016_RAG\project\code\vector_index\science_education
+2026-03-08 15:33:56,946 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:56,951 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:56,955 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:57,008 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:57,010 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:57,035 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:57,087 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:57,131 - utils.indicator_analyzer - INFO - 已加载 138 个有效案例
+2026-03-08 15:33:57,132 - pipelines.graph_engine.nodes - INFO - 📐 完成: 经济技术指标模块
+2026-03-08 15:33:57,132 - utils.indicator_analyzer - INFO - 已加载 138 个有效案例
+2026-03-08 15:33:57,177 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:57,197 - utils.data_preparation - INFO - 业务科研区数据抽取完成，共 195 条
+2026-03-08 15:33:57,206 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:57,270 - utils.indicator_analyzer - INFO - 已加载 138 个有效案例
+2026-03-08 15:33:57,272 - core.generation_integration - INFO - 正在初始化LLM: provider=gemini, model=gemini-3-pro-preview
+2026-03-08 15:33:58,713 - core.generation_integration - INFO - 速率限制器初始化: provider=gemini, rpm=25, min_interval=2.28s
+2026-03-08 15:33:58,713 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,713 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,713 - pipelines.domains.central_hub_pipeline - INFO - 初始化节点完成，准备并行执行三个分析分支
+2026-03-08 15:33:58,715 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,716 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 规模对标分析
+2026-03-08 15:33:58,718 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 趋势分析
+2026-03-08 15:33:58,719 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 形态溯源分析
+2026-03-08 15:33:58,722 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,723 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,727 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,729 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,741 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:33:58,750 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,789 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,804 - pipelines.domains.design_concept_pipeline - INFO - 近年案例不足，使用全部检索结果
+2026-03-08 15:33:58,825 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,833 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:33:58,851 - core.generation_integration - INFO - LLM (gemini) 初始化完成，已启用速率限制 (RPM=25)
+2026-03-08 15:34:01,005 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:03,290 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:05,578 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:07,849 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:10,132 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:12,419 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:14,693 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:16,975 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:19,263 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:21,538 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:23,821 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:24,648 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:26,077 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:26,110 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:27,109 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:27,152 - pipelines.graph_engine.nodes - INFO - 📚 完成: 业务科研/后勤模块
+2026-03-08 15:34:28,381 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:30,669 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:31,370 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:32,955 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-03-08 15:34:33,983 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:34,003 - pipelines.domains.central_hub_pipeline - INFO - 完成: 规模对标分析
+2026-03-08 15:34:36,968 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:39,920 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:39,938 - pipelines.domains.central_hub_pipeline - INFO - 完成: 形态溯源分析
+2026-03-08 15:34:43,205 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:43,207 - pipelines.domains.central_hub_pipeline - INFO - 完成: 趋势分析
+2026-03-08 15:34:43,208 - pipelines.domains.central_hub_pipeline - INFO - 开始执行: 最终整合 (Python-only)
+2026-03-08 15:34:43,208 - pipelines.graph_engine.nodes - INFO - 🏛️ 完成: 综合大厅模块
+2026-03-08 15:34:44,565 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:44,794 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:44,796 - pipelines.graph_engine.nodes - INFO - 📊 完成: 商业与运营模块
+2026-03-08 15:34:47,502 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:47,503 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:48,556 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:48,559 - pipelines.graph_engine.nodes - INFO - 🖼️ 完成: 展览空间模块
+2026-03-08 15:34:55,538 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:34:55,552 - pipelines.graph_engine.nodes - INFO - 🎬 完成: 特效影院模块
+2026-03-08 15:35:15,456 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:35:15,481 - pipelines.graph_engine.nodes - INFO - 🎨 完成: 设计理念模块
+2026-03-08 15:35:22,253 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent "HTTP/1.1 200 OK"
+2026-03-08 15:35:22,354 - pipelines.graph_engine.nodes - INFO - 🔬 完成: 科教活动模块
+2026-03-08 15:35:22,355 - pipelines.graph_engine.nodes - INFO - 📝 开始执行: 任务书组装
+2026-03-08 15:35:22,355 - pipelines.orchestration.brief_assembly_pipeline - INFO - 开始组装任务书（确定性模板拼接）...
+2026-03-08 15:35:22,356 - pipelines.orchestration.brief_assembly_pipeline - INFO - 任务书组装完成，长度: 15247 字符
+2026-03-08 15:35:22,356 - pipelines.graph_engine.nodes - INFO - 📝 完成: 任务书组装
+✅ 《济南科技馆 建筑设计任务书》已生成 -> D:\016_RAG\project\code\济南科技馆_设计任务书.md
+⏱️ 并行执行总耗时: 92.5 秒
+🧩 模块级 JSON 输出已生成 -> D:\016_RAG\project\code\济南科技馆_设计任务书.json
+
+=================================
+==== RUN END   2026-03-08T15:35:22.364237 ====

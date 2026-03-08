@@ -8,6 +8,6 @@ review:
   # Path to the markdown brief to review
   input_file: "D:\\016_RAG\\project\\code\\济南科技馆_设计任务书.md"
   # Where to save the JSON review output
-  output_file: "./review4.json"
+  output_file: "./review5.json"
   # Number of personas to sample (int) or "all"
-  sample: 5
+  sample: 50
