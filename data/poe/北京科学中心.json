@@ -1,0 +1,180 @@
+[
+  {
+    "museum_name": "北京科学中心",
+    "user_rating": 3,
+    "user_type": "其他",
+    "review_text": "人不多，像是设备展示，互动性不强，没看到课堂，适合小学生及初中生吧，高中以上会稍显无聊",
+    "poe_tags": {
+      "praised_features": [],
+      "pain_points": [
+        "像是设备展示，互动性不强",
+        "没看到课堂"
+      ],
+      "mentioned_spaces": [
+        "课堂"
+      ],
+      "mentioned_operations": []
+    }
+  },
+  {
+    "museum_name": "北京科学中心",
+    "user_rating": 3,
+    "user_type": "家长",
+    "review_text": "平日带孩子来这里，人也不少不大适合小宝宝，可玩性只能说还好",
+    "poe_tags": {
+      "praised_features": [],
+      "pain_points": [
+        "不大适合小宝宝",
+        "可玩性只能说还好"
+      ],
+      "mentioned_spaces": [],
+      "mentioned_operations": []
+    }
+  },
+  {
+    "museum_name": "北京科学中心",
+    "user_rating": 2,
+    "user_type": "家长",
+    "review_text": "好好的地段和环境，白瞎了！里面的建设和科技感也太差了，非常不值得来！我觉得应该让年轻人想一想怎么建设一下，增强趣味性和互动性、科技感和互动感不足，完全没起到唤起孩子兴趣的目的...感觉有点浪费时间，就几个家长带孩子来消磨时间、一点没有科技博物馆的热闹！",
+    "poe_tags": {
+      "praised_features": [
+        "好好的地段和环境"
+      ],
+      "pain_points": [
+        "里面的建设和科技感也太差了",
+        "科技感和互动感不足"
+      ],
+      "mentioned_spaces": [
+        "科技博物馆"
+      ],
+      "mentioned_operations": []
+    }
+  },
+  {
+    "museum_name": "北京科学中心",
+    "user_rating": 2,
+    "user_type": "其他",
+    "review_text": "时隔三十年，再次来看了下小时候的科技馆，北京科技馆旧馆现在已经改叫北京科技中心了。东西比以前少了很多，现在真的是没啥逛的了，可玩的设施少，而且很多还都是坏掉的无法用。真的对这里也就剩下怀旧了，没啥值得来的。",
+    "poe_tags": {
+      "praised_features": [],
+      "pain_points": [
+        "可玩的设施少",
+        "很多还都是坏掉的无法用"
+      ],
+      "mentioned_spaces": [
+        "科技馆",
+        "北京科技中心"
+      ],
+      "mentioned_operations": [
+        "设施维护"
+      ]
+    }
+  },
+  {
+    "museum_name": "北京科学中心",
+    "user_rating": 1,
+    "user_type": "家长",
+    "review_text": "课程地点安排混乱。10月6日10：30科普教室1和科普教室2的上课地点和课程内容颠倒，导致大量孩子堆积。科普教室2女服务人员临场应变能力差，内部讨论半天孩子依旧进不去，另外说好的提前15分钟进场到根本不开门，服务人员如早点开门也能早点解决问题，不必耽误孩子的上课时间。",
+    "poe_tags": {
+      "praised_features": [],
+      "pain_points": [
+        "上课地点安排混乱导致大量孩子堆积",
+        "提前15分钟进场到根本不开门"
+      ],
+      "mentioned_spaces": [
+        "科普教室"
+      ],
+      "mentioned_operations": [
+        "场地安排",
+        "进场开门"
+      ]
+    }
+  },
+  {
+    "museum_name": "北京科学中心",
+    "user_rating": 1,
+    "user_type": "其他",
+    "review_text": "这么大的场馆连坐的地方都没有，全程走下来谁都受不了，不想再来第二次，这么大的地方连卖水的都没，非常不方便，有太差劲了",
+    "poe_tags": {
+      "praised_features": [],
+      "pain_points": [
+        "这么大的场馆连坐的地方都没有",
+        "连卖水的都没"
+      ],
+      "mentioned_spaces": [
+        "场馆"
+      ],
+      "mentioned_operations": [
+        "售水餐饮"
+      ]
+    }
+  },
+  {
+    "museum_name": "北京科学中心",
+    "user_rating": 2,
+    "user_type": "其他",
+    "review_text": "免费，提升全民科技文明素养，这很好。但能不能稍微用心，维护下？不夸张的说，里面70%的设备有损坏，50%根本无法使用。\n这是个破烂+展板的博物馆，不是科技馆😫",
+    "poe_tags": {
+      "praised_features": [],
+      "pain_points": [
+        "里面70%的设备有损坏，50%根本无法使用",
+        "这是个破烂+展板的博物馆"
+      ],
+      "mentioned_spaces": [
+        "博物馆",
+        "科技馆"
+      ],
+      "mentioned_operations": [
+        "设备维护"
+      ]
+    }
+  },
+  {
+    "museum_name": "北京科学中心",
+    "user_rating": 1,
+    "user_type": "其他",
+    "review_text": "没有停车场 保安都很轴 不为民服务",
+    "poe_tags": {
+      "praised_features": [],
+      "pain_points": [
+        "没有停车场"
+      ],
+      "mentioned_spaces": [
+        "停车场"
+      ],
+      "mentioned_operations": []
+    }
+  },
+  {
+    "museum_name": "北京科学中心",
+    "user_rating": 1,
+    "user_type": "其他",
+    "review_text": "讲解机特特坑人，三十的讲解费连三十个知识点都没有，日怡瓦，退钱！",
+    "poe_tags": {
+      "praised_features": [],
+      "pain_points": [],
+      "mentioned_spaces": [],
+      "mentioned_operations": [
+        "讲解服务"
+      ]
+    }
+  },
+  {
+    "museum_name": "北京科学中心",
+    "user_rating": 1,
+    "user_type": "其他",
+    "review_text": "经常来，今天来了发现展厅里面的椅子已经撤掉了，不知道脑子是不是进水了，完全不考虑休息的地方么",
+    "poe_tags": {
+      "praised_features": [],
+      "pain_points": [
+        "展厅里面的椅子已经撤掉了，完全不考虑休息的地方"
+      ],
+      "mentioned_spaces": [
+        "展厅"
+      ],
+      "mentioned_operations": [
+        "休息设施布置"
+      ]
+    }
+  }
+]
